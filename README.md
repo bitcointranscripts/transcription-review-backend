@@ -18,3 +18,5 @@
 
 -   `http://localhost:8080/api/transcripts`
 -   `http://localhost:8080/api/users`
+
+### TODO:// Add swagger api documentation
