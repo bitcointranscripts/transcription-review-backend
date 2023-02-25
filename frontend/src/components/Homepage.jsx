@@ -1,9 +1,9 @@
 import React from 'react';
 
-import Cryptocurrencies from './Cryptocurrencies';
+import Transcripts from './Transcripts';
 
 const Homepage = () => (
-  <Cryptocurrencies />
+  <Transcripts />
   );
 
 export default Homepage;
