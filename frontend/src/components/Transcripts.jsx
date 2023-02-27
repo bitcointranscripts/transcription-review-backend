@@ -5,7 +5,7 @@ import { Card, Row, Col, Input, Button } from 'antd';
 import { useGetCryptosQuery } from '../services/cryptoApi';
 import Loader from './Loader';
 
-const Cryptocurrencies = ({ simplified }) => {
+const Transcripts = ({ simplified }) => {
   const count = simplified ? 10 : 100;
   const { data: cryptosList, isFetching } = useGetCryptosQuery(count);
   const [cryptos, setCryptos] = useState();
@@ -59,4 +59,4 @@ const Cryptocurrencies = ({ simplified }) => {
   );
 };
 
-export default Cryptocurrencies;
+export default Transcripts;
