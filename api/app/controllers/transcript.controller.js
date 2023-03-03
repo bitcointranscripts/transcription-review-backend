@@ -5,7 +5,8 @@ const Op = db.Sequelize.Op;
 // Create and Save a new Transcript
 exports.create = (req, res) => {
   // Validate request
-  if (!req.body.title) {
+  if (!req.body.content) {
+    //FIXME: Include title check in if condition
     res.status(400).send({
       message: "Content can not be empty!"
     });
@@ -14,8 +15,9 @@ exports.create = (req, res) => {
 
   // Create a Transcript
   const transcript = {
+    // We have to add title because for some reason having just content makes an update to an existing record insted of inserting a new one
     title: req.body.title,
-    details: req.body.details,
+    content: req.body.content
   };
 
   // Save Transcript in the database
@@ -31,7 +33,7 @@ exports.create = (req, res) => {
     });
 };
 
-// Retrieve all Transcript from the database.
+// Retrieve all Transcripts from the database.
 exports.findAll = (req, res) => {
   const title = req.query.title;
   var condition = title ? { title: { [Op.iLike]: `%${title}%` } } : null;
@@ -84,48 +86,6 @@ exports.update = (req, res) => {
     .catch(err => {
       res.status(500).send({
         message: "Error updating Transcript with id=" + id
-      });
-    });
-};
-
-// Delete a Transcript with the specified id in the request
-exports.delete = (req, res) => {
-  const id = req.params.id;
-
-  Transcript.destroy({
-    where: { id: id }
-  })
-    .then(num => {
-      if (num == 1) {
-        res.send({
-          message: "Transcript was deleted successfully!"
-        });
-      } else {
-        res.send({
-          message: `Cannot delete Transcript with id=${id}. Maybe Transcript was not found!`
-        });
-      }
-    })
-    .catch(err => {
-      res.status(500).send({
-        message: "Could not delete Transcript with id=" + id
-      });
-    });
-};
-
-// Delete all Transcript from the database.
-exports.deleteAll = (req, res) => {
-  Transcript.destroy({
-    where: {},
-    truncate: false
-  })
-    .then(nums => {
-      res.send({ message: `${nums} Transcript were deleted successfully!` });
-    })
-    .catch(err => {
-      res.status(500).send({
-        message:
-          err.message || "Some error occurred while removing all transcripts."
       });
     });
 };

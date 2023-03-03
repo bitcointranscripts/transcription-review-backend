@@ -3,14 +3,19 @@ module.exports = (sequelize, Sequelize) => {
     title: {
       type: Sequelize.STRING
     },
-    details: {
-      type: Sequelize.TEXT
+    content: {
+      type: Sequelize.JSON
     },
-    reviewedAt: {
-      type: Sequelize.DATE,
+    originalContent: {
+      type: Sequelize.JSON
     },
-    claimedAt: {
-      type: Sequelize.DATE,
+    status: {
+      type: Sequelize.ENUM('Q','NQ','RQ'),
+      allowNull: false,
+      defaultValue: 'NQ'
+    },
+    archivedAt: {
+      type: Sequelize.DATE
     }
   });
 
