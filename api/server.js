@@ -12,6 +12,9 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
 const db = require("./app/models");
+
+//force can be used in a development environment but not in production as it will drop the table first and create again, alter will match the existing model and change the table accordingly. Alter is also not advisable in production as will delete data of the columns removed or type changed, but if you want to avoid migrations and update your table this is the option.
+
 db.sequelize.sync()
   .then(() => {
     console.log("All models were synchronised successfully.");
@@ -31,6 +34,7 @@ app.get("/", (req, res) => {
 });
 
 require("./app/routes/user.routes")(app);
+require("./app/routes/review.routes")(app);
 require("./app/routes/transcript.routes")(app);
 
 
