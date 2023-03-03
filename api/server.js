@@ -12,7 +12,7 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
 const db = require("./app/models");
-db.sequelize.sync({ alter: true })
+db.sequelize.sync()
   .then(() => {
     console.log("All models were synchronised successfully.");
   })
