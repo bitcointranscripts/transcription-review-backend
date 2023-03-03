@@ -5,3 +5,7 @@ frontend/package-lock.json
 package-lock.json
 frontend/.env
 tags
+todos.*
+*.json
+*.md
+*.txt
