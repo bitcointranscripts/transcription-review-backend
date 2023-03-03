@@ -14,7 +14,8 @@ exports.create = (req, res) => {
 
   // Create a User
   const user = {
-    username: req.body.username,
+    githubUsername: req.body.username,
+    permissions: req.body.permissions
   };
 
   // Save User in the database
@@ -87,44 +88,3 @@ exports.update = (req, res) => {
     });
 };
 
-// Delete a User with the specified id in the request
-exports.delete = (req, res) => {
-  const id = req.params.id;
-
-  User.destroy({
-    where: { id: id }
-  })
-    .then(num => {
-      if (num == 1) {
-        res.send({
-          message: "User was deleted successfully!"
-        });
-      } else {
-        res.send({
-          message: `Cannot delete User with id=${id}. Maybe User was not found!`
-        });
-      }
-    })
-    .catch(err => {
-      res.status(500).send({
-        message: "Could not delete User with id=" + id
-      });
-    });
-};
-
-// Delete all User from the database.
-exports.deleteAll = (req, res) => {
-  User.destroy({
-    where: {},
-    truncate: false
-  })
-    .then(nums => {
-      res.send({ message: `${nums} User were deleted successfully!` });
-    })
-    .catch(err => {
-      res.status(500).send({
-        message:
-          err.message || "Some error occurred while removing all User."
-      });
-    });
-};
