@@ -20,11 +20,18 @@ db.sequelize = sequelize;
 
 db.users = require("./user.model.js")(sequelize, Sequelize);
 db.transcripts = require("./transcript.model.js")(sequelize, Sequelize);
+db.reviews = require("./review.model.js")(sequelize, Sequelize);
 
 
-db.users.hasMany(db.transcripts, {
-  foreignKey: { key: 'username', name: 'claimedBy'}
+//FIXME: User id and Transcription id in Review model cannot be empty
+db.users.hasMany(db.reviews, {
+  foreignKey: { key: 'id', name: 'userId'}
 });
-db.transcripts.belongsTo(db.users);
+db.reviews.belongsTo(db.users);
+
+db.transcripts.hasMany(db.reviews, {
+  foreignKey: { key: 'id', name: 'transcriptId'}
+});
+db.reviews.belongsTo(db.transcripts);
 
 module.exports = db;
