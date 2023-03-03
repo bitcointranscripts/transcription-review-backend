@@ -15,11 +15,5 @@ module.exports = app => {
   // Update a transcript with id
   router.put("/:id", transcripts.update);
 
-  // Delete a transcript with id
-  router.delete("/:id", transcripts.delete);
-
-  // Delete all transcripts
-  router.delete("/", transcripts.deleteAll);
-
   app.use("/api/transcripts", router);
 };
