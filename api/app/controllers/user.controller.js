@@ -88,3 +88,4 @@ exports.update = (req, res) => {
     });
 };
 
+//FIXME: Add an archive route in order to cater for archived(deleted) users  and filling the archivedAt field in the model. 
