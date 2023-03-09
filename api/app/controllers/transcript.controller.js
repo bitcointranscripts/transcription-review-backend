@@ -6,7 +6,7 @@ const Op = db.Sequelize.Op;
 exports.create = (req, res) => {
   // Validate request
   if (!req.body.content) {
-    //FIXME: Include title check in if condition
+    //FIXME: Include original content check in if condition
     res.status(400).send({
       message: "Content can not be empty!"
     });
@@ -16,7 +16,7 @@ exports.create = (req, res) => {
   // Create a Transcript
   const transcript = {
     // We have to add title because for some reason having just content makes an update to an existing record insted of inserting a new one
-    title: req.body.title,
+    originalContent: req.body.originalContent,
     content: req.body.content
   };
 

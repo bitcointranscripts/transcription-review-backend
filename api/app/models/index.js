@@ -29,9 +29,20 @@ db.users.hasMany(db.reviews, {
 });
 db.reviews.belongsTo(db.users);
 
+//FIXME: Should archiving transcripts only be done by admin users?
+//FIXME: Find out why archivedBy does not get inserted on posting
+db.users.hasMany(db.transcripts, {
+  foreignKey: { key: 'id', name: 'archivedBy'}
+});
+db.transcripts.belongsTo(db.users,{
+  foreignKey: { key: 'id', name: 'archivedBy'}
+});
+
 db.transcripts.hasMany(db.reviews, {
   foreignKey: { key: 'id', name: 'transcriptId'}
 });
 db.reviews.belongsTo(db.transcripts);
+
+
 
 module.exports = db;

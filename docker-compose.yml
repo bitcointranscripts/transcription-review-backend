@@ -32,18 +32,6 @@ services:
       DB_PASSWORD: 123
       DB_NAME: testdb
 
-  frontend:
-    container_name: client
-    build:
-      context: ./frontend
-      dockerfile: Dockerfile
-    volumes:
-      - ./src:/app/src
-    ports:
-      - "3000:3000"
-    depends_on:
-      - api
-
 volumes:
   db:
     driver: local
