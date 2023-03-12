@@ -1,0 +1,18 @@
+.more_button {
+  font-size: 10px;
+  font-weight: 800;
+  color: var(--chakra-colors-gray-400);
+  line-height: 1;
+  padding: 2px 5px;
+  border-radius: 0.4em;
+
+  &:hover {
+    background-color: var(--chakra-colors-gray-200);
+    color: var(--chakra-colors-gray-600);
+  }
+
+  &:active {
+    background-color: var(--chakra-colors-gray-600);
+    color: var(--chakra-colors-gray-200);
+  }
+}

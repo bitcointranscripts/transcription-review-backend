@@ -9,10 +9,10 @@
 ### Steps to set up
 
 - Clone the repository
+- Copy content from .env.example in frontend-next to .env
 - Inside the root directory ,run `docker-compose up -d`
 - Access the api here: `http://localhost:8080`
 - Access the frontend client here: `http://localhost:3000`
-
 
 ### Some endpoints to check out 
 
