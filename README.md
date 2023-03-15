@@ -16,13 +16,5 @@
 
 ### Some endpoints to check out 
 
-#### GET requests
-
--   `http://localhost:8080/api/transcripts`
--   `http://localhost:8080/api/users`
-
-### TODOS:
-- // Add swagger api documentation
-- // Set up the application on AWS
-- // Supply more meaningful data in the init.sql file
+- Access the endpoints documentation here: `http://localhost:8080/api/docs`
 

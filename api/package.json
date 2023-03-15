@@ -1,7 +1,7 @@
 {
   "name": "nodejs-express-sequelize-postgresql",
   "version": "1.0.0",
-  "description": "Node.js Rest Apis with Express, Sequelize & PostgreSQL",
+  "description": "Node.js Rest Apis For Transcription Queue project",
   "main": "server.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
@@ -14,14 +14,16 @@
     "api",
     "postgresql"
   ],
-  "author": "bezkoder",
+  "author": "nassersaazi",
   "license": "ISC",
   "dependencies": {
     "cors": "^2.8.5",
     "express": "^4.17.1",
     "pg": "^8.7.3",
     "pg-hstore": "^2.3.4",
-    "sequelize": "^6.21.1"
+    "sequelize": "^6.21.1",
+    "swagger-jsdoc": "^6.2.8",
+    "swagger-ui-express": "^4.6.2"
   },
   "devDependencies": {
     "moment": "^2.29.4",
