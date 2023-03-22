@@ -45,8 +45,6 @@ const SidebarContentEdit = ({
     <Box
       w="full"
       flex="1 1 30%"
-      top={14}
-      position="sticky"
       p={4}
       boxShadow="lg"
       borderRadius="lg"

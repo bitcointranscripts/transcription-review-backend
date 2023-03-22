@@ -22,7 +22,7 @@ const EditTranscript = ({
   update: (x: any) => void;
 }) => {
   return (
-    <Box w="full">
+    <Box flex="1 1 70%" w={{ base: "100%", md: "70%" }} display="flex" flexDirection="column">
       <Flex alignItems="center" justifyContent="space-between" my={2}>
         <Text>Transcription Text</Text>
         <Button
@@ -34,7 +34,6 @@ const EditTranscript = ({
         </Button>
       </Flex>
       <Box h="full" id="simplemde-container-controller">
-        {/* <SimpleMdeReact value={mdData} onChange={onChange} /> */}
         <MdEditor modelValue={mdData} onChange={update} language="en-US" />
       </Box>
     </Box>
