@@ -5,10 +5,8 @@ import {
   Button,
   Flex,
   Heading,
-  Icon,
   IconButton,
   Skeleton,
-  SkeletonText,
   Table,
   Tbody,
   Td,
@@ -20,16 +18,14 @@ import {
 import React, { useMemo } from "react";
 import { Transcript } from "../../../types";
 import TablePopover from "../TablePopover";
-import { SlPeople } from "react-icons/sl";
 import { TbReload } from "react-icons/tb";
-import { HiOutlineArrowSmUp } from "react-icons/hi";
-import { HiOutlineArrowSmDown } from "react-icons/hi";
 import styles from "./queueTable.module.scss";
 import {
   QueryObserverResult,
   RefetchOptions,
   RefetchQueryFilters,
 } from "react-query";
+import Link from "next/link";
 
 type Props = {
   data: Transcript[];
@@ -83,7 +79,7 @@ const tableStructure: TableStructure[] = [
     modifier: (data) => `${getCount(data.originalContent.body) ?? "-"} words`,
   },
   // { name: "bounty rate", type: "text-short", modifier: (data) => "N/A" },
-  { name: "", type: "action", modifier: (data) => "N/A" },
+  { name: "", type: "action", modifier: (data) => data.id },
 ];
 
 const QueueTable: React.FC<Props> = ({ data, isLoading, isError, refetch }) => {
@@ -268,11 +264,14 @@ const TableRow = ({ row, ts }: { row: Transcript; ts: TableStructure[] }) => {
   };
 
   const TableAction = ({ tableItem, row }: TableDataElement) => {
+    const linkId = tableItem.modifier(row);
     return (
       <Td>
-        <Button colorScheme="orange" size="sm">
-          Claim
-        </Button>
+        <Link href={`/transcripts/${linkId}`}>
+          <Button colorScheme="orange" size="sm">
+            Claim
+          </Button>
+        </Link>
       </Td>
     );
   };

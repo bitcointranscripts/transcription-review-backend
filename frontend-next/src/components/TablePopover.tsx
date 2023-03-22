@@ -22,7 +22,14 @@ const TablePopover: React.FC<Props> = ({ trigger, children, title }) => {
           <PopoverTrigger>
             <Box opacity={isOpen ? 0 : 1}>{trigger}</Box>
           </PopoverTrigger>
-          <PopoverContent w="auto" minW="100px" top="-50px" overflow="hidden" border={0} boxShadow="lg">
+          <PopoverContent
+            w="auto"
+            minW="100px"
+            top="-50px"
+            overflow="hidden"
+            border={0}
+            boxShadow="lg"
+          >
             {title ? (
               <PopoverHeader bgColor="blackAlpha.900" border={0}>
                 <Text

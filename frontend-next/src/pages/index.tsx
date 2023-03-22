@@ -4,6 +4,7 @@ import QueueTable from "@/components/queueTable/QueueTable";
 export default function Home() {
   const { data, isLoading, isRefetching, isError, refetch } =
     useTranscripts().transcripts;
+
   return (
     <>
       <QueueTable
