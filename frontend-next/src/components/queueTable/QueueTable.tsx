@@ -150,11 +150,11 @@ const QueueTable: React.FC<Props> = ({ data, isLoading, isError, refetch }) => {
               />
             ))
           ) : (
-            <Tr position="relative" h={10}>
+            <Tr position="relative" h={14}>
               <Td
                 position="absolute"
                 w="full"
-                top="50%"
+                // top="50%"
                 color="red.400"
                 textAlign="center"
               >

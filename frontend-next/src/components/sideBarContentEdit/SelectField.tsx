@@ -17,6 +17,8 @@ const SelectField = ({ name, data, editedData, updateData }: any) => {
       .substring(1, _data.length - 1)
       .replaceAll("'", "")
       .split(", ");
+  } else if (!Array.isArray(_data)) {
+    _data = [];
   }
   if (editedData.length) {
     _data = editedData;

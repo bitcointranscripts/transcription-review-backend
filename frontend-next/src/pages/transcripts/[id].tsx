@@ -13,7 +13,7 @@ type Props = {
 
 const TranscriptPage: NextPage<Props> = ({ data }) => {
   const { status } = useSession();
-  const [editedData, setEditedData] = useState(data.originalContent.body || "");
+  const [editedData, setEditedData] = useState(data.originalContent?.body ?? "");
   // if (status === "authenticated")
 
   if (status === "unauthenticated") {
