@@ -1,5 +1,5 @@
 import { dateFormatGeneral, getTimeLeftText } from "@/utils";
-import { Box, Flex, Input, Text } from "@chakra-ui/react";
+import { Box, Flex, Text } from "@chakra-ui/react";
 import Link from "next/link";
 import { useState } from "react";
 import { MdOutlineAccessTimeFilled } from "react-icons/md";
