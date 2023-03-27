@@ -1,5 +1,5 @@
 import { dateFormatGeneral, getTimeLeftText } from "@/utils";
-import { Box, Flex, Input, Text } from "@chakra-ui/react";
+import { Box, Flex, Text } from "@chakra-ui/react";
 import Link from "next/link";
 import { useState } from "react";
 import { MdOutlineAccessTimeFilled } from "react-icons/md";
@@ -45,8 +45,6 @@ const SidebarContentEdit = ({
     <Box
       w="full"
       flex="1 1 30%"
-      top={14}
-      position="sticky"
       p={4}
       boxShadow="lg"
       borderRadius="lg"
@@ -93,7 +91,7 @@ const SidebarContentEdit = ({
             Title
           </Text>
           <TextField
-            data={data.originalContent.title}
+            data={data.originalContent?.title ?? ""}
             editedData={editedTitle}
             updateData={updateTitle}
           />

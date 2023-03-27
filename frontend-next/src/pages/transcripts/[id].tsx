@@ -6,16 +6,31 @@ import React, { useState } from "react";
 import { Transcript } from "../../../types";
 import SidebarContentEdit from "@/components/sideBarContentEdit/SidebarContentEdit";
 import EditTranscript from "@/components/editTranscript/EditTranscript";
+import useTranscripts from "@/hooks/useTranscripts";
+import { useRouter } from "next/router";
 
 type Props = {
   data: Transcript;
 };
 
-const TranscriptPage: NextPage<Props> = ({ data }) => {
+const TranscriptPage = () => {
   const { status } = useSession();
-  const [editedData, setEditedData] = useState(data.originalContent.body || "");
-  // if (status === "authenticated")
+  const router = useRouter();
+  const { id } = router.query;
 
+  const { data, isLoading } = useTranscripts().SingleTranscript(Number(id));
+  const [editedData, setEditedData] = useState(
+    data?.originalContent?.body ?? ""
+  );
+
+  if (status === "loading") {
+    return (
+      <>
+        <h2>Authenticating...</h2>
+        <p>Please wait</p>
+      </>
+    );
+  }
   if (status === "unauthenticated") {
     return <h4>You have to Login to view this page</h4>;
   }
@@ -32,46 +47,56 @@ const TranscriptPage: NextPage<Props> = ({ data }) => {
   };
 
   return (
-    <Flex gap={6} w="full" flexDir={{ base: "column", md: "row" }}>
-      <SidebarContentEdit data={data}>
-        {(editedContent) => (
-          <Flex gap={2}>
-            <Button
-              size="sm"
-              colorScheme="orange"
-              variant="outline"
-              onClick={() => handleSave(editedContent)}
-            >
-              Save
-            </Button>
-            <Button
-              size="sm"
-              colorScheme="orange"
-              onClick={() => handleSubmit(editedContent)}
-            >
-              Submit
-            </Button>
-          </Flex>
-        )}
-      </SidebarContentEdit>
-      <EditTranscript data={data} mdData={editedData} update={setEditedData} />
-    </Flex>
+    <>
+      {isLoading ? (
+        <p> Loading...</p>
+      ) : (
+        <Flex gap={6} w="full" flexDir={{ base: "column", md: "row" }}>
+          <SidebarContentEdit data={data}>
+            {(editedContent) => (
+              <Flex gap={2}>
+                <Button
+                  size="sm"
+                  colorScheme="orange"
+                  variant="outline"
+                  onClick={() => handleSave(editedContent)}
+                >
+                  Save
+                </Button>
+                <Button
+                  size="sm"
+                  colorScheme="orange"
+                  onClick={() => handleSubmit(editedContent)}
+                >
+                  Submit
+                </Button>
+              </Flex>
+            )}
+          </SidebarContentEdit>
+          <EditTranscript
+            data={data}
+            mdData={editedData}
+            update={setEditedData}
+          />
+        </Flex>
+      )}
+    </>
   );
 };
 
-export const getServerSideProps: GetServerSideProps<{
-  data: Transcript;
-}> = async ({ params }) => {
-  const id = params?.id;
+// export const getServerSideProps: GetServerSideProps<{
+//   data: Transcript;
+// }> = async ({ params }) => {
+//   const id = params?.id;
 
-  const fetchedData = await fetch(`${process.env.BASE_URL}/transcripts/${id}`);
-  const data = await fetchedData.json();
+//   const fetchedData = await fetch(`${process.env.BASE_URL}/transcripts/${id}`);
+//   const data = await fetchedData.json();
 
-  return {
-    props: {
-      data,
-    },
-  };
-};
+//   return {
+//     props: {
+//       data,
+//     },
+//   };
+// };
 
 export default TranscriptPage;
