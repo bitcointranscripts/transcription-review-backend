@@ -1,0 +1,5 @@
+.customDatePicker {
+  border: 2px solid var(--chakra-colors-gray-300);
+  border-radius: 5px;
+  padding: 2px 5px;
+}

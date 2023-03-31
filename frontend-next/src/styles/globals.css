@@ -29,3 +29,7 @@ a {
 #simplemde-container-controller > div{
   height: 70vh;
 }
+
+.hide-editor .md-editor-input-wrapper {
+  display: none;
+}
