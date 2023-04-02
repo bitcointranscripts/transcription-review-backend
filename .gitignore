@@ -1,0 +1,15 @@
+node_modules
+frontend/node_modules
+frontend/.dockerignore
+frontend/package-lock.json
+package-lock.json
+frontend/.env
+tags
+todos.*
+*.md
+*.txt
+
+# Elastic Beanstalk Files
+.elasticbeanstalk/*
+!.elasticbeanstalk/*.cfg.yml
+!.elasticbeanstalk/*.global.yml

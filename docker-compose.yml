@@ -1,0 +1,47 @@
+version: "3.9"
+   
+services:
+  db:
+    image: postgres:latest
+    container_name: postgres
+    environment:
+      POSTGRES_USER: 'postgres'
+      POSTGRES_DB: 'testdb'
+      POSTGRES_PASSWORD: '123'
+    ports:
+      - '5433:5432'
+    expose:
+      - "5433"
+    volumes:
+      - db:/var/lib/postgresql/data
+      - ./init.sql:/docker-entrypoint-initdb.d/create_tables.sql
+  
+  api:
+    build:
+      context: ./api
+    volumes:
+      - ./api:/src
+    ports:
+      - "8080:8080"
+    depends_on:
+      - db
+    environment:
+      DB_HOST: db
+      DB_PORT: 5433
+      DB_USER: postgres
+      DB_PASSWORD: 123
+      DB_NAME: testdb
+
+  nginx:
+    image: nginx:latest
+    container_name: nginx
+    ports:
+      - "80:8080"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf
+    depends_on:
+      - api
+
+volumes:
+  db:
+    driver: local
