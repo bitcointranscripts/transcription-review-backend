@@ -13,7 +13,7 @@
   ],
   "author": "nassersaazi",
   "license": "ISC",
- "scripts": {
+  "scripts": {
     "start": "node server.js",
     "dev": "nodemon server.js"
   },
