@@ -1,8 +1,8 @@
 FROM node:16
 
-WORKDIR /usr/src/app/transcription
+WORKDIR /usr/src/app
 
-COPY package*.json ./
+COPY package*.json ./src/app
 
 RUN npm install --unsafe-perm=true --allow-root --legacy-peer-deps
 
