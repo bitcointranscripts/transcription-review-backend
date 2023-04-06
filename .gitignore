@@ -3,7 +3,8 @@ tags
 todos.*
 *.txt
 .env
-env.sh
+.env.production
+
 
 # Elastic Beanstalk Files
 .elasticbeanstalk/*
