@@ -1,8 +1,10 @@
 const express = require("express"),
   bodyParser = require("body-parser"),
   swaggerJsdoc = require("swagger-jsdoc"),
-  swaggerUi = require("swagger-ui-express");
+  swaggerUi = require("swagger-ui-express"),
+  dotenv = require("dotenv");
 
+dotenv.config();
 const cors = require("cors");
 
 const app = express();
@@ -63,7 +65,7 @@ const specs = swaggerJsdoc(options);
 app.use(
   "/api/docs",
   swaggerUi.serve,
-  swaggerUi.setup(specs,{explorer: true})
+  swaggerUi.setup(specs, { explorer: true })
 );
 
 // set port, listen for requests
