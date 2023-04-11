@@ -1,10 +1,11 @@
 const express = require("express"),
   bodyParser = require("body-parser"),
   swaggerJsdoc = require("swagger-jsdoc"),
-  swaggerUi = require("swagger-ui-express"),
-  dotenv = require("dotenv");
+  swaggerUi = require("swagger-ui-express");
+// const dotenv = require("dotenv");
 
-dotenv.config();
+// dotenv.config();
+
 const cors = require("cors");
 
 const app = express();
@@ -18,6 +19,8 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
 const db = require("./app/models");
+
+
 
 //force can be used in a development environment but not in production as it will drop the table first and create again, alter will match the existing model and change the table accordingly. Alter is also not advisable in production as will delete data of the columns removed or type changed, but if you want to avoid migrations and update your table this is the option.
 
@@ -33,6 +36,9 @@ const db = require("./app/models");
 // db.sequelize.sync({ force: true }).then(() => {
 //   console.log("Drop and re-sync db.");
 // });
+
+
+
 
 // simple route
 app.get("/", (req, res) => {
@@ -69,7 +75,7 @@ app.use(
 );
 
 // set port, listen for requests
-const PORT = process.env.PORT || 8080;
+const PORT = process.env.PORT;
 app.listen(PORT, () => {
   console.log(`Server is running on port ${PORT}.`);
 });
