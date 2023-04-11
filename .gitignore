@@ -3,8 +3,9 @@ tags
 todos.*
 *.txt
 .env
-.env.production
-
+.env.prod
+e.yml
+docker-compose-prod.yml
 
 # Elastic Beanstalk Files
 .elasticbeanstalk/*
