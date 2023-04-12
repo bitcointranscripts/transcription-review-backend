@@ -5,6 +5,15 @@ frontend/package-lock.json
 package-lock.json
 frontend/.env
 tags
-todos.*
 *.md
+todos.*
 *.txt
+.env
+.env.prod
+e.yml
+docker-compose-prod.yml
+
+# Elastic Beanstalk Files
+.elasticbeanstalk/*
+!.elasticbeanstalk/*.cfg.yml
+!.elasticbeanstalk/*.global.yml
