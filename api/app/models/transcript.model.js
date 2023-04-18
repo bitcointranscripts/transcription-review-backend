@@ -4,13 +4,18 @@ module.exports = (sequelize, Sequelize) => {
       type: Sequelize.JSON
     },
     originalContent: {
-      type: Sequelize.JSON
-      //FIXME: Don't allow null values for this field
+      type: Sequelize.JSON,
+      allowNull: false
+    },
+    transcriptHash: { // prevent a transcript from being uploaded more than once
+      type: Sequelize.STRING,
+      unique: true,
+      allowNull: false
     },
     status: {
       type: Sequelize.ENUM('queued','not queued','requeued'),
       allowNull: false,
-      defaultValue: 'not queued'
+      defaultValue: 'queued'
     },
     archivedAt: {
       type: Sequelize.DATE

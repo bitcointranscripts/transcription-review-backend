@@ -7,18 +7,38 @@ const Op = db.Sequelize.Op;
 exports.create = (req, res) => {
   // Validate request
   if (!req.body.content) {
-    //FIXME: Include original content check in if condition
     res.status(400).send({
-      message: "Content can not be empty!"
+      message: "Content cannot be empty!"
+    });
+    return;
+  }
+  
+  else if (!req.body.originalContent) {
+    res.status(400).send({
+      message: "Original Content cannot be empty!"
     });
     return;
   }
 
+  const getFirstFiveWords = (paragraph) => {
+    const words = paragraph.trim().split(/\s+/);
+    return words.slice(0, 5).join(' ');
+  };
+
+  const generateUniqueStr = () => {
+
+    const oc = req.body.originalContent;
+    const str = oc.title + getFirstFiveWords(oc.body); 
+    const transcriptHash = str.trim().toLowerCase();
+
+    return transcriptHash;
+  }
+
   // Create a Transcript
   const transcript = {
-    // We have to add title because for some reason having just content makes an update to an existing record insted of inserting a new one
     originalContent: req.body.originalContent,
-    content: req.body.content
+    content:req.body.content,
+    transcriptHash: generateUniqueStr()
   };
 
   // Save Transcript in the database

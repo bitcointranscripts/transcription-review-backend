@@ -2,9 +2,9 @@ const express = require("express"),
   bodyParser = require("body-parser"),
   swaggerJsdoc = require("swagger-jsdoc"),
   swaggerUi = require("swagger-ui-express");
-// const dotenv = require("dotenv");
+ const dotenv = require("dotenv");
 
-// dotenv.config();
+ dotenv.config();
 
 const cors = require("cors");
 
