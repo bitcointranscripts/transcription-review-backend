@@ -37,7 +37,7 @@ exports.create = (req, res) => {
   // Create a Transcript
   const transcript = {
     originalContent: req.body.originalContent,
-    content:req.body.content,
+    content: req.body.content,
     transcriptHash: generateUniqueStr()
   };
 
