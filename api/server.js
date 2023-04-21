@@ -1,7 +1,8 @@
-const express = require("express"),
-  bodyParser = require("body-parser"),
-  swaggerJsdoc = require("swagger-jsdoc"),
-  swaggerUi = require("swagger-ui-express");
+const express = require("express")
+const bodyParser = require("body-parser")
+const swaggerJsdoc = require("swagger-jsdoc")
+const  swaggerUi = require("swagger-ui-express");
+const {sequelize} = require("./app/models/")
 
 
 const cors = require("cors");
@@ -16,7 +17,16 @@ app.use(express.json());
 // parse requests of content-type - application/x-www-form-urlencoded
 app.use(express.urlencoded({ extended: true }));
 
-const db = require("./app/models");
+
+//check if sequelize connect properly
+sequelize
+  .authenticate()
+  .then(() => {
+    console.log('Connection has been established successfully.');
+  })
+  .catch(err => {
+    console.error('Unable to connect to the database:', err);
+  });
 
 
 //force can be used in a development environment but not in production as it will drop the table first and create again, alter will match the existing model and change the table accordingly. Alter is also not advisable in production as will delete data of the columns removed or type changed, but if you want to avoid migrations and update your table this is the option.
