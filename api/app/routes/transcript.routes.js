@@ -101,6 +101,40 @@ module.exports = app => {
  *        description: The transcript was not found
  *      500:
  *        description: Some error happened
+ * /api/transcripts/{id}/{user_id}/archive:
+ *  put:
+ *    summary: Archive the transcript by the id
+ *    tags: [Transcripts]
+ *    parameters:
+ *      - in: path
+ *        name: id
+ *        schema:
+ *          type: string
+ *        required: true
+ *        description: The transcript id
+ *      - in: path
+ *        name: user_id
+ *        schema:
+ *          type: string
+ *        required: true
+ *        description: The admin id
+ *    requestBody:
+ *      required: true
+ *      content:
+ *        application/json:
+ *          schema:
+ *            $ref: '#/components/schemas/Transcript'
+ *    responses:
+ *      200:
+ *        description: The transcript was updated successfully
+ *        content:
+ *          application/json:
+ *            schema:
+ *              $ref: '#/components/schemas/Transcript'
+ *      404:
+ *        description: The transcript was not found
+ *      500:
+ *        description: Some error happened
  */
  
   // Create a new transcript
@@ -114,6 +148,9 @@ module.exports = app => {
 
   // Update a transcript with id
   router.put("/:id", transcripts.update);
+
+  // Update a transcript with id
+  router.put("/:id/:user_id/archive", user, transcripts.archive);
 
   app.use("/api/transcripts", router);
 };

@@ -89,4 +89,37 @@ exports.update = (req, res) => {
       });
     });
 };
-//FIXME: Add an archive route in order to cater for archived transcripts and filling the archivedAt field in the model. 
+
+// Archive a Transcript by the id in the request
+exports.archive = (req, res) => {
+  const id = req.params.id;
+
+  if (User.findByPk(user_id).permissions === "admin") {
+    next();
+  } else {
+    res.status(403).send({
+      message: "User unauthorized to archive transcripts."
+    });
+  }
+
+  Transcript.update({ archivedAt: new Date(), archivedBy: user_id }, {
+    where: { id: id }
+  })
+    .then(num => {
+      if (num == 1) {
+        res.send({
+          message: "Transcript was archived successfully."
+        });
+      } else {
+        res.send({
+          message: `Cannot archive Transcript with id=${id}. Maybe Transcript was not found or req.body is empty!`
+        });
+      }
+    })
+    .catch(err => {
+      res.status(500).send({
+        message: "Error archiving Transcript with id=" + id
+      });
+    });
+};
+
