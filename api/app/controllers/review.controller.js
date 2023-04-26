@@ -1,6 +1,5 @@
-
-const db = require("../models");
-const Review = db.reviews;
+const db = require("../sequelize/models");
+const Review = db.review;
 const Op = db.Sequelize.Op;
 
 // Create and Save a new review

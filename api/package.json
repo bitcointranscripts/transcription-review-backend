@@ -13,7 +13,7 @@
   ],
   "author": "nassersaazi",
   "license": "ISC",
- "scripts": {
+  "scripts": {
     "start": "node server.js",
     "dev": "nodemon server.js"
   },
@@ -29,6 +29,7 @@
   },
   "devDependencies": {
     "moment": "^2.29.4",
-    "nodemon": "^2.0.21"
+    "nodemon": "^2.0.21",
+    "sequelize-cli": "^6.6.0"
   }
 }

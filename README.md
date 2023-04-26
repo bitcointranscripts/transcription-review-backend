@@ -26,10 +26,10 @@
 - Create a new .env file and copy the contents of .env.example into it
 - Update the .env file with your postgres credentials
 - In api directory run `npm install` to install all dependencies
-- Run `npm run migrate` to run migrations
-- Run `npm run seed` to seed the database
+- Run `npx run migrate` to run migrations
+- Run `npx run seed` to seed the database
 - Run `npm run dev` to start the server
 
-## Some endpoints to check out
+## API docs endpoints to check out
 
 - Access the endpoints documentation here: `http://localhost:8080/api/docs`

@@ -1,5 +1,5 @@
-const db = require("../models");
-const Transcript = db.transcripts;
+const db = require("../sequelize/models");
+const Transcript = db.transcript
 const Op = db.Sequelize.Op;
 
 // Create and Save a new Transcript
