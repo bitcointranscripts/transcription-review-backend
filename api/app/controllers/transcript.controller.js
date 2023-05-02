@@ -1,5 +1,6 @@
 const db = require("../models");
 const Transcript = db.transcripts;
+const User = db.users;
 const Op = db.Sequelize.Op;
 
 // Create and Save a new Transcript
@@ -33,10 +34,9 @@ exports.create = (req, res) => {
     });
 };
 
-// Retrieve all Transcripts from the database.
+// Retrieve all unarchived transcripts from the database.
 exports.findAll = (req, res) => {
-  const title = req.query.title;
-  var condition = title ? { title: { [Op.iLike]: `%${title}%` } } : null;
+  var condition = {[Op.and]: [{ archivedAt: null }, { archivedBy: null }]};
 
   Transcript.findAll({ where: condition })
     .then(data => {
@@ -89,4 +89,40 @@ exports.update = (req, res) => {
       });
     });
 };
-//FIXME: Add an archive route in order to cater for archived transcripts and filling the archivedAt field in the model. 
+
+// Archive a Transcript by the id in the request
+exports.archive = async (req, res) => {
+  const id = req.params.id;
+
+  const uid = req.body.archivedBy;
+
+  const reviewer = await User.findByPk(uid);
+
+  if (!reviewer || reviewer.permissions !== "admin") {
+    res.status(403).send({
+      message: "User unauthorized to archive transcripts."
+    });
+    return;
+  }
+
+  Transcript.update({ archivedAt: new Date(), archivedBy: req.body.archivedBy }, {
+    where: { id: id }
+  })
+    .then(num => {
+      if (num == 1) {
+        res.send({
+          message: "Transcript was archived successfully."
+        });
+      } else {
+        res.send({
+          message: `Cannot archive Transcript with id=${id}. Maybe Transcript was not found or req.body is empty!`
+        });
+      }
+    })
+    .catch(err => {
+      res.status(500).send({
+        message: "Error archiving Transcript with id=" + id
+      });
+    });
+};
+
