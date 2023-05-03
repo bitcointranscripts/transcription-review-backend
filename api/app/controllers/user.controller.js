@@ -1,5 +1,7 @@
 const db = require("../models");
 const User = db.users;
+const Review = db.reviews;
+const Transcript = db.transcripts;
 const Op = db.Sequelize.Op;
 
 // Create and Save a new User
@@ -88,4 +90,22 @@ exports.update = (req, res) => {
     });
 };
 
+
+exports.getUserReviews = (req, res) => {
+
+  const id = req.params.id;
+
+  var condition = { userId :{[Op.eq]: id} };
+
+  Review.findAll({where: condition , include: { model: Transcript }})
+    .then(data => {
+      res.send(data);
+    })
+    .catch(err => {
+      res.status(500).send({
+        message:
+          err.message || "Some error occurred while retrieving reviews for the user."
+      });
+    });
+};
 //FIXME: Add an archive route in order to cater for archived(deleted) users  and filling the archivedAt field in the model. 
