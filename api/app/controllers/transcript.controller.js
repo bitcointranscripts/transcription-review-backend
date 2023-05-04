@@ -12,13 +12,6 @@ exports.create = (req, res) => {
     });
     return;
   }
-  
-  else if (!req.body.originalContent) {
-    res.status(400).send({
-      message: "Original Content cannot be empty!"
-    });
-    return;
-  }
 
   const getFirstFiveWords = (paragraph) => {
     const words = paragraph.trim().split(/\s+/);
@@ -27,7 +20,7 @@ exports.create = (req, res) => {
 
   const generateUniqueStr = () => {
 
-    const oc = req.body.originalContent;
+    const oc = req.body.content;
     const str = oc.title + getFirstFiveWords(oc.body); 
     const transcriptHash = str.trim().toLowerCase();
 
@@ -36,7 +29,7 @@ exports.create = (req, res) => {
 
   // Create a Transcript
   const transcript = {
-    originalContent: req.body.originalContent,
+    originalContent: req.body.content,
     content: req.body.content,
     transcriptHash: generateUniqueStr()
   };
