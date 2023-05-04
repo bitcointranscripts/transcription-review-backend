@@ -56,7 +56,7 @@ exports.create = (req, res) => {
 
 // Retrieve all unarchived transcripts from the database.
 exports.findAll = (req, res) => {
-  var condition = {[Op.and]: [{ archivedAt: null }, { archivedBy: null }]};
+  var condition = {[Op.and]: [{ status: 'queued' }, { archivedAt: null }, { archivedBy: null }]};
 
   Transcript.findAll({ where: condition })
     .then(data => {
@@ -143,6 +143,41 @@ exports.archive = async (req, res) => {
     .catch(err => {
       res.status(500).send({
         message: "Error archiving Transcript with id=" + id
+      });
+    });
+};
+
+exports.claim = async (req, res) => {
+  const id = req.params.id;
+
+  var condition = { claimedBy:{[Op.eq]: id} };
+
+  const transcript = await Transcript.findAll({ where: condition })
+
+  if (transcript) {
+    res.status(403).send({
+      message: "User already has a transcript claimed."
+    });
+    return;
+  }
+
+  Transcript.update({ status: 'not queued', claimedAt: new Date(), claimedBy: req.body.claimedBy}, {
+    where: { id: id }
+  })
+    .then(num => {
+      if (num == 1) {
+        res.send({
+          message: "Transcript was claimed successfully."
+        });
+      } else {
+        res.send({
+          message: `Cannot claim Transcript with id=${id}. Maybe Transcript was not found or req.body is empty!`
+        });
+      }
+    })
+    .catch(err => {
+      res.status(500).send({
+        message: "Error claiming Transcript with id=" + id
       });
     });
 };

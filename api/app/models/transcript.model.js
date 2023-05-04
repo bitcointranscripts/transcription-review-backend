@@ -12,8 +12,12 @@ module.exports = (sequelize, Sequelize) => {
       unique: true,
       allowNull: false
     },
+    pr_url: { 
+      type: Sequelize.STRING,
+      unique: true,
+    },
     status: {
-      type: Sequelize.ENUM('queued','not queued','requeued'),
+      type: Sequelize.ENUM('queued','not queued','requeued','completed'),
       allowNull: false,
       defaultValue: 'queued'
     },

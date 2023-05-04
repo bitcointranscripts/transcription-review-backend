@@ -32,15 +32,15 @@ services:
       DB_PASSWORD: 123
       DB_NAME: testdb
 
-        #  nginx:
-        #    image: nginx:latest
-        #    container_name: nginx
-        #    ports:
-        #      - "80:80"
-        #    volumes:
-        #      - ./nginx/nginx.conf:/etc/nginx/nginx.conf
-        #    depends_on:
-        #      - api
+  nginx:
+    image: nginx:latest
+    container_name: nginx
+    ports:
+      - "80:80"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf
+    depends_on:
+      - api
 
 volumes:
   db:
