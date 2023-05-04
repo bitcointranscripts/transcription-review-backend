@@ -15,8 +15,9 @@
   "license": "ISC",
   "scripts": {
     "start": "node server.js",
-    "dev": "nodemon server.js",
-    "db:migrate": "sequelize db:migrate"
+    "migrate": "npx sequelize db:migrate",
+    "seed": "npx sequelize db:seed:all",
+    "dev": "nodemon server.js"
   },
   "dependencies": {
     "cors": "^2.8.5",
