@@ -1,23 +1,8 @@
 version: "3.8"
 
 services:
-  db:
-    image: public.ecr.aws/p7a4n0s1/postgres
-    container_name: postgres
-    env_file:
-      - .env.local
-    environment:
-      - ENVIRONMENT=local
-    ports:
-      - '5433:5432'
-    expose:
-      - "5433"
-    volumes:
-      - db:/var/lib/postgresql/data
-      - ./init.sql:/docker-entrypoint-initdb.d/create_tables.sql
-
   api:
-    image: public.ecr.aws/p7a4n0s1/transcription-api
+    build: ./api
     volumes:
       - ./api:/src
     env_file:
@@ -26,11 +11,9 @@ services:
       - ENVIRONMENT=local
     ports:
       - "8080:8080"
-    depends_on:
-      - db
 
   nginx:
-    image: public.ecr.aws/p7a4n0s1/nginx
+    build: ./nginx
     container_name: nginx
     ports:
       - "80:80"
@@ -38,7 +21,3 @@ services:
       - ./nginx/nginx.conf:/etc/nginx/nginx.conf
     depends_on:
       - api
-
-volumes:
-  db:
-    driver: local
