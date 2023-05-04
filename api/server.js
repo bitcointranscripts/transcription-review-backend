@@ -3,7 +3,10 @@ const bodyParser = require("body-parser")
 const swaggerJsdoc = require("swagger-jsdoc")
 const  swaggerUi = require("swagger-ui-express");
 const {sequelize} = require("./app/sequelize/models/")
+const dotenv = require("dotenv")
 
+
+dotenv.config();
 
 const cors = require("cors");
 
@@ -82,7 +85,7 @@ app.use(
 );
 
 // set port, listen for requests
-const PORT = process.env.PORT || 8080;
+const PORT = process.env.PORT;
 app.listen(PORT, () => {
   console.log(`Server is running on port ${PORT}.`);
 });
