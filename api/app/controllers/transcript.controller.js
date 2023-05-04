@@ -89,6 +89,7 @@ exports.findOne = (req, res) => {
 exports.update = (req, res) => {
   const id = req.params.id;
 
+  //FIXME: Ensure only necessary fields are updated i.e. content, updatedAt 
   Transcript.update(req.body, {
     where: { id: id }
   })
