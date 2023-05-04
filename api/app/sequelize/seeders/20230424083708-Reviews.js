@@ -17,7 +17,7 @@ module.exports = {
     claimedAt: "2023-04-23T00:00:00.000Z",
     submittedAt: "2023-04-23T00:00:00.000Z",
     mergedAt: "2023-04-23T00:00:00.000Z",
-    userId: 6,
+    userId: 1,
     transcriptId: 1,
     createdAt: "2023-04-23T00:00:00.000Z",
     updatedAt: "2023-04-23T00:00:00.000Z"

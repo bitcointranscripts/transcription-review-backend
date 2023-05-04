@@ -2,7 +2,7 @@
 
 /** @type {import('sequelize-cli').Migration} */
 module.exports = {
-  async up (queryInterface, Sequelize) {
+  async up(queryInterface, Sequelize) {
     /**
      * Add seed commands here.
      *
@@ -14,8 +14,8 @@ module.exports = {
     */
 
     await queryInterface.bulkInsert('transcripts', [{
-      originalContent: null,
-      content: null,
+      originalContent: json.stringify({ }),
+      content: json.stringify({ }),
       status: 'queued',
       archivedBy: 6,
       archivedAt: "2023-04-23T00:00:00.000Z",
@@ -25,7 +25,7 @@ module.exports = {
 
   },
 
-  async down (queryInterface, Sequelize) {
+  async down(queryInterface, Sequelize) {
     /**
      * Add commands to revert seed here.
      *
