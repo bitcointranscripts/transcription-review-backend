@@ -150,7 +150,9 @@ exports.archive = async (req, res) => {
 exports.claim = async (req, res) => {
   const id = req.params.id;
 
-  var condition = { claimedBy:{[Op.eq]: id} };
+  const uid = req.body.claimedBy;
+
+  var condition = { claimedBy:{[Op.eq]: uid} };
 
   const transcript = await Transcript.findAll({ where: condition })
 
