@@ -26,7 +26,7 @@ module.exports = {
       },
       status: {
         allowNull: false,
-        defaultValue: 'not queued',
+        defaultValue: 'queued',
         type: Sequelize.ENUM('queued','not queued','requeued')
       },
       claimedBy: {
