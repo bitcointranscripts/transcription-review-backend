@@ -1,5 +1,6 @@
 const db = require("../sequelize/models");
 const Transcript = db.transcript
+const Review = db.review;
 const User = db.user
 const Op = db.Sequelize.Op;
 
@@ -12,7 +13,7 @@ exports.create = (req, res) => {
     });
     return;
   }
-  
+
   else if (!req.body.originalContent) {
     res.status(400).send({
       message: "Original Content cannot be empty!"
@@ -28,7 +29,7 @@ exports.create = (req, res) => {
   const generateUniqueStr = () => {
 
     const oc = req.body.originalContent;
-    const str = oc.title + getFirstFiveWords(oc.body); 
+    const str = oc.title + getFirstFiveWords(oc.body);
     const transcriptHash = str.trim().toLowerCase();
 
     return transcriptHash;
@@ -56,7 +57,7 @@ exports.create = (req, res) => {
 
 // Retrieve all unarchived transcripts from the database.
 exports.findAll = (req, res) => {
-  var condition = {[Op.and]: [{ status: 'queued' }, { archivedAt: null }, { archivedBy: null }]};
+  var condition = { [Op.and]: [{ status: 'queued' }, { archivedAt: null }, { archivedBy: null }] };
 
   Transcript.findAll({ where: condition })
     .then(data => {
@@ -148,13 +149,22 @@ exports.archive = async (req, res) => {
 };
 
 exports.claim = async (req, res) => {
-  const id = req.params.id;
+  const transcriptId = req.params.id;
 
   const uid = req.body.claimedBy;
 
-  var condition = { claimedBy:{[Op.eq]: uid} };
+  console.log({ uid })
+
+  var condition = { claimedBy: { [Op.eq]: uid } };
 
   const transcript = await Transcript.findAll({ where: condition })
+
+  const review = {
+    userId: uid,
+    transcriptId
+  };
+
+  console.log({ transcript })
 
   if (transcript.length) {
     res.status(403).send({
@@ -163,23 +173,33 @@ exports.claim = async (req, res) => {
     return;
   }
 
-  Transcript.update({ status: 'not queued', claimedAt: new Date(), claimedBy: req.body.claimedBy}, {
-    where: { id: id }
+  await Transcript.update({ status: 'not queued', claimedAt: new Date(), claimedBy: req.body.claimedBy }, {
+    where: { id: transcriptId }
   })
     .then(num => {
       if (num == 1) {
-        res.send({
-          message: "Transcript was claimed successfully."
-        });
+
+        // Save review in the database
+        Review.create(review)
+          .then(data => {
+            res.send(data);
+          })
+          .catch(err => {
+            res.status(500).send({
+              message:
+                err.message || "Some error occurred while creating the review."
+            });
+          });
       } else {
         res.send({
-          message: `Cannot claim Transcript with id=${id}. Maybe Transcript was not found or req.body is empty!`
+          message: `Cannot claim Transcript with id=${transcriptId}. Maybe Transcript was not found or req.body is empty!`
         });
       }
     })
     .catch(err => {
       res.status(500).send({
-        message: "Error claiming Transcript with id=" + id
+        message: "Error claiming Transcript with id=" + transcriptId
       });
     });
+
 };
