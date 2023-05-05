@@ -11,14 +11,18 @@ module.exports = (sequelize, DataTypes) => {
      */
     static associate(models) {
       // define association here
-      this.hasMany(models.review, { foreignKey: 'userId' });
-      this.hasMany(models.transcript, { foreignKey: 'archivedBy' });
+      this.hasMany(models.review, { foreignKey: 'transcriptId' });
+      this.belongsTo(models.user, { foreignKey: 'archivedBy' });
+      this.belongsTo(models.user, { as: 'claimedByUser', foreignKey: 'claimedBy'});
     }
   }
   Transcript.init({
     content: DataTypes.JSON,
     originalContent: DataTypes.JSON,
+    transcriptHash: DataTypes.STRING,
+    pr_url: DataTypes.STRING,
     status: DataTypes.ENUM('queued','not queued','requeued'),
+    claimedBy: DataTypes.INTEGER,
     archivedBy: DataTypes.INTEGER,
     archivedAt: DataTypes.DATE
   }, {
