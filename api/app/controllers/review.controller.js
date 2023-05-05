@@ -2,22 +2,27 @@ const db = require("../sequelize/models");
 const Review = db.review;
 const Op = db.Sequelize.Op;
 
+
 // Create and Save a new review
 exports.create = (req, res) => {
   // Validate request
   if (!req.body.userId) {
-    //FIXME: Include transcriptId check in if condition
     res.status(400).send({
       message: "User id can not be empty!"
     });
     return;
   }
 
+  if (!req.body.transcriptId) {
+    res.status(400).send({
+      message: "Transcript id can not be empty!"
+    });
+    return;
+  }
   // Create a review
   const review = {
     userId: req.body.userId,
     transcriptId: req.body.transcriptId
-    //FIXME: Transcript Id is not inserted in db during POST request. Find out why
   };
 
   // Save review in the database
@@ -89,4 +94,3 @@ exports.update = (req, res) => {
       });
     });
 };
-
