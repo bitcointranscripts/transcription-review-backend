@@ -156,7 +156,7 @@ exports.claim = async (req, res) => {
 
   const transcript = await Transcript.findAll({ where: condition })
 
-  if (transcript) {
+  if (transcript.length) {
     res.status(403).send({
       message: "User already has a transcript claimed."
     });
