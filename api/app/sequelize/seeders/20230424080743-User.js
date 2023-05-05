@@ -13,8 +13,8 @@ module.exports = {
      * }], {});
     */
    await queryInterface.bulkInsert('users', [{
-    githubUsername: 'test12',
-    authToken: 'test12',
+    githubUsername: 'test2',
+    authToken: 'test2',
     permissions: 'reviewer',
     archivedAt: "2023-04-23T00:00:00.000Z",
     createdAt: "2023-04-23T00:00:00.000Z",
