@@ -7,6 +7,12 @@ module.exports = app => {
  * @swagger
  * components:
  *   schemas:
+ *     Archive:
+ *       type: object
+ *       properties:
+ *         archivedBy:
+ *           type: int
+ *           description: Id of the user archiving the transcript
  *     Transcript:
  *       type: object
  *       properties:
@@ -101,6 +107,60 @@ module.exports = app => {
  *        description: The transcript was not found
  *      500:
  *        description: Some error happened
+ * /api/transcripts/{id}/archive:
+ *   put:
+ *    summary: Archive the transcript by the id
+ *    tags: [Transcripts]
+ *    parameters:
+ *      - in: path
+ *        name: id
+ *        schema:
+ *          type: string
+ *        required: true
+ *        description: The transcript id
+ *    requestBody:
+ *      required: true
+ *      content:
+ *        application/json:
+ *          schema:
+ *            $ref: '#/components/schemas/Archive'
+ *    responses:
+ *      200:
+ *        description: The transcript was updated successfully
+ *        content:
+ *          application/json:
+ *            schema:
+ *              $ref: '#/components/schemas/Transcript'
+ *      403:
+ *        description: User unauthorized to archive transcript
+ *      500:
+ *        description: Some error happened
+ * /api/transcripts/{id}/claim:
+ *   put:
+ *    summary: Claim the transcript by the id
+ *    tags: [Transcripts]
+ *    parameters:
+ *      - in: path
+ *        name: id
+ *        schema:
+ *          type: string
+ *        required: true
+ *        description: The transcript id
+ *    requestBody:
+ *      required: true
+ *      content:
+ *        application/json:
+ *    responses:
+ *      200:
+ *        description: The transcript was claimed successfully
+ *        content:
+ *          application/json:
+ *            schema:
+ *              $ref: '#/components/schemas/Transcript'
+ *      403:
+ *        description: User already has a transcript claimed.
+ *      500:
+ *        description: Some error happened
  */
  
   // Create a new transcript
@@ -114,6 +174,12 @@ module.exports = app => {
 
   // Update a transcript with id
   router.put("/:id", transcripts.update);
+
+  // Archive a transcript with id
+  router.put("/:id/archive", transcripts.archive);
+
+  // Claim a transcript with id
+  router.put("/:id/claim", transcripts.claim);
 
   app.use("/api/transcripts", router);
 };
