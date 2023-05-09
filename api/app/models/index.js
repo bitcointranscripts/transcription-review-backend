@@ -29,14 +29,20 @@ db.users.hasMany(db.reviews, {
 });
 db.reviews.belongsTo(db.users);
 
-//FIXME: Find out why archivedBy does not get inserted on posting
 db.users.hasMany(db.transcripts, {
   foreignKey: { key: 'id', name: 'archivedBy'}
 });
 db.transcripts.belongsTo(db.users,{
   foreignKey: { key: 'id', name: 'archivedBy'}
 });
-db.transcripts.belongsTo(db.users, {as: 'claimedBy'});
+
+db.users.hasMany(db.transcripts, {
+  foreignKey: { key: 'id', name: 'claimedBy'}
+});
+
+db.transcripts.belongsTo(db.users,{
+  foreignKey: { key: 'id', name: 'claimedBy'}
+});
 
 db.transcripts.hasMany(db.reviews, {
   foreignKey: { key: 'id', name: 'transcriptId'}

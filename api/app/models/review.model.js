@@ -9,6 +9,10 @@ module.exports = (sequelize, Sequelize) => {
     },
     mergedAt: {
       type: Sequelize.DATE,
+    },
+    pr_url: {
+      type: Sequelize.STRING,
+      unique: true,
     }
 
   });
