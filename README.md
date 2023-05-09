@@ -6,29 +6,30 @@
 
 ## Prerequisites
 
-- Docker and docker-compose(preferably latest stable versions)
+- Docker
 - Ensure ports 8080,5433 and 5432 are open and accept connections (to access the backend api)
 - Ensure port 3000 is open to accept connections (to access the frontend client)
-
-### With Docker
-
-- Clone the repository
-- Inside the root directory, run `docker-compose up`
-- Access the api here: `http://localhost:8080`
-- Access the frontend client here: [https://github.com/bitcointranscripts/transcription-review-front-end](https://github.com/bitcointranscripts/transcription-review-front-end)
-
-### Without Docker
 
 ### Steps to set up
 
 - Clone the repository
-- Make sure you have postgres setup or setup postgres database using this link: [https://www.postgresql.org/download/](https://www.postgresql.org/download/)
-- Create a new database called `bitcoin_transcripts` or follow here on how to create a new db [hhttps://www.postgresql.org/docs/15/tutorial-createdb.html](https://www.postgresql.org/docs/15/tutorial-createdb.html)
+
+#### Setup Database
+
+- The best way to get a database for development is to use docker
+
+- Run `docker run --name transcription -e POSTGRES_PASSWORD=postgres -p 5432:5432 postgres`
+- Run `docker start -i transcription` to start the container
+- `optional` Run `docker exec -it transcription psql -U postgres` to access the postgres shell or
+- Download any database console or explorer to access the database data. I recommend [dbeaver](https://dbeaver.io/)
+
+#### Setup API
+
 - Navigate to api directory
-- Create a new .env file and copy the contents of .env.example into it or run `cp .env.example .env` and customize the values
+- Create a new .env file and copy the contents of .env.example into it or run `cp .env.example .env`
 - In api directory run `npm install` to install all dependencies
-- Run `npx run migrate` to run migrations
-- Run `npx run seed` to seed the database
+- Run `npm run migrate` to run migrations
+- Run `npm run seed` to seed the database
 - Run `npm run dev` to start the server
 
 ## API docs endpoints to check out
