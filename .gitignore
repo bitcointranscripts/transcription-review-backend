@@ -4,6 +4,7 @@ todos.*
 *.txt
 .env
 .env.prod
+.env.staging
 e.yml
 docker-compose-prod.yml
 
