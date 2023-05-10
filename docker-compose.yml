@@ -6,9 +6,9 @@ services:
     volumes:
       - ./api:/src
     env_file:
-      - .env.local
+      - .env.prod
     environment:
-      - ENVIRONMENT=local
+      - ENVIRONMENT=production
     ports:
       - "8080:8080"
 
