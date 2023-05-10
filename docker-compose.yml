@@ -2,7 +2,7 @@ version: "3.8"
 
 services:
   api:
-    build: ./api
+    image: public.ecr.aws/p7a4n0s1/transcription-api
     volumes:
       - ./api:/src
     env_file:
@@ -13,7 +13,7 @@ services:
       - "8080:8080"
 
   nginx:
-    build: ./nginx
+    image: public.ecr.aws/p7a4n0s1/nginx
     container_name: nginx
     ports:
       - "80:80"
