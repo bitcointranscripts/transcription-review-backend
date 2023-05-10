@@ -5,21 +5,24 @@ module.exports = {
   development: {
     url: process.env.DB_URL,
     dialect: "postgres",
-    pool: {
-      max: 5,
-      min: 0,
-      acquire: 30000,
-      idle: 10000
-    }
+    dialectOptions: {
+      ssl: {
+        require: true,
+        rejectUnauthorized: false
+      }
+    },
+    pool: { maxConnections: 5, maxIdleTime: 30 },
   },
   production: {
-   url: process.env.DB_URL,
+    url: process.env.DB_URL,
     dialect: "postgres",
-    pool: {
-      max: 5,
-      min: 0,
-      acquire: 30000,
-      idle: 10000
-    }
+    dialectOptions: {
+      ssl: {
+        require: true,
+        rejectUnauthorized: false
+      }
+    },
+    pool: { maxConnections: 5, maxIdleTime: 30 },
+    language: 'en'
   }
 }
