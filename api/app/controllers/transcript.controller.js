@@ -6,27 +6,27 @@ const Op = db.Sequelize.Op;
 
 // Create and Save a new Transcript
 exports.create = (req, res) => {
- // Validate request
- if (!req.body.content) {
-  res.status(400).send({
-    message: "Content cannot be empty!"
-  });
-  return;
-}
+  // Validate request
+  if (!req.body.content) {
+    res.status(400).send({
+      message: "Content cannot be empty!"
+    });
+    return;
+  }
 
-const getFirstFiveWords = (paragraph) => {
-  const words = paragraph.trim().split(/\s+/);
-  return words.slice(0, 5).join(' ');
-};
+  const getFirstFiveWords = (paragraph) => {
+    const words = paragraph.trim().split(/\s+/);
+    return words.slice(0, 5).join(' ');
+  };
 
-const generateUniqueStr = () => {
+  const generateUniqueStr = () => {
 
-  const oc = req.body.content;
-  const str = oc.title + getFirstFiveWords(oc.body); 
-  const transcriptHash = str.trim().toLowerCase();
+    const oc = req.body.content;
+    const str = oc.title + getFirstFiveWords(oc.body); 
+    const transcriptHash = str.trim().toLowerCase();
 
-  return transcriptHash;
-}
+    return transcriptHash;
+  }
 
   // Create a Transcript
   const transcript = {
@@ -146,22 +146,22 @@ exports.claim = async (req, res) => {
 
   const uid = req.body.claimedBy;
 
-  console.log({ uid })
+  const condition = { 
+    userId: { [Op.eq]: uid },
+    mergedAt: { [Op.eq]: null },
+    createdAt: { [Op.gte]: new Date().getTime() - 86400000 }
+  };
 
-  var condition = { claimedBy: { [Op.eq]: uid } };
-
-  const transcript = await Transcript.findAll({ where: condition })
+  const activeReview = await Review.findAll({ where: condition })
 
   const review = {
     userId: uid,
     transcriptId
   };
 
-  console.log({ transcript })
-
-  if (transcript.length) {
+  if (activeReview.length) {
     res.status(403).send({
-      message: "User already has a transcript claimed."
+      message: "User has an active review"
     });
     return;
   }
