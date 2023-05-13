@@ -41,16 +41,42 @@ exports.create = (req, res) => {
 
 // Retrieve all reviews from the database.
 exports.findAll = async (req, res) => {
-  let { userId, username} = req.query
+  let { userId, username, isActive} = req.query
+
+  // find reviews by username
   if (username) {
     const foundUser = await User.findOne({ where: { githubUsername: username }})
     if (foundUser?.dataValues?.id) {
       userId = foundUser?.dataValues?.id;
     }
   }
-  var condition = userId ? { userId: { [Op.eq]: userId } } : null;
 
-  Review.findAll({ where: condition })
+  let groupedCondition = {};
+
+  // conditions
+  const userIdCondition = { userId: { [Op.eq]: userId } }
+  const isActiveCondition = { 
+    mergedAt: { [Op.eq]: null },
+    createdAt: { [Op.gte]: new Date().getTime() - 86400000 }
+  }
+  const isInActiveCondition = {
+    [Op.or]: [
+      { createdAt: { [Op.lt]: new Date().getTime() - 86400000 } },
+      { mergedAt: { [Op.not]: null } }
+    ]
+  }
+
+  // add condition if query exists
+  if (userId) {
+    groupedCondition = {...groupedCondition, ...userIdCondition}
+  }
+  if (isActive === "true") {
+    groupedCondition = {...groupedCondition, ...isActiveCondition}
+  } else if (isActive === "false") {
+    groupedCondition = {...groupedCondition, ...isInActiveCondition}
+  }
+
+  Review.findAll({ where: groupedCondition })
     .then(data => {
       res.send(data);
     })
