@@ -21,7 +21,10 @@ module.exports = (sequelize, DataTypes) => {
     originalContent: DataTypes.JSON,
     transcriptHash: DataTypes.STRING,
     pr_url: DataTypes.STRING,
-    status: DataTypes.ENUM('queued','not queued','requeued'),
+    status: {
+      type: DataTypes.ENUM('queued','not queued','requeued'),
+      defaultValue: 'queued'
+    },
     claimedBy: DataTypes.INTEGER,
     archivedBy: DataTypes.INTEGER,
     archivedAt: DataTypes.DATE
