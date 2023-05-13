@@ -1,5 +1,6 @@
 const db = require("../sequelize/models");
 const Review = db.review;
+const User = db.user;
 const Op = db.Sequelize.Op;
 
 
@@ -39,9 +40,15 @@ exports.create = (req, res) => {
 };
 
 // Retrieve all reviews from the database.
-exports.findAll = (req, res) => {
-  const userId = req.query.userId;
-  var condition = userId ? { userId: { [Op.iLike]: `%${userId}%` } } : null;
+exports.findAll = async (req, res) => {
+  let { userId, username} = req.query
+  if (username) {
+    const foundUser = await User.findOne({ where: { githubUsername: username }})
+    if (foundUser?.dataValues?.id) {
+      userId = foundUser?.dataValues?.id;
+    }
+  }
+  var condition = userId ? { userId: { [Op.eq]: userId } } : null;
 
   Review.findAll({ where: condition })
     .then(data => {
