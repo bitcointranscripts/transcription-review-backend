@@ -6,38 +6,31 @@ const Op = db.Sequelize.Op;
 
 // Create and Save a new Transcript
 exports.create = (req, res) => {
-  // Validate request
-  if (!req.body.content) {
-    res.status(400).send({
-      message: "Content cannot be empty!"
-    });
-    return;
-  }
+ // Validate request
+ if (!req.body.content) {
+  res.status(400).send({
+    message: "Content cannot be empty!"
+  });
+  return;
+}
 
-  else if (!req.body.originalContent) {
-    res.status(400).send({
-      message: "Original Content cannot be empty!"
-    });
-    return;
-  }
+const getFirstFiveWords = (paragraph) => {
+  const words = paragraph.trim().split(/\s+/);
+  return words.slice(0, 5).join(' ');
+};
 
-  const getFirstFiveWords = (paragraph) => {
-    const words = paragraph.trim().split(/\s+/);
-    return words.slice(0, 5).join(' ');
-  };
+const generateUniqueStr = () => {
 
-  const generateUniqueStr = () => {
+  const oc = req.body.content;
+  const str = oc.title + getFirstFiveWords(oc.body); 
+  const transcriptHash = str.trim().toLowerCase();
 
-    const oc = req.body.originalContent;
-    const str = oc.title + getFirstFiveWords(oc.body);
-    const transcriptHash = str.trim().toLowerCase();
-
-    return transcriptHash;
-  }
+  return transcriptHash;
+}
 
   // Create a Transcript
   const transcript = {
-    originalContent: req.body.originalContent,
+    originalContent: req.body.content,
     content: req.body.content,
     transcriptHash: generateUniqueStr()
   };
@@ -57,11 +50,11 @@ exports.create = (req, res) => {
 
 // Retrieve all unarchived transcripts from the database.
 exports.findAll = (req, res) => {
-  var condition = { [Op.and]: [{ status: 'queued' }, { archivedAt: null }, { archivedBy: null }] };
+  var condition = {[Op.and]: [{ archivedAt: null }, { archivedBy: null }]};
 
   Transcript.findAll({ where: condition })
     .then(data => {
-      res.json(data);
+      res.send(data);
     })
     .catch(err => {
       res.status(500).send({

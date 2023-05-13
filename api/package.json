@@ -17,7 +17,7 @@
     "start": "node server.js",
     "migrate": "npx sequelize db:migrate",
     "seed": "npx sequelize db:seed:all",
-    "dev": "nodemon NODE_ENV= server.js"
+    "dev": "nodemon NODE_ENV=development server.js"
     },
   "dependencies": {
     "cors": "^2.8.5",
