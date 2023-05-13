@@ -2,18 +2,16 @@ version: "3.8"
 
 services:
   api:
-    build: ./api
-    volumes:
-      - ./api:/src
-    env_file:
-      - .env.prod
+    image: public.ecr.aws/p7a4n0s1/transcription-api
     environment:
-      - ENVIRONMENT=production
+      DB_URL: ${DB_URL}
+      PORT: ${PORT}
+      NODE_ENV: ${NODE_ENV}
     ports:
       - "8080:8080"
 
   nginx:
-    build: ./nginx
+    image: public.ecr.aws/p7a4n0s1/nginx
     container_name: nginx
     ports:
       - "80:80"
