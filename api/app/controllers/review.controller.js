@@ -1,6 +1,7 @@
 const db = require("../sequelize/models");
 const Review = db.review;
 const User = db.user;
+const Transcript = db.transcript
 const Op = db.Sequelize.Op;
 const { isActiveCondition, isInActiveCondition } = require("../utils/review.inference")
 
@@ -67,7 +68,7 @@ exports.findAll = async (req, res) => {
     groupedCondition = {...groupedCondition, ...isInActiveCondition}
   }
 
-  Review.findAll({ where: groupedCondition })
+  Review.findAll({ where: groupedCondition, include: { model: Transcript }})
     .then(data => {
       res.send(data);
     })
