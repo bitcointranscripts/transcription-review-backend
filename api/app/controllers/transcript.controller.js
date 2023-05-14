@@ -3,6 +3,7 @@ const Transcript = db.transcript
 const Review = db.review;
 const User = db.user
 const Op = db.Sequelize.Op;
+const { isActiveCondition } = require("../utils/review.inference")
 
 // Create and Save a new Transcript
 exports.create = (req, res) => {
@@ -148,8 +149,7 @@ exports.claim = async (req, res) => {
 
   const condition = { 
     userId: { [Op.eq]: uid },
-    mergedAt: { [Op.eq]: null },
-    createdAt: { [Op.gte]: new Date().getTime() - 86400000 }
+    ...isActiveCondition,
   };
 
   const activeReview = await Review.findAll({ where: condition })
@@ -161,7 +161,7 @@ exports.claim = async (req, res) => {
 
   if (activeReview.length) {
     res.status(403).send({
-      message: "User has an active review"
+      message: "Cannot claim transcript, user has an active review"
     });
     return;
   }
