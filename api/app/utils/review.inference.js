@@ -2,10 +2,18 @@ const config = require("./config");
 const db = require("../sequelize/models");
 const Op = db.Sequelize.Op;
 
+const unixEpochTimeInMilliseconds = getUnixTimeFromHours(config.expiryTimeInHours)
 const isActiveCondition = { 
   mergedAt: { [Op.eq]: null },
-  createdAt: { [Op.gte]: new Date().getTime() - getUnixTimeFromHours(config.expiryTimeInHours) }
+  createdAt: { [Op.gte]: new Date().getTime() - unixEpochTimeInMilliseconds }
 };
+
+const isInActiveCondition = {
+  [Op.or]: [
+    { createdAt: { [Op.lt]: new Date().getTime() - unixEpochTimeInMilliseconds } },
+    { mergedAt: { [Op.not]: null } }
+  ]
+}
 
 function getUnixTimeFromHours(hours) {
   const millisecondsInHour = 60 * 60 * 1000;
@@ -22,5 +30,6 @@ function getUnixTimeFromHours(hours) {
 
 module.exports = {
   isActiveCondition,
+  isInActiveCondition,
   getUnixTimeFromHours,
 }

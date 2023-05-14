@@ -2,6 +2,7 @@ const db = require("../sequelize/models");
 const Review = db.review;
 const User = db.user;
 const Op = db.Sequelize.Op;
+const { isActiveCondition, isInActiveCondition } = require("../utils/review.inference")
 
 
 // Create and Save a new review
@@ -53,18 +54,8 @@ exports.findAll = async (req, res) => {
 
   let groupedCondition = {};
 
-  // conditions
+  // userId condition
   const userIdCondition = { userId: { [Op.eq]: userId } }
-  const isActiveCondition = { 
-    mergedAt: { [Op.eq]: null },
-    createdAt: { [Op.gte]: new Date().getTime() - 86400000 }
-  }
-  const isInActiveCondition = {
-    [Op.or]: [
-      { createdAt: { [Op.lt]: new Date().getTime() - 86400000 } },
-      { mergedAt: { [Op.not]: null } }
-    ]
-  }
 
   // add condition if query exists
   if (userId) {
