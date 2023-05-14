@@ -28,6 +28,22 @@ module.exports = app => {
  *   get:
  *     summary: Lists all the reviews
  *     tags: [Reviews]
+ *     parameters:
+ *       - in: query
+ *         name: username
+ *         schema:
+ *           type: string
+ *         description: Filter reviews based on username
+ *       - in: query
+ *         name: userId
+ *         schema:
+ *           type: number
+ *         description: Filter reviews based on userId
+ *       - in: query
+ *         name: isActive
+ *         schema:
+ *           type: boolean
+ *         description: Filter reviews based on whether they are active or not
  *     responses:
  *       200:
  *         description: The list of the reviews

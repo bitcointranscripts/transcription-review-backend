@@ -1,6 +1,8 @@
 const db = require("../sequelize/models");
 const Review = db.review;
+const User = db.user;
 const Op = db.Sequelize.Op;
+const { isActiveCondition, isInActiveCondition } = require("../utils/review.inference")
 
 
 // Create and Save a new review
@@ -39,11 +41,33 @@ exports.create = (req, res) => {
 };
 
 // Retrieve all reviews from the database.
-exports.findAll = (req, res) => {
-  const userId = req.query.userId;
-  var condition = userId ? { userId: { [Op.iLike]: `%${userId}%` } } : null;
+exports.findAll = async (req, res) => {
+  let { userId, username, isActive} = req.query
 
-  Review.findAll({ where: condition })
+  // find reviews by username
+  if (username) {
+    const foundUser = await User.findOne({ where: { githubUsername: username }})
+    if (foundUser?.dataValues?.id) {
+      userId = foundUser?.dataValues?.id;
+    }
+  }
+
+  let groupedCondition = {};
+
+  // userId condition
+  const userIdCondition = { userId: { [Op.eq]: userId } }
+
+  // add condition if query exists
+  if (userId) {
+    groupedCondition = {...groupedCondition, ...userIdCondition}
+  }
+  if (isActive === "true") {
+    groupedCondition = {...groupedCondition, ...isActiveCondition}
+  } else if (isActive === "false") {
+    groupedCondition = {...groupedCondition, ...isInActiveCondition}
+  }
+
+  Review.findAll({ where: groupedCondition })
     .then(data => {
       res.send(data);
     })
