@@ -43,10 +43,12 @@ exports.create = (req, res) => {
 
 // Retrieve all reviews from the database.
 exports.findAll = async (req, res) => {
-  let { userId, username, isActive} = req.query
-
+  let {isActive} = req.query
+  let userId = req.query.userId !== "undefined" ? parseInt(req.query.userId) : undefined
+  let username = req.query.username !== "undefined" ? req.query.username : undefined
+  
   // find reviews by username
-  if (username) {
+  if (Boolean(username)) {
     const foundUser = await User.findOne({ where: { githubUsername: username }})
     if (foundUser?.dataValues?.id) {
       userId = foundUser?.dataValues?.id;
@@ -59,7 +61,7 @@ exports.findAll = async (req, res) => {
   const userIdCondition = { userId: { [Op.eq]: userId } }
 
   // add condition if query exists
-  if (userId) {
+  if (Boolean(userId)) {
     groupedCondition = {...groupedCondition, ...userIdCondition}
   }
   if (isActive === "true") {
