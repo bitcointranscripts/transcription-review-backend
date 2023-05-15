@@ -82,10 +82,10 @@ exports.findAll = async (req, res) => {
 
   Review.findAll({ where: groupedCondition, include: { model: Transcript }})
     .then(data => {
-      return res.send(data);
+      res.send(data);
     })
     .catch(err => {
-      return res.status(500).send({
+      res.status(500).send({
         message:
           err.message || "Some error occurred while retrieving reviews."
       });
