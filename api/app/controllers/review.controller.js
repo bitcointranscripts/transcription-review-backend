@@ -48,10 +48,20 @@ exports.findAll = async (req, res) => {
   let username = req.query.username !== "undefined" ? req.query.username : undefined
   
   // find reviews by username
-  if (Boolean(username)) {
-    const foundUser = await User.findOne({ where: { githubUsername: username }})
-    if (foundUser?.dataValues?.id) {
-      userId = foundUser?.dataValues?.id;
+  if (username) {
+    try {
+      const foundUser = await User.findOne({ where: { githubUsername: username }});
+      if (foundUser?.dataValues?.id) {
+        userId = foundUser?.dataValues?.id;
+      } else {
+        return res.status(404).send({
+          message: `User with username=${username} does not exist`
+        });
+      }
+    } catch (err) {
+      return res.status(500).send({
+        message: err.message || `Some error occurred while getting user with username=${username}`
+      });
     }
   }
 
@@ -72,10 +82,10 @@ exports.findAll = async (req, res) => {
 
   Review.findAll({ where: groupedCondition, include: { model: Transcript }})
     .then(data => {
-      res.send(data);
+      return res.send(data);
     })
     .catch(err => {
-      res.status(500).send({
+      return res.status(500).send({
         message:
           err.message || "Some error occurred while retrieving reviews."
       });
