@@ -4,6 +4,7 @@ const Review = db.review;
 const User = db.user
 const Op = db.Sequelize.Op;
 const { isActiveCondition } = require("../utils/review.inference")
+const { setupExpiryTimeCron } = require("../utils/cron")
 
 // Create and Save a new Transcript
 exports.create = (req, res) => {
@@ -140,7 +141,7 @@ exports.archive = async (req, res) => {
         message: "Error archiving Transcript with id=" + id
       });
     });
-};
+  };
 
 exports.claim = async (req, res) => {
   const transcriptId = req.params.id;
@@ -176,6 +177,7 @@ exports.claim = async (req, res) => {
         Review.create(review)
           .then(data => {
             res.send(data);
+            setupExpiryTimeCron(data);
           })
           .catch(err => {
             res.status(500).send({
@@ -194,5 +196,4 @@ exports.claim = async (req, res) => {
         message: "Error claiming Transcript with id=" + transcriptId
       });
     });
-
 };
