@@ -17,8 +17,8 @@ function setupExpiryTimeCron (review) {
       try {
         const thisReview = await Review.findByPk(review.id)
         
-        // don't requeue transcripts whose review has been merged
-        if (thisReview.mergedAt) return;
+        // don't requeue transcripts whose review has been merged or submitted
+        if (thisReview.mergedAt || thisReview.submittedAt) return;
         
         // TODO: archivedAt field for expired reviews
         // const now = new Date()
