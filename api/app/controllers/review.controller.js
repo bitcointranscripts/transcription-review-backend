@@ -143,7 +143,7 @@ exports.submit = (req, res) => {
     })
   }
   const submittedAt = new Date()
-  Review.update({ submittedAt }, {
+  Review.update({ submittedAt, pr_url }, {
     where: { id: id }
   })
     .then(num => {
