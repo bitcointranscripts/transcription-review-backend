@@ -20,7 +20,8 @@ module.exports = (sequelize, DataTypes) => {
     submittedAt: DataTypes.DATE,
     mergedAt: DataTypes.DATE,
     userId: DataTypes.INTEGER,
-    transcriptId: DataTypes.INTEGER
+    transcriptId: DataTypes.INTEGER,
+    pr_url: DataTypes.STRING,
   }, {
     sequelize,
     modelName: 'review',
