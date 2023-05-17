@@ -140,13 +140,11 @@ module.exports = app => {
  *                type: string;
  *    responses:
  *      200:
- *        description: The transcript was claimed successfully
- *        content:
- *          application/json:
- *            schema:
- *              $ref: '#/components/schemas/Transcript'
- *      403:
- *        description: User already has a transcript claimed.
+ *        description: The review was submitted successfully
+ *      400:
+ *        description: pr_url is missing.
+ *      404:
+ *        description: Review was not found.
  *      500:
  *        description: Some error happened
  */
