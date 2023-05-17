@@ -118,7 +118,39 @@ module.exports = app => {
  *        description: The review was not found
  *      500:
  *        description: Some error happened
+ *
+ * /api/reviews/{id}/submit:
+ *   put:
+ *    summary: Submit the review by the id
+ *    tags: [Reviews]
+ *    parameters:
+ *      - in: path
+ *        name: id
+ *        schema:
+ *          type: string
+ *        required: true
+ *        description: The transcript id
+ *    requestBody:
+ *      content:
+ *        application/json:
+ *          schema: 
+ *            type: object
+ *            properties:
+ *              pr_url:
+ *                type: string;
+ *    responses:
+ *      200:
+ *        description: The transcript was claimed successfully
+ *        content:
+ *          application/json:
+ *            schema:
+ *              $ref: '#/components/schemas/Transcript'
+ *      403:
+ *        description: User already has a transcript claimed.
+ *      500:
+ *        description: Some error happened
  */
+
   // Create a new review
   router.post("/", reviews.create);
 
@@ -130,6 +162,9 @@ module.exports = app => {
 
   // Update a review with id
   router.put("/:id", reviews.update);
+
+  // Submit a review with id
+  router.put("/:id/submit", reviews.submit);
 
   app.use("/api/reviews", router);
 };
