@@ -131,3 +131,35 @@ exports.update = (req, res) => {
       });
     });
 };
+
+// Submit a review by the id in the request
+exports.submit = (req, res) => {
+  const id = req.params.id;
+  const { pr_url } = req.body;
+
+  if (!pr_url) {
+    return res.status(400).send({
+      message: "pr_url is missing"
+    })
+  }
+  const submittedAt = new Date()
+  Review.update({ submittedAt, pr_url }, {
+    where: { id: id }
+  })
+    .then(num => {
+      if (num == 1) {
+        res.send({
+          message: "review was updated successfully."
+        });
+      } else {
+        res.status(404).send({
+          message: `Cannot update review with id=${id}. Maybe review was not found`
+        });
+      }
+    })
+    .catch(err => {
+      res.status(500).send({
+        message: "Error updating review with id=" + id
+      });
+    });
+};
