@@ -8,7 +8,7 @@ module.exports = app => {
    * @swagger
    * components:
    *   schemas:
-   *     Review:
+   *     Webhook:
    *       type: object
    *       properties:
    *         userId:
@@ -22,12 +22,12 @@ module.exports = app => {
     /**
    * @swagger
    * tags:
-   *   name: Reviews
-   *   description: The reviews API routes
-   * /api/reviews:
+   *   name: Webhook
+   *   description: The PR webhook route
+   * /api/webhook:
    *   get:
-   *     summary: Lists all the reviews
-   *     tags: [Reviews]
+   *     summary: Retrieves PR data from github webhook
+   *     tags: [Webhook]
    *     parameters:
    *       - in: query
    *         name: username
@@ -54,21 +54,21 @@ module.exports = app => {
    *               items:
    *                 $ref: '#/components/schemas/Review'
    *   post:
-   *     summary: Create a new review
-   *     tags: [Reviews]
+   *     summary: Post PR data from Github
+   *     tags: [Webhook]
    *     requestBody:
    *       required: true
    *       content:
    *         application/json:
    *           schema:
-   *             $ref: '#/components/schemas/Review'
+   *             $ref: '#/components/schemas/Webhook'
    *     responses:
    *       200:
-   *         description: The created review.
+   *         description: Receive webhook data.
    *         content:
    *           application/json:
    *             schema:
-   *               $ref: '#/components/schemas/Review'
+   *               $ref: '#/components/schemas/Webhook'
    *       500:
    *         description: Some server error
    */
