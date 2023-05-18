@@ -13,10 +13,12 @@ module.exports = {
       'reviews',
       'pr_url',
       {
-          type: Sequelize.STRING,
-          unique: true,
+        type: Sequelize.STRING,
+        unique: true,
       }
-  )},
+    );
+
+  },
 
   async down(queryInterface, Sequelize) {
     /**

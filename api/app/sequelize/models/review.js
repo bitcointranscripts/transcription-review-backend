@@ -18,6 +18,7 @@ module.exports = (sequelize, DataTypes) => {
   Review.init({
     claimedAt: DataTypes.DATE,
     submittedAt: DataTypes.DATE,
+    archivedAt: DataTypes.DATE,
     mergedAt: DataTypes.DATE,
     userId: DataTypes.INTEGER,
     transcriptId: DataTypes.INTEGER,
