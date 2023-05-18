@@ -20,7 +20,9 @@ module.exports = {
     userId: 1,
     transcriptId: 1,
     createdAt: "2023-04-23T00:00:00.000Z",
-    updatedAt: "2023-04-23T00:00:00.000Z"
+    updatedAt: "2023-04-23T00:00:00.000Z",
+    pr_url: "test1",
+    archivedAt: "2023-04-23T00:00:00.000Z"
   }], {});
   },
 
