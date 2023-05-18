@@ -1,5 +1,5 @@
 module.exports = app => {
-    const webhook = require("../controllers/review.controller.js");
+    const webhook = require("../controllers/webhook.controller");
   
     var router = require("express").Router();
   
@@ -52,7 +52,7 @@ module.exports = app => {
    *             schema:
    *               type: array
    *               items:
-   *                 $ref: '#/components/schemas/Review'
+   *                 $ref: '#/components/schemas/Webhook'
    *   post:
    *     summary: Post PR data from Github
    *     tags: [Webhook]
@@ -74,8 +74,8 @@ module.exports = app => {
    */
 
   
-    // Create a new review
-    router.post("/webhook", webhook.create);
+    // update the review table with the PR timestamp and set status to archived
+    router.post("/", webhook.create);
   
     app.use("/api/webhook", router);
   };
