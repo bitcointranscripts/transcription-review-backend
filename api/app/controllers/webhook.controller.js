@@ -12,7 +12,12 @@ exports.create = async (req, res) => {
 
 
     // Check if it's a pull request event
-    if (action === 'opened' || action === 'closed' || action === 'synchronize') {
+const PR_EVENTS = {
+opened: "opened",
+closed: "closed",
+sync: "synchronize",
+} as const
+    if (action === PR_EVENTS.opened || ......) {
         const html_url = pull_request.pull_request.html_url;
 
         console.log(`Received pull request event for PR: ${html_url}`);
