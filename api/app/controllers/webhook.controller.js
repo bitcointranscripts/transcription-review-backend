@@ -1,52 +1,56 @@
 const db = require("../sequelize/models");
-const User = db.user;
 const Review = db.review;
-const Transcript = db.transcript;
-const Op = db.Sequelize.Op;
+const { ACTION_CLOSED } = require("../utils/constants")
 
 
 exports.create = async (req, res) => {
     const pull_request = req.body;
-     const action = pull_request.action;
 
+    //check if req.body return anything
+    if (!pull_request) {
+        throw new Error("No pull request data found in the request body.");
+    };
 
-    // Check if it's a pull request event
-const PR_EVENTS = {
-opened: "opened",
-closed: "closed",
-sync: "synchronize",
-} as const
-    if (action === PR_EVENTS.opened || ......) {
+    const action = pull_request.action;
+    const isMerged = pull_request.pull_request.merged;
+
+    // Check if the action is open
+    if (action === ACTION_CLOSED && isMerged === true) {
         const html_url = pull_request.pull_request.html_url;
-
-        console.log(`Received pull request event for PR: ${html_url}`);
-
         try {
             // Check if the PR URL exists in the database
-            const existingReview = await Transcript.findOne({ where: { pr_url: html_url } });
-
+            const existingReview = await Review.findOne({ where: { pr_url: html_url } });
             if (existingReview) {
                 // PR is merged, update the mergeAt timestamp
                 existingReview.mergedAt = new Date();
+
+                await existingReview.save();
+                res.sendStatus(200);
+            } else {
+                throw new Error(`Review with PR URL ${html_url} not found.`);
+            }
+        } catch (error) {
+            throw new Error(error);
+        }
+    } else if (action === ACTION_CLOSED && isMerged === false) {
+        const html_url = pull_request.pull_request.html_url;
+        try {
+            // Check if the PR URL exists in the database
+            const existingReview = await Review.findOne({ where: { pr_url: html_url } });
+            if (existingReview) {
+                // PR is merged, update the mergeAt timestamp
                 existingReview.archivedAt = new Date();
 
                 await existingReview.save();
-
-                console.log(`Review with PR URL ${html_url} updated successfully.`);
+                res.sendStatus(200);
             } else {
-                console.log(`Review with PR URL ${html_url} not found in the database.`);
+                throw new Error(`Review with PR URL ${html_url} not found.`);
             }
         } catch (error) {
-            console.error('Error occurred while updating the review:', error);
+            throw new Error(error);
         }
-
-        res.sendStatus(200);
     } else {
-        // Not a pull request event
-        res.sendStatus(204);
+        res.sendStatus(200);
     }
-
-
 };
-
 
