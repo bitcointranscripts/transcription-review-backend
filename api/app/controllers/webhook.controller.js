@@ -14,7 +14,7 @@ exports.create = async (req, res) => {
     const action = pull_request.action;
     const isMerged = pull_request.pull_request.merged;
 
-    // Check if the action is open
+    // Check if the action is closed and the PR is merged
     if (action === ACTION_CLOSED && isMerged === true) {
         const html_url = pull_request.pull_request.html_url;
         try {
