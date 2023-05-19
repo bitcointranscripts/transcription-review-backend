@@ -38,7 +38,7 @@ exports.create = async (req, res) => {
             // Check if the PR URL exists in the database
             const existingReview = await Review.findOne({ where: { pr_url: html_url } });
             if (existingReview) {
-                // PR is merged, update the mergeAt timestamp
+                // PR is merged, update the archivedAt timestamp
                 existingReview.archivedAt = new Date();
 
                 await existingReview.save();
