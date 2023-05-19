@@ -3,7 +3,7 @@ const Review = db.review;
 const User = db.user;
 const Transcript = db.transcript
 const Op = db.Sequelize.Op;
-const { isActiveCondition, isInActiveCondition } = require("../utils/review.inference")
+const { buildIsActiveCondition, buildIsInActiveCondition } = require("../utils/review.inference")
 
 
 // Create and Save a new review
@@ -66,6 +66,7 @@ exports.findAll = async (req, res) => {
   }
 
   let groupedCondition = {};
+  const currentTime = new Date().getTime();
 
   // userId condition
   const userIdCondition = { userId: { [Op.eq]: userId } }
@@ -75,9 +76,11 @@ exports.findAll = async (req, res) => {
     groupedCondition = {...groupedCondition, ...userIdCondition}
   }
   if (isActive === "true") {
-    groupedCondition = {...groupedCondition, ...isActiveCondition}
+    const activeCondition = buildIsActiveCondition(currentTime);
+    groupedCondition = {...groupedCondition, ...activeCondition}
   } else if (isActive === "false") {
-    groupedCondition = {...groupedCondition, ...isInActiveCondition}
+    const inActiveCondition = buildIsInActiveCondition(currentTime);
+    groupedCondition = {...groupedCondition, ...inActiveCondition}
   }
 
   Review.findAll({ where: groupedCondition, include: { model: Transcript }})
