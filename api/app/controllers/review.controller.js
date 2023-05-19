@@ -96,7 +96,7 @@ exports.findAll = async (req, res) => {
 exports.findOne = (req, res) => {
   const id = req.params.id;
 
-  Review.findByPk(id)
+  Review.findByPk(id, { include: { model: Transcript }})
     .then(data => {
       res.send(data);
     })

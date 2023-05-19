@@ -18,14 +18,7 @@ const isInActiveCondition = {
 
 function getUnixTimeFromHours(hours) {
   const millisecondsInHour = 60 * 60 * 1000;
-  const milliseconds = hours * millisecondsInHour;
-
-  // Get the UNIX epoch time in milliseconds
-  const unixEpochTimeInMilliseconds = new Date('1970-01-01T00:00:00Z').getTime();
-
-  // Add the calculated number of milliseconds to the UNIX epoch time
-  const unixTimeInMilliseconds = unixEpochTimeInMilliseconds + milliseconds;
-
+  const unixTimeInMilliseconds = hours * millisecondsInHour;
   return unixTimeInMilliseconds;
 }
 
