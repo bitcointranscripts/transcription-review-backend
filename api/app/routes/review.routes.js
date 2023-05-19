@@ -40,10 +40,11 @@ module.exports = app => {
  *           type: number
  *         description: Filter reviews based on userId
  *       - in: query
- *         name: isActive
+ *         name: status
  *         schema:
- *           type: boolean
- *         description: Filter reviews based on whether they are active or not
+ *           type: string
+ *           enum: ['active', 'pending', 'inactive']
+ *         description: Filter reviews based on their status
  *     responses:
  *       200:
  *         description: The list of the reviews
@@ -53,6 +54,10 @@ module.exports = app => {
  *               type: array
  *               items:
  *                 $ref: '#/components/schemas/Review'
+ *       404:
+ *         description: User with username=${username} does not exist
+ *       500:
+ *         description: Some error occurred while retrieving reviews
  *   post:
  *     summary: Create a new review
  *     tags: [Reviews]
