@@ -6,7 +6,6 @@ const Op = db.Sequelize.Op;
 
 
 exports.create = async (req, res) => {
-    // const action = req.headers["x-github-event"];
     const pull_request = req.body;
      const action = pull_request.action;
 
