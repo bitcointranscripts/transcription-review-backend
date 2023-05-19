@@ -13,7 +13,9 @@ const buildIsActiveCondition = (currentTime) => {
   };
 }
 const buildIsPendingCondition = (currentTime) => {
+  const timeStringAt24HoursPrior = new Date(currentTime - unixEpochTimeInMilliseconds).toISOString();
   return { 
+    createdAt: { [Op.lt]: timeStringAt24HoursPrior }, // expired
     submittedAt: { [Op.not]: null }, // has been submitted
     mergedAt: { [Op.eq]: null }, // no mergedAt
     archivedAt: { [Op.eq]: null } // no archivedAt

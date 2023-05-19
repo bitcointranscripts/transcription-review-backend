@@ -1,9 +1,10 @@
 const db = require("../sequelize/models");
+const { QUERY_REVIEW_ACTIVE, QUERY_REVIEW_PENDING, QUERY_REVIEW_INACTIVE } = require("../utils/constants");
 const Review = db.review;
 const User = db.user;
 const Transcript = db.transcript
 const Op = db.Sequelize.Op;
-const { buildIsActiveCondition, buildIsInActiveCondition } = require("../utils/review.inference")
+const { buildIsActiveCondition, buildIsInActiveCondition, buildIsPendingCondition } = require("../utils/review.inference")
 
 
 // Create and Save a new review
@@ -43,7 +44,7 @@ exports.create = (req, res) => {
 
 // Retrieve all reviews from the database.
 exports.findAll = async (req, res) => {
-  let {isActive} = req.query
+  let queryStatus = req.query.status
   let userId = req.query.userId !== "undefined" ? parseInt(req.query.userId) : undefined
   let username = req.query.username !== "undefined" ? req.query.username : undefined
   
@@ -75,12 +76,23 @@ exports.findAll = async (req, res) => {
   if (Boolean(userId)) {
     groupedCondition = {...groupedCondition, ...userIdCondition}
   }
-  if (isActive === "true") {
-    const activeCondition = buildIsActiveCondition(currentTime);
-    groupedCondition = {...groupedCondition, ...activeCondition}
-  } else if (isActive === "false") {
-    const inActiveCondition = buildIsInActiveCondition(currentTime);
-    groupedCondition = {...groupedCondition, ...inActiveCondition}
+  if (queryStatus) {
+    switch (queryStatus) {
+      case QUERY_REVIEW_ACTIVE:
+        const activeCondition = buildIsActiveCondition(currentTime);
+        groupedCondition = {...groupedCondition, ...activeCondition}
+        break;
+      case QUERY_REVIEW_PENDING:
+        const pendingCondition = buildIsPendingCondition(currentTime);
+        groupedCondition = {...groupedCondition, ...pendingCondition}
+        break;
+      case QUERY_REVIEW_INACTIVE:
+        const inActiveCondition = buildIsInActiveCondition(currentTime);
+        groupedCondition = {...groupedCondition, ...inActiveCondition}
+        break;
+      default:
+        break;
+    }
   }
 
   Review.findAll({ where: groupedCondition, include: { model: Transcript }})
