@@ -15,7 +15,7 @@ exports.create = async (req, res) => {
     const isMerged = pull_request.pull_request.merged;
 
     // Check if the action is closed and the PR is merged
-    if (action === ACTION_CLOSED && isMerged === true) {
+    if (action === ACTION_CLOSED && isMerged) {
         const html_url = pull_request.pull_request.html_url;
         try {
             // Check if the PR URL exists in the database
@@ -32,7 +32,7 @@ exports.create = async (req, res) => {
         } catch (error) {
             throw new Error(error);
         }
-    } else if (action === ACTION_CLOSED && isMerged === false) {
+    } else if (action === ACTION_CLOSED && !isMerged) {
         const html_url = pull_request.pull_request.html_url;
         try {
             // Check if the PR URL exists in the database
