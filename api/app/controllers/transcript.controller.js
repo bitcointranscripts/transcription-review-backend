@@ -3,7 +3,7 @@ const Transcript = db.transcript
 const Review = db.review;
 const User = db.user
 const Op = db.Sequelize.Op;
-const { isActiveCondition } = require("../utils/review.inference")
+const { buildIsActiveCondition } = require("../utils/review.inference")
 const { setupExpiryTimeCron } = require("../utils/cron")
 
 // Create and Save a new Transcript
@@ -147,10 +147,11 @@ exports.claim = async (req, res) => {
   const transcriptId = req.params.id;
 
   const uid = req.body.claimedBy;
-
+  const currentTime = new Date().getTime();
+  const activeCondition = buildIsActiveCondition(currentTime)
   const condition = { 
     userId: { [Op.eq]: uid },
-    ...isActiveCondition,
+    ...activeCondition,
   };
 
   const activeReview = await Review.findAll({ where: condition })
