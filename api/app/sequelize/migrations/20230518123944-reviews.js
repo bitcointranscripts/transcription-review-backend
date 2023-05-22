@@ -2,7 +2,7 @@
 
 /** @type {import('sequelize-cli').Migration} */
 module.exports = {
-  async up(queryInterface, Sequelize) {
+  async up (queryInterface, Sequelize) {
     /**
      * Add altering commands here.
      *
@@ -11,16 +11,13 @@ module.exports = {
      */
     await queryInterface.addColumn(
       'reviews',
-      'pr_url',
+      'archivedAt',
       {
-        type: Sequelize.STRING,
-        unique: true,
+          type: Sequelize.DATE,
       }
-    );
+  );},
 
-  },
-
-  async down(queryInterface, Sequelize) {
+  async down (queryInterface, Sequelize) {
     /**
      * Add reverting commands here.
      *
