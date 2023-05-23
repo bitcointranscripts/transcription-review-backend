@@ -1,3 +1,4 @@
+// @ts-nocheck
 const db = require("../sequelize/models");
 const { QUERY_REVIEW_STATUS } = require("../utils/constants");
 const Review = db.review;
@@ -94,7 +95,7 @@ exports.findAll = async (req, res) => {
         break;
       case QUERY_REVIEW_STATUS.PENDING:
         const pendingCondition = buildIsPendingCondition();
-        groupedCondition = { ...groupedCondition, ...pendingCondition }
+        groupedCondition = { ...groupedCondition, ...pendingCondition };
         break;
       case QUERY_REVIEW_STATUS.INACTIVE:
         const inActiveCondition = buildIsInActiveCondition(currentTime);

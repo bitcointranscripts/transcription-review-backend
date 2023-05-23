@@ -1,3 +1,5 @@
+import { Request, Response } from "express";
+
 const express = require("express")
 const swaggerJsdoc = require("swagger-jsdoc")
 const  swaggerUi = require("swagger-ui-express");
@@ -26,7 +28,7 @@ sequelize
   .then(() => {
     console.log('Connection has been established successfully.');
   })
-  .catch(err => {
+  .catch((err: any) => {
     console.error('Unable to connect to the database:', err);
   });
 
@@ -50,7 +52,7 @@ sequelize
 
 
 // simple route
-app.get("/", (req, res) => {
+app.get("/", (_req: Request, res: Response) => {
   res.json({ message: "Welcome to Bitcoin Transcripts." });
 });
 
