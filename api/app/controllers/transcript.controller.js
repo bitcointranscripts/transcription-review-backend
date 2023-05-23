@@ -5,7 +5,7 @@ const User = db.user
 const Op = db.Sequelize.Op;
 const { buildIsActiveCondition } = require("../utils/review.inference")
 const { setupExpiryTimeCron } = require("../utils/cron");
-const { TRANCRIPT_QUEUED } = require("../utils/constants");
+const { TRANCRIPT_QUEUED, TRANCRIPT_NOT_QUEUED } = require("../utils/constants");
 
 // Create and Save a new Transcript
 exports.create = (req, res) => {
@@ -169,7 +169,7 @@ exports.claim = async (req, res) => {
     return;
   }
 
-  await Transcript.update({ status: 'not queued', claimedAt: new Date(), claimedBy: req.body.claimedBy }, {
+  await Transcript.update({ status: TRANCRIPT_NOT_QUEUED, claimedAt: new Date(), claimedBy: req.body.claimedBy }, {
     where: { id: transcriptId }
   })
     .then(num => {
