@@ -4,7 +4,8 @@ const Review = db.review;
 const User = db.user
 const Op = db.Sequelize.Op;
 const { buildIsActiveCondition } = require("../utils/review.inference")
-const { setupExpiryTimeCron } = require("../utils/cron")
+const { setupExpiryTimeCron } = require("../utils/cron");
+const { TRANCRIPT_QUEUED } = require("../utils/constants");
 
 // Create and Save a new Transcript
 exports.create = (req, res) => {
@@ -50,9 +51,9 @@ exports.create = (req, res) => {
     });
 };
 
-// Retrieve all unarchived transcripts from the database.
+// Retrieve all unarchived and queued transcripts from the database.
 exports.findAll = (req, res) => {
-  var condition = {[Op.and]: [{ archivedAt: null }, { archivedBy: null }]};
+  var condition = {[Op.and]: [{ archivedAt: null }, { archivedBy: null }, { status: TRANCRIPT_QUEUED }]};
 
   Transcript.findAll({ where: condition })
     .then(data => {
