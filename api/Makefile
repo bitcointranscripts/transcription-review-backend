@@ -18,3 +18,9 @@ stop-deps:
 
 reset-deps:
 	make stop-deps & make start-deps
+
+migrate: 
+	yarn run migrate
+
+undo-migrate:
+	yarn run migrate:undo
