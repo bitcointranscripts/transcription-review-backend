@@ -13,6 +13,7 @@ module.exports = (sequelize, DataTypes) => {
       // define association here
       this.belongsTo(models.user);
       this.belongsTo(models.transcript);
+      this.hasOne(models.transaction);
     }
   }
   Review.init({

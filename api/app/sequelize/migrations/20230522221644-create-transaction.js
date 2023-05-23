@@ -14,6 +14,10 @@ module.exports = {
         allowNull: false,
         references: { model: 'wallets', key: 'id' }
       },
+      reviewId: {
+        type: Sequelize.INTEGER,
+        references: { model: 'reviews', key: 'id' }
+      },
       amount: {
         type: Sequelize.DECIMAL,
         allowNull: false

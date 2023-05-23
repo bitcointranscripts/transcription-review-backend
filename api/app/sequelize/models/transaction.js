@@ -10,11 +10,13 @@ module.exports = (sequelize, DataTypes) => {
     static associate(models) {
       // define association here
       this.belongsTo(models.wallet, { foreignKey: "walletId" });
+      this.belongsTo(models.review, { foreignKey: "reviewId" });
     }
   }
   Transaction.init(
     {
       walletId: DataTypes.INTEGER,
+      reviewId: DataTypes.INTEGER,
       amount: {
         type: DataTypes.DECIMAL,
         allowNull: false,
