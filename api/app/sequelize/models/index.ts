@@ -35,6 +35,9 @@ Object.keys(db).forEach((modelName) => {
   }
 });
 
+// Once all models are imported, invoke the associate functions
+associateModelFunctions.forEach(associateFunc => associateFunc(db));
+
 db.sequelize = sequelize;
 db.Sequelize = Sequelize;
 
