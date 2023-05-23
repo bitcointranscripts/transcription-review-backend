@@ -27,7 +27,7 @@ export default function initModel(
 ): ModelStatic<Transaction> {
   return Transaction.init(
     {
-      id: DataTypes.STRING,
+      id: { type: DataTypes.STRING, primaryKey: true },
       walletId: DataTypes.STRING,
       reviewId: DataTypes.INTEGER,
       amount: {
