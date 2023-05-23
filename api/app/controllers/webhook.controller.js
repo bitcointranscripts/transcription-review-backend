@@ -1,7 +1,7 @@
 const db = require("../sequelize/models");
 const Review = db.review;
 const Transcript = db.transcript;
-const { ACTION_CLOSED } = require("../utils/constants")
+const { ACTION_CLOSED, TRANCRIPT_QUEUED } = require("../utils/constants")
 
 
 exports.create = async (req, res) => {
@@ -55,7 +55,7 @@ exports.create = async (req, res) => {
             // find and update the associated transcript
             const associatedTranscript = await Transcript.findByPk(existingReview.transcriptId);
             associatedTranscript.claimedBy = null;
-            associatedTranscript.status = "queued"
+            associatedTranscript.status = TRANCRIPT_QUEUED
             await associatedTranscript.save()
 
             res.sendStatus(200);
