@@ -25,15 +25,15 @@ fs.readdirSync(__dirname)
   )
   .forEach((file) => {
     const model = require(path.join(__dirname, file));
-    const sequelizeModel = model.default(sequelize);
-    db[sequelizeModel.name] = sequelizeModel;
-    if (sequelizeModel.associate) {
-      associateModelFunctions.push(sequelizeModel.associate);
-    }
+    console.log(model);
+    model.default(sequelize);
   });
 
-// Once all models are imported, invoke the associate functions
-associateModelFunctions.forEach((associateFunc) => associateFunc(db));
+Object.keys(db).forEach((modelName) => {
+  if (db[modelName].associate) {
+    db[modelName].associate(db);
+  }
+});
 
 db.sequelize = sequelize;
 db.Sequelize = Sequelize;
