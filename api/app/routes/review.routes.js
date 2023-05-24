@@ -28,6 +28,23 @@ module.exports = app => {
  *   get:
  *     summary: Lists all the reviews
  *     tags: [Reviews]
+ *     parameters:
+ *       - in: query
+ *         name: username
+ *         schema:
+ *           type: string
+ *         description: Filter reviews based on username
+ *       - in: query
+ *         name: userId
+ *         schema:
+ *           type: number
+ *         description: Filter reviews based on userId
+ *       - in: query
+ *         name: status
+ *         schema:
+ *           type: string
+ *           enum: ['active', 'pending', 'inactive']
+ *         description: Filter reviews based on their status
  *     responses:
  *       200:
  *         description: The list of the reviews
@@ -37,6 +54,10 @@ module.exports = app => {
  *               type: array
  *               items:
  *                 $ref: '#/components/schemas/Review'
+ *       404:
+ *         description: User with username=${username} does not exist
+ *       500:
+ *         description: Some error occurred while retrieving reviews
  *   post:
  *     summary: Create a new review
  *     tags: [Reviews]
@@ -102,7 +123,37 @@ module.exports = app => {
  *        description: The review was not found
  *      500:
  *        description: Some error happened
+ *
+ * /api/reviews/{id}/submit:
+ *   put:
+ *    summary: Submit the review by the id
+ *    tags: [Reviews]
+ *    parameters:
+ *      - in: path
+ *        name: id
+ *        schema:
+ *          type: string
+ *        required: true
+ *        description: The transcript id
+ *    requestBody:
+ *      content:
+ *        application/json:
+ *          schema: 
+ *            type: object
+ *            properties:
+ *              pr_url:
+ *                type: string;
+ *    responses:
+ *      200:
+ *        description: The review was submitted successfully
+ *      400:
+ *        description: pr_url is missing.
+ *      404:
+ *        description: Review was not found.
+ *      500:
+ *        description: Some error happened
  */
+
   // Create a new review
   router.post("/", reviews.create);
 
@@ -114,6 +165,9 @@ module.exports = app => {
 
   // Update a review with id
   router.put("/:id", reviews.update);
+
+  // Submit a review with id
+  router.put("/:id/submit", reviews.submit);
 
   app.use("/api/reviews", router);
 };

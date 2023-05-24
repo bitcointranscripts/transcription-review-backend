@@ -3,30 +3,33 @@ const Transcript = db.transcript
 const Review = db.review;
 const User = db.user
 const Op = db.Sequelize.Op;
+const { buildIsActiveCondition } = require("../utils/review.inference")
+const { setupExpiryTimeCron } = require("../utils/cron");
+const { TRANCRIPT_QUEUED, TRANCRIPT_NOT_QUEUED } = require("../utils/constants");
 
 // Create and Save a new Transcript
 exports.create = (req, res) => {
- // Validate request
- if (!req.body.content) {
-  res.status(400).send({
-    message: "Content cannot be empty!"
-  });
-  return;
-}
+  // Validate request
+  if (!req.body.content) {
+    res.status(400).send({
+      message: "Content cannot be empty!"
+    });
+    return;
+  }
 
-const getFirstFiveWords = (paragraph) => {
-  const words = paragraph.trim().split(/\s+/);
-  return words.slice(0, 5).join(' ');
-};
+  const getFirstFiveWords = (paragraph) => {
+    const words = paragraph.trim().split(/\s+/);
+    return words.slice(0, 5).join(' ');
+  };
 
-const generateUniqueStr = () => {
+  const generateUniqueStr = () => {
 
-  const oc = req.body.content;
-  const str = oc.title + getFirstFiveWords(oc.body); 
-  const transcriptHash = str.trim().toLowerCase();
+    const oc = req.body.content;
+    const str = oc.title + getFirstFiveWords(oc.body); 
+    const transcriptHash = str.trim().toLowerCase();
 
-  return transcriptHash;
-}
+    return transcriptHash;
+  }
 
   // Create a Transcript
   const transcript = {
@@ -48,9 +51,9 @@ const generateUniqueStr = () => {
     });
 };
 
-// Retrieve all unarchived transcripts from the database.
+// Retrieve all unarchived and queued transcripts from the database.
 exports.findAll = (req, res) => {
-  var condition = {[Op.and]: [{ archivedAt: null }, { archivedBy: null }]};
+  var condition = {[Op.and]: [{ archivedAt: null }, { archivedBy: null }, { status: TRANCRIPT_QUEUED }]};
 
   Transcript.findAll({ where: condition })
     .then(data => {
@@ -139,34 +142,34 @@ exports.archive = async (req, res) => {
         message: "Error archiving Transcript with id=" + id
       });
     });
-};
+  };
 
 exports.claim = async (req, res) => {
   const transcriptId = req.params.id;
 
   const uid = req.body.claimedBy;
+  const currentTime = new Date().getTime();
+  const activeCondition = buildIsActiveCondition(currentTime)
+  const condition = { 
+    userId: { [Op.eq]: uid },
+    ...activeCondition,
+  };
 
-  console.log({ uid })
-
-  var condition = { claimedBy: { [Op.eq]: uid } };
-
-  const transcript = await Transcript.findAll({ where: condition })
+  const activeReview = await Review.findAll({ where: condition })
 
   const review = {
     userId: uid,
     transcriptId
   };
 
-  console.log({ transcript })
-
-  if (transcript.length) {
+  if (activeReview.length) {
     res.status(403).send({
-      message: "User already has a transcript claimed."
+      message: "Cannot claim transcript, user has an active review"
     });
     return;
   }
 
-  await Transcript.update({ status: 'not queued', claimedAt: new Date(), claimedBy: req.body.claimedBy }, {
+  await Transcript.update({ status: TRANCRIPT_NOT_QUEUED, claimedAt: new Date(), claimedBy: req.body.claimedBy }, {
     where: { id: transcriptId }
   })
     .then(num => {
@@ -176,6 +179,7 @@ exports.claim = async (req, res) => {
         Review.create(review)
           .then(data => {
             res.send(data);
+            setupExpiryTimeCron(data);
           })
           .catch(err => {
             res.status(500).send({
@@ -194,5 +198,4 @@ exports.claim = async (req, res) => {
         message: "Error claiming Transcript with id=" + transcriptId
       });
     });
-
 };

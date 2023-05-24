@@ -13,14 +13,17 @@ module.exports = (sequelize, DataTypes) => {
       // define association here
       this.belongsTo(models.user);
       this.belongsTo(models.transcript);
+      this.hasOne(models.transaction);
     }
   }
   Review.init({
     claimedAt: DataTypes.DATE,
     submittedAt: DataTypes.DATE,
+    archivedAt: DataTypes.DATE,
     mergedAt: DataTypes.DATE,
     userId: DataTypes.INTEGER,
-    transcriptId: DataTypes.INTEGER
+    transcriptId: DataTypes.INTEGER,
+    pr_url: DataTypes.STRING,
   }, {
     sequelize,
     modelName: 'review',

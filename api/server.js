@@ -57,6 +57,7 @@ app.get("/", (req, res) => {
 require("./app/routes/user.routes")(app);
 require("./app/routes/review.routes")(app);
 require("./app/routes/transcript.routes")(app);
+require("./app/routes/webhook.routes")(app);
 
 const options = {
   definition: {

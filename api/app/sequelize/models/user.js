@@ -11,6 +11,7 @@ module.exports = (sequelize, DataTypes) => {
      */
     static associate(models) {
       // define association here
+      this.hasOne(models.wallet, { foreignKey: 'userId' });
       this.hasMany(models.review, { foreignKey: 'userId' });
       this.hasMany(models.transcript, { foreignKey: 'archivedBy' });
     }

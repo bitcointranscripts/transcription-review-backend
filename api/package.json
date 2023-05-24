@@ -16,11 +16,13 @@
   "scripts": {
     "start": "node server.js",
     "migrate": "npx sequelize db:migrate",
+    "migrate:undo": "npx sequelize db:migrate:undo",
     "seed": "npx sequelize db:seed:all",
     "dev": "nodemon NODE_ENV=development server.js"
-    },
+  },
   "dependencies": {
     "cors": "^2.8.5",
+    "cron": "^2.3.0",
     "dotenv": "^16.0.3",
     "express": "^4.17.1",
     "pg": "^8.7.3",

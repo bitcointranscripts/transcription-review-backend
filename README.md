@@ -18,19 +18,20 @@
 
 - The best way to get a database for development is to use docker
 
-- Run `docker run --name transcription -e POSTGRES_PASSWORD=postgres -p 5432:5432 postgres`
-- Run `docker start -i transcription` to start the container
-- `optional` Run `docker exec -it transcription psql -U postgres` to access the postgres shell or
-- Download any database console or explorer to access the database data. I recommend [dbeaver](https://dbeaver.io/)
+- Navigate to the api directory `cd api`
+- Run `make start-deps` to start the container
+- `optional` Run `make start-pg-shell` to access the postgres shell or
+- Download any database console or explorer to access the database data. We recommend [dbeaver](https://dbeaver.io/)
+- To stop the running containers and server, run `make stop-deps`
+- Run `make reset-deps` to restart all containers.
 
 #### Setup API
 
-- Navigate to api directory
+- Navigate to api directory `cd api`
 - Create a new .env file and copy the contents of .env.example into it or run `cp .env.example .env`
-- In api directory run `npm install` to install all dependencies
-- Run `npm run migrate` to run migrations
-- Run `npm run seed` to seed the database
-- Run `npm run dev` to start the server
+- In api directory run `yarn install` to install all dependencies
+- Run `make start` to start the api service. This will run migrations, seed the database and start the server.
+- You only need run `make start` the first time. Subsequent run only requires `make run` or `yarn dev`
 
 ## API docs endpoints to check out
 
