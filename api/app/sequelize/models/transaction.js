@@ -22,7 +22,11 @@ module.exports = (sequelize, DataTypes) => {
         allowNull: false,
       },
       transactionType: {
-        type: DataTypes.ENUM("credit", "debit", "pending"),
+        type: DataTypes.ENUM("credit", "debit"),
+        allowNull: false,
+      },
+      transactionStatus: {
+        type: DataTypes.ENUM("success", "failed", "pending"),
         allowNull: false,
       },
       timestamp: DataTypes.DATE,

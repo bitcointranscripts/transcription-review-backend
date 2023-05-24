@@ -23,13 +23,15 @@
   "dependencies": {
     "cors": "^2.8.5",
     "cron": "^2.3.0",
+    "diff": "^5.1.0",
     "dotenv": "^16.0.3",
     "express": "^4.17.1",
     "pg": "^8.7.3",
     "pg-hstore": "^2.3.4",
     "sequelize": "^6.21.1",
     "swagger-jsdoc": "^6.2.8",
-    "swagger-ui-express": "^4.6.2"
+    "swagger-ui-express": "^4.6.2",
+    "word-count": "^0.2.2"
   },
   "devDependencies": {
     "moment": "^2.29.4",
