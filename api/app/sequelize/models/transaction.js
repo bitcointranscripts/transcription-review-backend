@@ -15,7 +15,7 @@ module.exports = (sequelize, DataTypes) => {
   }
   Transaction.init(
     {
-      walletId: DataTypes.INTEGER,
+      walletId: DataTypes.STRING,
       reviewId: DataTypes.INTEGER,
       amount: {
         type: DataTypes.DECIMAL,

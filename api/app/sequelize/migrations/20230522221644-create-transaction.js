@@ -5,12 +5,12 @@ module.exports = {
     await queryInterface.createTable("transactions", {
       id: {
         allowNull: false,
-        autoIncrement: true,
+        autoIncrement: false,
         primaryKey: true,
-        type: Sequelize.INTEGER,
+        type: Sequelize.STRING,
       },
       walletId: {
-        type: Sequelize.INTEGER,
+        type: Sequelize.STRING,
         allowNull: false,
         references: { model: "wallets", key: "id" },
       },

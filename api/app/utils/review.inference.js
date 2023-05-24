@@ -88,21 +88,10 @@ async function calculateWordDiff(data) {
   return { totalDiff, totalWords, addedWords, removedWords };
 }
 
-async function calculateCreditAmount(associatedTranscript) {
-  const { totalDiff, totalWords } = await calculateWordDiff(
-    associatedTranscript
-  );
-  const rewardForWords = totalWords * SATS_REWARD_RATE_PER_WORD;
-  const rewardForDiff = totalDiff * SATS_REWARD_RATE_PER_WORD;
-  const creditAmount = rewardForWords + rewardForDiff;
-  return creditAmount;
-}
-
 module.exports = {
   getUnixTimeFromHours,
   buildIsActiveCondition,
   buildIsPendingCondition,
   buildIsInActiveCondition,
   calculateWordDiff,
-  calculateCreditAmount,
 };

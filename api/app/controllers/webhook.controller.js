@@ -5,7 +5,7 @@ const {
   PR_EVENT_ACTIONS,
   TRANSACTION_STATUS,
 } = require("../utils/constants");
-const { calculateCreditAmount } = require("../utils/review.inference");
+const { calculateCreditAmount } = require("../utils/transaction");
 
 const Review = db.review;
 const Transcript = db.transcript;
@@ -13,7 +13,7 @@ const Transaction = db.transaction;
 const User = db.user;
 const Wallet = db.wallet;
 
-// create a new transaction when a review is merged
+// create a new credit transaction when a review is merged
 async function createCreditTransaction(review, amount) {
   const dbTransaction = await db.sequelize.transaction();
   const currentTime = new Date();
@@ -30,8 +30,6 @@ async function createCreditTransaction(review, amount) {
       transactionType: TRANSACTION_TYPE.CREDIT,
       transactionStatus: TRANSACTION_STATUS.SUCCESS,
       timestamp: currentTime,
-      createdAt: currentTime,
-      updatedAt: currentTime,
     };
     await Transaction.create(creditTransaction, {
       transaction: dbTransaction,
@@ -54,8 +52,6 @@ async function createCreditTransaction(review, amount) {
       transactionType: TRANSACTION_TYPE.CREDIT,
       transactionStatus: TRANSACTION_STATUS.FAILED,
       timestamp: currentTime,
-      createdAt: currentTime,
-      updatedAt: currentTime,
     };
     await Transaction.create(failedTransaction);
     throw new Error(error);
