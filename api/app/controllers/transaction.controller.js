@@ -101,18 +101,6 @@ exports.findAll = async (req, res) => {
     });
     return;
   }
-  if (status && !Boolean(TRANSACTION_STATUS[status])) {
-    res.status(400).send({
-      message: `Invalid status: ${status}`,
-    });
-    return;
-  } else if (type && !Boolean(TRANSACTION_TYPE[type])) {
-    res.status(400).send({
-      message: `Invalid type: ${type}`,
-    });
-    return;
-  }
-
   const userWallet = await Wallet.findOne({ where: { userId: userId } });
   if (!userWallet) {
     res.status(404).send({
@@ -122,11 +110,22 @@ exports.findAll = async (req, res) => {
   }
 
   let condition = { walletId: userWallet.id };
-
   if (status) {
+    if (!Boolean(TRANSACTION_STATUS[status.toUpperCase()])) {
+      res.status(400).send({
+        message: `Invalid status: ${status}`,
+      });
+      return;
+    }
     condition = { ...condition, transactionStatus: status };
   }
   if (type) {
+    if (type && !Boolean(TRANSACTION_TYPE[type.toUpperCase()])) {
+      res.status(400).send({
+        message: `Invalid type: ${type}`,
+      });
+      return;
+    }
     condition = { ...condition, transactionType: type };
   }
 
