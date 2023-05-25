@@ -1,5 +1,5 @@
 const db = require("../sequelize/models");
-const { QUERY_REVIEW_ACTIVE, QUERY_REVIEW_PENDING, QUERY_REVIEW_INACTIVE } = require("../utils/constants");
+const { QUERY_REVIEW_STATUS } = require("../utils/constants");
 const Review = db.review;
 const User = db.user;
 const Transcript = db.transcript
@@ -78,15 +78,15 @@ exports.findAll = async (req, res) => {
   }
   if (queryStatus) {
     switch (queryStatus) {
-      case QUERY_REVIEW_ACTIVE:
+      case QUERY_REVIEW_STATUS.ACTIVE:
         const activeCondition = buildIsActiveCondition(currentTime);
         groupedCondition = {...groupedCondition, ...activeCondition}
         break;
-      case QUERY_REVIEW_PENDING:
+      case QUERY_REVIEW_STATUS.PENDING:
         const pendingCondition = buildIsPendingCondition(currentTime);
         groupedCondition = {...groupedCondition, ...pendingCondition}
         break;
-      case QUERY_REVIEW_INACTIVE:
+      case QUERY_REVIEW_STATUS.INACTIVE:
         const inActiveCondition = buildIsInActiveCondition(currentTime);
         groupedCondition = {...groupedCondition, ...inActiveCondition}
         break;
