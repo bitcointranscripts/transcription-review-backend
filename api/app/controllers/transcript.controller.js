@@ -180,7 +180,6 @@ exports.claim = async (req, res) => {
   }
   
   const pendingReview = await Review.findAll({ where: {...userCondition, ...pendingCondition} });
-  console.log({"length": pendingReview.length})
   if (pendingReview.length >= maxPendingReviews) {
     res.status(403).send({
       message: "User has too many pending reviews, clear some and try again!",
