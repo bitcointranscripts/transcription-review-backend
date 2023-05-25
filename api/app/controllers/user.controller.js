@@ -1,5 +1,6 @@
 const { v4: uuidv4 } = require("uuid");
 const db = require("../sequelize/models");
+const { calculateWordDiff } = require("../utils/review.inference");
 const User = db.user;
 const Review = db.review;
 const Transcript = db.transcript;
@@ -66,7 +67,7 @@ exports.findOne = (req, res) => {
     .then((data) => {
       res.send(data);
     })
-    .catch((err) => {
+    .catch((_err) => {
       res.status(500).send({
         message: "Error retrieving User with id=" + id,
       });
@@ -117,8 +118,7 @@ exports.getUserWallet = async (req, res) => {
     })
     .catch((err) => {
       res.status(500).send({
-        message:
-          "Some error occurred while retrieving wallet for the user.",
+        message: "Some error occurred while retrieving wallet for the user.",
       });
     });
 };
@@ -129,8 +129,18 @@ exports.getUserReviews = async (req, res) => {
   var condition = { userId: { [Op.eq]: id } };
 
   await Review.findAll({ where: condition, include: { model: Transcript } })
-    .then((data) => {
-      res.send(data);
+    .then(async (data) => {
+      const reviews = [];
+      const appendReviewData = data.map(async ({ dataValues }) => {
+        const transcript = dataValues.transcript.dataValues;
+        const { totalWords } = await calculateWordDiff(transcript);
+        Object.assign(transcript, { contentTotalWords: totalWords });
+        dataValues.transcript = transcript;
+        reviews.push(dataValues);
+      });
+      Promise.all(appendReviewData).then(() => {
+        res.send(reviews);
+      });
     })
     .catch((err) => {
       res.status(500).send({

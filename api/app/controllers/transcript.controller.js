@@ -13,7 +13,7 @@ const { TRANCRIPT_STATUS } = require("../utils/constants");
 const { maxPendingReviews } = require("../utils/config");
 
 // Create and Save a new Transcript
-exports.create = (req, res) => {
+exports.create = async (req, res) => {
   // Validate request
   if (!req.body.content) {
     res.status(400).send({
@@ -56,8 +56,8 @@ exports.create = (req, res) => {
 };
 
 // Retrieve all unarchived and queued transcripts from the database.
-exports.findAll = (req, res) => {
-  var condition = {
+exports.findAll = async (_req, res) => {
+  let condition = {
     [Op.and]: [
       { archivedAt: null },
       { archivedBy: null },
@@ -67,7 +67,15 @@ exports.findAll = (req, res) => {
 
   Transcript.findAll({ where: condition })
     .then((data) => {
-      res.send(data);
+      const transcripts = [];
+      const appendTotalWords = data.map(async ({ dataValues }) => {
+        const { totalWords } = await calculateWordDiff(dataValues);
+        await Object.assign(dataValues, { contentTotalWords: totalWords });
+        transcripts.push(dataValues);
+      });
+      Promise.all(appendTotalWords).then(() => {
+        res.send(transcripts);
+      });
     })
     .catch((err) => {
       res.status(500).send({
@@ -81,14 +89,13 @@ exports.findAll = (req, res) => {
 exports.findOne = async (req, res) => {
   const id = req.params.id;
 
-  Transcript.findByPk(id)
+  await Transcript.findByPk(id)
     .then(async (data) => {
-      // console.log(data)
-      let r = await calculateWordDiff(data);
-      console.log({ r });
+      const { totalWords } = await calculateWordDiff(data);
+      await Object.assign(data.dataValues, { contentTotalWords: totalWords });
       res.send(data);
     })
-    .catch((err) => {
+    .catch((_err) => {
       res.status(500).send({
         message: "Error retrieving Transcript with id=" + id,
       });
@@ -153,7 +160,7 @@ exports.archive = async (req, res) => {
         });
       }
     })
-    .catch((err) => {
+    .catch((_err) => {
       res.status(500).send({
         message: "Error archiving Transcript with id=" + id,
       });
@@ -222,7 +229,7 @@ exports.claim = async (req, res) => {
         });
       }
     })
-    .catch((err) => {
+    .catch((_err) => {
       res.status(500).send({
         message: "Error claiming Transcript with id=" + transcriptId,
       });
