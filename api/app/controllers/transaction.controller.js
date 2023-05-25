@@ -101,6 +101,17 @@ exports.findAll = async (req, res) => {
     });
     return;
   }
+  if (status && !Boolean(TRANSACTION_STATUS[status])) {
+    res.status(400).send({
+      message: `Invalid status: ${status}`,
+    });
+    return;
+  } else if (type && !Boolean(TRANSACTION_TYPE[type])) {
+    res.status(400).send({
+      message: `Invalid type: ${type}`,
+    });
+    return;
+  }
 
   const userWallet = await Wallet.findOne({ where: { userId: userId } });
   if (!userWallet) {
@@ -111,6 +122,7 @@ exports.findAll = async (req, res) => {
   }
 
   let condition = { walletId: userWallet.id };
+
   if (status) {
     condition = { ...condition, transactionStatus: status };
   }
