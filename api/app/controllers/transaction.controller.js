@@ -7,8 +7,6 @@ const User = db.user;
 const Review = db.review;
 const Wallet = db.wallet;
 
-const Op = db.Sequelize.Op;
-
 // Create and Save a new Transaction
 exports.create = async (req, res) => {
   // check if any fields are empty
@@ -52,7 +50,7 @@ exports.create = async (req, res) => {
   });
   if (!userWallet) {
     res.status(404).send({
-      message: `Could not create transaction: wallet with id=${req.body.walletId} does not exist`,
+      message: `Could not create transaction: wallet with for userId=${req.body.userId} does not exist`,
     });
     return;
   }
@@ -101,26 +99,22 @@ exports.findAll = async (req, res) => {
     res.status(400).send({
       message: `userId is of type ${typeof userId}. userId should be a number.`,
     });
+    return;
   }
 
   const userWallet = await Wallet.findOne({ where: { userId: userId } });
   if (!userWallet) {
     res.status(404).send({
-      message: `Transaction for userId=${userId} does not exist`,
+      message: `Wallet for userId=${userId} does not exist`,
     });
     return;
   }
 
   let condition = { walletId: userWallet.id };
-  if (status && type) {
-    condition = {
-      ...condition,
-      transactionStatus: status,
-      transactionType: type,
-    };
-  } else if (status) {
+  if (status) {
     condition = { ...condition, transactionStatus: status };
-  } else if (type) {
+  }
+  if (type) {
     condition = { ...condition, transactionType: type };
   }
 
