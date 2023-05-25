@@ -1,3 +1,4 @@
 module.exports = {
-  expiryTimeInHours: 24
+  expiryTimeInHours: 24,
+  maxPendingReviews: 3,
 }

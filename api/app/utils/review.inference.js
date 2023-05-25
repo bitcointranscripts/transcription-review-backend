@@ -17,14 +17,11 @@ const buildIsActiveCondition = (currentTime) => {
     createdAt: { [Op.gte]: timeStringAt24HoursPrior },
     mergedAt: { [Op.eq]: null }, // no mergedAt
     archivedAt: { [Op.eq]: null }, // no archivedAt
+    submittedAt: { [Op.eq]: null }, // no submittedAt
   };
 };
-const buildIsPendingCondition = (currentTime) => {
-  const timeStringAt24HoursPrior = new Date(
-    currentTime - unixEpochTimeInMilliseconds
-  ).toISOString();
+const buildIsPendingCondition = () => {
   return {
-    createdAt: { [Op.lt]: timeStringAt24HoursPrior }, // expired
     submittedAt: { [Op.not]: null }, // has been submitted
     mergedAt: { [Op.eq]: null }, // no mergedAt
     archivedAt: { [Op.eq]: null }, // no archivedAt

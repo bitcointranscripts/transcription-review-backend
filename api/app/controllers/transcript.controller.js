@@ -6,9 +6,11 @@ const Op = db.Sequelize.Op;
 const {
   buildIsActiveCondition,
   calculateWordDiff,
+  buildIsPendingCondition,
 } = require("../utils/review.inference");
 const { setupExpiryTimeCron } = require("../utils/cron");
 const { TRANCRIPT_STATUS } = require("../utils/constants");
+const { maxPendingReviews } = require("../utils/config");
 
 // Create and Save a new Transcript
 exports.create = (req, res) => {
@@ -164,24 +166,31 @@ exports.claim = async (req, res) => {
   const uid = req.body.claimedBy;
   const currentTime = new Date().getTime();
   const activeCondition = buildIsActiveCondition(currentTime);
-  const condition = {
+  const pendingCondition = buildIsPendingCondition();
+  const userCondition = {
     userId: { [Op.eq]: uid },
-    ...activeCondition,
   };
 
-  const activeReview = await Review.findAll({ where: condition });
-
-  const review = {
-    userId: uid,
-    transcriptId,
-  };
-
+  const activeReview = await Review.findAll({ where: {...userCondition, ...activeCondition} });
   if (activeReview.length) {
     res.status(403).send({
       message: "Cannot claim transcript, user has an active review",
     });
     return;
   }
+  
+  const pendingReview = await Review.findAll({ where: {...userCondition, ...pendingCondition} });
+  if (pendingReview.length >= maxPendingReviews) {
+    res.status(403).send({
+      message: "User has too many pending reviews, clear some and try again!",
+    });
+    return;
+  }
+
+  const review = {
+    userId: uid,
+    transcriptId,
+  };
 
   await Transcript.update(
     {
