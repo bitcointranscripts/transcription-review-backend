@@ -166,7 +166,7 @@ exports.claim = async (req, res) => {
   const uid = req.body.claimedBy;
   const currentTime = new Date().getTime();
   const activeCondition = buildIsActiveCondition(currentTime);
-  const pendingCondition = buildIsPendingCondition(currentTime);
+  const pendingCondition = buildIsPendingCondition();
   const userCondition = {
     userId: { [Op.eq]: uid },
   };

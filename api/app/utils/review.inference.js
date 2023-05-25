@@ -20,7 +20,7 @@ const buildIsActiveCondition = (currentTime) => {
     submittedAt: { [Op.eq]: null }, // no submittedAt
   };
 };
-const buildIsPendingCondition = (_currentTime) => {
+const buildIsPendingCondition = () => {
   return {
     submittedAt: { [Op.not]: null }, // has been submitted
     mergedAt: { [Op.eq]: null }, // no mergedAt

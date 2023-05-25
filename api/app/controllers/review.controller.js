@@ -83,7 +83,7 @@ exports.findAll = async (req, res) => {
         groupedCondition = {...groupedCondition, ...activeCondition}
         break;
       case QUERY_REVIEW_STATUS.PENDING:
-        const pendingCondition = buildIsPendingCondition(currentTime);
+        const pendingCondition = buildIsPendingCondition();
         groupedCondition = {...groupedCondition, ...pendingCondition}
         break;
       case QUERY_REVIEW_STATUS.INACTIVE:
