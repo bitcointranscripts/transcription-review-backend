@@ -15,14 +15,18 @@ module.exports = (sequelize, DataTypes) => {
   }
   Transaction.init(
     {
-      walletId: DataTypes.INTEGER,
+      walletId: DataTypes.STRING,
       reviewId: DataTypes.INTEGER,
       amount: {
         type: DataTypes.DECIMAL,
         allowNull: false,
       },
       transactionType: {
-        type: DataTypes.ENUM("credit", "debit", "pending"),
+        type: DataTypes.ENUM("credit", "debit"),
+        allowNull: false,
+      },
+      transactionStatus: {
+        type: DataTypes.ENUM("success", "failed", "pending"),
         allowNull: false,
       },
       timestamp: DataTypes.DATE,
