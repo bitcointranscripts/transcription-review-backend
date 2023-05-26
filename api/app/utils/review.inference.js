@@ -2,7 +2,6 @@ const config = require("./config");
 const db = require("../sequelize/models");
 const diff = require("diff");
 const wordCount = require("word-count");
-const { SATS_REWARD_RATE_PER_WORD } = require("./constants");
 const Op = db.Sequelize.Op;
 
 const unixEpochTimeInMilliseconds = getUnixTimeFromHours(
@@ -68,6 +67,29 @@ async function calculateWordDiff(data) {
   fieldsToConsider.forEach((field) => {
     let originalText = data.originalContent[field] || "";
     let modifiedText = data.content[field] || "";
+
+    // If the field is an array, we need to convert it to a string
+    // before we can calculate the diff.
+    // TODO! This is a hacky solution. We should fix the transcript json format from tstbtc.
+    if (Array.isArray(modifiedText)) {
+      modifiedText = modifiedText.join(" ");
+    }
+    if (
+      (originalText.trim().startsWith("[") &&
+        originalText.trim().endsWith("]")) ||
+      (modifiedText.trim().startsWith("[") && modifiedText.trim().endsWith("]"))
+    ) {
+      let getOriginalText = originalText.trim().slice(1, -1);
+      let getModifiedText = modifiedText.trim().slice(1, -1);
+      originalText = getOriginalText
+        .split(",")
+        .map((text) => text.trim().slice(1, -1))
+        .join(" ");
+      modifiedText = getModifiedText
+        .split(",")
+        .map((text) => text.trim().slice(1, -1))
+        .join(" ");
+    }
 
     let difference = diff.diffWords(originalText, modifiedText);
 
