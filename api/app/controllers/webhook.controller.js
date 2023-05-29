@@ -5,7 +5,10 @@ const {
   PR_EVENT_ACTIONS,
   TRANSACTION_STATUS,
 } = require("../utils/constants");
-const { calculateCreditAmount } = require("../utils/transaction");
+const {
+  calculateCreditAmount,
+  generateTransactionId,
+} = require("../utils/transaction");
 
 const Review = db.review;
 const Transcript = db.transcript;
@@ -17,20 +20,21 @@ const Wallet = db.wallet;
 async function createCreditTransaction(review, amount) {
   const dbTransaction = await db.sequelize.transaction();
   const currentTime = new Date();
-  const user = await User.findByPk(existingReview.userId);
+  const user = await User.findByPk(review.userId);
   const userWallet = await Wallet.findOne({
     where: { userId: user.id },
   });
+  const newWalletBalance = userWallet.balance + +amount;
+  const creditTransaction = {
+    id: generateTransactionId(),
+    reviewId: review.id,
+    walletId: userWallet.id,
+    amount: +amount,
+    transactionType: TRANSACTION_TYPE.CREDIT,
+    transactionStatus: TRANSACTION_STATUS.SUCCESS,
+    timestamp: currentTime,
+  };
   try {
-    const newWalletBalance = userWallet.balance + +amount;
-    const creditTransaction = {
-      reviewId: review.id,
-      walletId: userWallet.id,
-      amount: +amount,
-      transactionType: TRANSACTION_TYPE.CREDIT,
-      transactionStatus: TRANSACTION_STATUS.SUCCESS,
-      timestamp: currentTime,
-    };
     await Transaction.create(creditTransaction, {
       transaction: dbTransaction,
     });
@@ -43,15 +47,10 @@ async function createCreditTransaction(review, amount) {
     );
     await dbTransaction.commit();
   } catch (error) {
-    console.log(error);
     await dbTransaction.rollback();
     const failedTransaction = {
-      reviewId: review.id,
-      walletId: userWallet.id,
-      amount: +amount,
-      transactionType: TRANSACTION_TYPE.CREDIT,
+      ...creditTransaction,
       transactionStatus: TRANSACTION_STATUS.FAILED,
-      timestamp: currentTime,
     };
     await Transaction.create(failedTransaction);
     throw new Error(error);
@@ -63,7 +62,7 @@ exports.create = async (req, res) => {
 
   //check if req.body return anything
   if (!pull_request) {
-    res.status(500).send({
+    return res.status(500).send({
       message: "No pull request data found in the request body.",
     });
   }
@@ -72,6 +71,12 @@ exports.create = async (req, res) => {
   const isMerged = pull_request.pull_request?.merged;
   const html_url = pull_request.pull_request?.html_url;
   const currentTime = new Date();
+
+  if (!action || !html_url) {
+    return res.status(500).send({
+      message: "No action or html_url found in the request body.",
+    });
+  }
 
   // Check if the PR URL exists in the database
   const existingReview = await Review.findOne({ where: { pr_url: html_url } });
@@ -124,7 +129,7 @@ exports.create = async (req, res) => {
 
       res.sendStatus(200);
     } catch (error) {
-      res.status(500).send({
+      return res.status(500).send({
         message: `Error: ${
           error?.message ?? "unable to update review or associated transcript"
         }`,
