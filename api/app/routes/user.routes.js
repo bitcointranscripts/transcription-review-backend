@@ -157,6 +157,9 @@ module.exports = app => {
 
   router.get("/:id/reviews", users.getUserReviews);
 
+  // Get a user wallet details
+  router.get("/:id/wallet", users.getUserWallet);
+
   // Update a user with id
   router.put("/:id", users.update);
 

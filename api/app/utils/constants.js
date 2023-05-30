@@ -1,21 +1,38 @@
-const ACTION_OPENED = 'opened';
-const ACTION_CLOSED = 'closed';
-const ACTION_MERGED = 'merged';
+const PR_EVENT_ACTIONS = {
+  OPENED: "opened",
+  CLOSED: "closed",
+  MERGED: "merged",
+};
 
-const TRANCRIPT_QUEUED = 'queued';
-const TRANCRIPT_NOT_QUEUED = 'not queued';
+const TRANCRIPT_STATUS = {
+  QUEUED: "queued",
+  NOT_QUEUED: "not queued",
+};
 
-const QUERY_REVIEW_ACTIVE = "active";
-const QUERY_REVIEW_PENDING = "pending";
-const QUERY_REVIEW_INACTIVE = "inactive";
+const QUERY_REVIEW_STATUS = {
+  ACTIVE: "active",
+  PENDING: "pending",
+  INACTIVE: "inactive",
+};
+
+const TRANSACTION_TYPE = {
+  CREDIT: "credit",
+  DEBIT: "debit",
+};
+
+const TRANSACTION_STATUS = {
+  SUCCESS: "success",
+  FAILED: "failed",
+  PENDING: "pending",
+};
+
+const SATS_REWARD_RATE_PER_WORD = 0.5
 
 module.exports = {
-    ACTION_OPENED,
-    ACTION_CLOSED,
-    ACTION_MERGED,
-    QUERY_REVIEW_ACTIVE,
-    QUERY_REVIEW_PENDING,
-    QUERY_REVIEW_INACTIVE,
-    TRANCRIPT_QUEUED,
-    TRANCRIPT_NOT_QUEUED,
-}
+  PR_EVENT_ACTIONS,
+  TRANCRIPT_STATUS,
+  QUERY_REVIEW_STATUS,
+  TRANSACTION_TYPE,
+  TRANSACTION_STATUS,
+  SATS_REWARD_RATE_PER_WORD
+};
