@@ -1,4 +1,4 @@
-const config = require("./config");
+const config = require("./utils.config");
 const db = require("../sequelize/models");
 const diff = require("diff");
 const wordCount = require("word-count");
