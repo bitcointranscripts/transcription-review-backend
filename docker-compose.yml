@@ -1,17 +1,13 @@
-version: "3.9"
+version: "3.8"
 
 services:
   api:
-    image: public.ecr.aws/p7a4n0s1/transcription-api
-    environment:
-      DB_URL: ${DB_URL}
-      PORT: ${PORT}
-      NODE_ENV: ${NODE_ENV}
+    build: ./api
     ports:
       - "8080:8080"
 
   nginx:
-    image: public.ecr.aws/p7a4n0s1/nginx
+    image: public.ecr.aws/p7a4n0s1/nginx:latest
     container_name: nginx
     ports:
       - "80:80"
