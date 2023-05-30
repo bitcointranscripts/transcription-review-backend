@@ -50,6 +50,15 @@ function getUnixTimeFromHours(hours) {
   return unixTimeInMilliseconds;
 }
 
+function removeMarkdownElements(text) {
+  // This regular expression matches Markdown headers, links, images, and inline code.
+  const markdownRegex =
+    /(\n)|(\\n)|(\#{1,6}\s+.+\n)|(!?\[.+\]\(.+\))|(`[^`]+`)/g;
+  const newText = text.replace(markdownRegex, "");
+
+  return newText;
+}
+
 async function calculateWordDiff(data) {
   const fieldsToConsider = [
     "title",
@@ -62,7 +71,11 @@ async function calculateWordDiff(data) {
   let totalDiff = 0;
   let addedWords = 0;
   let removedWords = 0;
-  const totalWords = data.originalContent.body.split(/\s+/).length;
+
+  const originalTextWithoutMarkdown = removeMarkdownElements(
+    data.originalContent.body
+  );
+  const totalWords = originalTextWithoutMarkdown.split(/\s+/).length;
 
   fieldsToConsider.forEach((field) => {
     let originalText = data.originalContent[field] || "";
