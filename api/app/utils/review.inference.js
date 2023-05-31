@@ -1,4 +1,4 @@
-const config = require("./config");
+const config = require("./utils.config");
 const db = require("../sequelize/models");
 const diff = require("diff");
 const wordCount = require("word-count");
@@ -88,9 +88,9 @@ async function calculateWordDiff(data) {
       modifiedText = modifiedText.join(" ");
     }
     if (
-      (originalText.trim().startsWith("[") &&
-        originalText.trim().endsWith("]")) ||
-      (modifiedText.trim().startsWith("[") && modifiedText.trim().endsWith("]"))
+      (originalText.toString().trim().startsWith("[") &&
+        originalText.toString().trim().endsWith("]")) ||
+      (modifiedText.toString().trim().startsWith("[") && modifiedText.toString().trim().endsWith("]"))
     ) {
       let getOriginalText = originalText.trim().slice(1, -1);
       let getModifiedText = modifiedText.trim().slice(1, -1);

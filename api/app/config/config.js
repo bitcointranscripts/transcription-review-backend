@@ -27,7 +27,8 @@ module.exports = {
       ssl: {
         require: true,
         rejectUnauthorized: false
-      }
+      },
+      keepAlive: true
     },
     pool: { maxConnections: 5, maxIdleTime: 30 },
     language: 'en'

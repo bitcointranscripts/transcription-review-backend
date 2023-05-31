@@ -13,9 +13,9 @@ module.exports = {
      * }], {});
     */
    await queryInterface.bulkInsert('users', [{
-    githubUsername: 'test1',
-    authToken: 'test1',
-    permissions: 'reviewer',
+    githubUsername: 'adamjonas',
+    authToken: null,
+    permissions: 'admin',
     archivedAt: "2023-04-23T00:00:00.000Z",
     createdAt: "2023-04-23T00:00:00.000Z",
     updatedAt: "2023-04-23T00:00:00.000Z"
