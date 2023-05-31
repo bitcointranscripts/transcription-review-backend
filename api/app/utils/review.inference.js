@@ -63,9 +63,9 @@ async function calculateWordDiff(data) {
   const fieldsToConsider = [
     "title",
     "transcript_by",
-    "categories",
-    "tags",
-    "speakers",
+    // "categories",
+    // "tags",
+    // "speakers",
     "body",
   ];
   let totalDiff = 0;
