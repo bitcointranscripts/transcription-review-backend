@@ -89,8 +89,8 @@ async function calculateWordDiff(data) {
     }
     if (
       (originalText.toString().trim().startsWith("[") &&
-      originalText.toString().trim().endsWith("]")) ||
-    (modifiedText.toString().trim().startsWith("[") && modifiedText.toString().trim().endsWith("]"))
+        originalText.toString().trim().endsWith("]")) ||
+      (modifiedText.toString().trim().startsWith("[") && modifiedText.toString().trim().endsWith("]"))
     ) {
       let getOriginalText = originalText.trim().slice(1, -1);
       let getModifiedText = modifiedText.trim().slice(1, -1);
