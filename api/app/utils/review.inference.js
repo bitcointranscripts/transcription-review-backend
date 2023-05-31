@@ -92,7 +92,7 @@ async function calculateWordDiff(data) {
         originalText.toString().trim().endsWith("]")) ||
       (modifiedText.toString().trim().startsWith("[") && modifiedText.toString().trim().endsWith("]"))
     ) {
-      let getOriginalText = originalText.trim().slice(1, -1);
+      let getOriginalText = originalText.toString().trim().slice(1, -1);
       let getModifiedText = modifiedText.trim().slice(1, -1);
       originalText = getOriginalText
         .split(",")
