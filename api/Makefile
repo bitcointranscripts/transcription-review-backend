@@ -1,4 +1,7 @@
 start:
+	yarn start
+
+dev:
 	yarn run migrate
 	yarn run seed
 	yarn dev

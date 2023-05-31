@@ -1,7 +1,7 @@
 const db = require("../sequelize/models");
 const Transcript = db.transcript
 const Review = db.review;
-const config = require("./config");
+const config = require("./utils.config");
 const { getUnixTimeFromHours } = require("../utils/review.inference")
 const CronJob = require('cron').CronJob;
 
