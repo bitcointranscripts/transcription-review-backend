@@ -99,6 +99,7 @@ exports.findOne = async (req, res) => {
       res.status(500).send({
         message: "Error retrieving Transcript with id=" + id,
       });
+      throw new Error(_err);
     });
 };
 
