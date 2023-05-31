@@ -10,7 +10,7 @@ const {
 } = require("../utils/review.inference");
 const { setupExpiryTimeCron } = require("../utils/cron");
 const { TRANCRIPT_STATUS } = require("../utils/constants");
-const { maxPendingReviews } = require("../utils/config");
+const { maxPendingReviews } = require("../utils/utils.config");
 
 // Create and Save a new Transcript
 exports.create = async (req, res) => {
@@ -99,6 +99,7 @@ exports.findOne = async (req, res) => {
       res.status(500).send({
         message: "Error retrieving Transcript with id=" + id,
       });
+      throw new Error(_err);
     });
 };
 
