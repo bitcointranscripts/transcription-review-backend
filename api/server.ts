@@ -6,6 +6,7 @@ import cors from "cors";
 
 import {
   reviewRoutes,
+  transactionRoutes,
   transcriptRoutes,
   userRoutes,
   webhookRoutes,
@@ -60,6 +61,7 @@ app.get("/", (_req: Request, res: Response) => {
 });
 userRoutes(app);
 reviewRoutes(app);
+transactionRoutes(app);
 transcriptRoutes(app);
 webhookRoutes(app);
 
