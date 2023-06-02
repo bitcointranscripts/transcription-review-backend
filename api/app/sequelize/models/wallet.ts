@@ -8,12 +8,14 @@ interface WalletAttributes {
   userId: number;
   id: string | number;
   balance: number;
+  updatedAt?: Date;
 }
 
 class Wallet extends Model<WalletAttributes> {
   public userId!: number;
   public id!: string | number;
   public balance!: number;
+  public updatedAt!: Date;
 
   // Other model attributes and methods go here
 
@@ -40,6 +42,7 @@ export default function initModel(sequelize: Sequelize): ModelStatic<Wallet> {
         allowNull: false,
       },
       balance: { type: DataTypes.INTEGER, defaultValue: 0 },
+      updatedAt: DataTypes.DATE,
     },
     {
       sequelize,
