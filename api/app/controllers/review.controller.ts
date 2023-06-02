@@ -1,10 +1,10 @@
-const { QUERY_REVIEW_STATUS } = require("../utils/constants");
 import { Request, Response } from "express";
 
 import { db } from "../sequelize/models";
 import { Review } from "../sequelize/models/review";
 import { Transcript } from "../sequelize/models/transcript";
 import { User } from "../sequelize/models/user";
+import { QUERY_REVIEW_STATUS } from "../utils/constants";
 import {
   buildIsActiveCondition,
   buildIsInActiveCondition,

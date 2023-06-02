@@ -1,23 +1,23 @@
 // @ts-nocheck
 
 import { Request, Response } from "express";
+
+import { db } from "../sequelize/models";
 import { Review } from "../sequelize/models/review";
 import { Transaction } from "../sequelize/models/transaction";
 import { Transcript } from "../sequelize/models/transcript";
 import { User } from "../sequelize/models/user";
 import { Wallet } from "../sequelize/models/wallet";
-
-const db = require("../sequelize/models");
-const {
-  TRANCRIPT_STATUS,
-  TRANSACTION_TYPE,
+import {
   PR_EVENT_ACTIONS,
+  TRANCRIPT_STATUS,
   TRANSACTION_STATUS,
-} = require("../utils/constants");
-const {
+  TRANSACTION_TYPE,
+} from "../utils/constants";
+import {
   calculateCreditAmount,
   generateTransactionId,
-} = require("../utils/transaction");
+} from "../utils/transaction";
 
 // create a new credit transaction when a review is merged
 async function createCreditTransaction(

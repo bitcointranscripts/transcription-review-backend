@@ -1,22 +1,20 @@
-const { TRANCRIPT_STATUS } = require("../utils/constants");
-const { maxPendingReviews } = require("../utils/utils.config");
-
-// Create and Save a new Transcript
-
 import { Request, Response } from "express";
 
 import { db } from "../sequelize/models";
 import { Review } from "../sequelize/models/review";
 import { Transcript } from "../sequelize/models/transcript";
 import { User } from "../sequelize/models/user";
+import { TRANCRIPT_STATUS } from "../utils/constants";
 import { setupExpiryTimeCron } from "../utils/cron";
 import {
   buildIsActiveCondition,
-  calculateWordDiff,
   buildIsPendingCondition,
+  calculateWordDiff,
 } from "../utils/review.inference";
+import { config } from "../utils/utils.config";
 
 const Op = db.Sequelize.Op;
+const { maxPendingReviews } = config;
 
 // Create and Save a new Transcript
 export function create(req: Request, res: Response) {
