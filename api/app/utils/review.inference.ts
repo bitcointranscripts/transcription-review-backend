@@ -1,4 +1,4 @@
-import diff from "diff";
+import * as diff from "diff";
 
 import { db } from "../sequelize/models";
 import { Transcript } from "../sequelize/models/transcript";
