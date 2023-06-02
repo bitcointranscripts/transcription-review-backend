@@ -1,14 +1,11 @@
-// @ts-nocheck
-const config = require("./utils.config");
-
-const diff = require("diff");
-const wordCount = require("word-count");
+import diff from "diff";
 
 import { db } from "../sequelize/models";
+import { Transcript } from "../sequelize/models/transcript";
+import { wordCount } from "./functions";
+import { config } from "./utils.config";
 
 const Op = db.Sequelize.Op;
-
-import { Transcript } from "../sequelize/models/transcript";
 
 const unixEpochTimeInMilliseconds = getUnixTimeFromHours(
   config.expiryTimeInHours
