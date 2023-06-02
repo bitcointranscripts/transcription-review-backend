@@ -12,3 +12,7 @@ docker-compose-dev.yml
 .elasticbeanstalk/*
 !.elasticbeanstalk/*.cfg.yml
 !.elasticbeanstalk/*.global.yml
+
+
+# yarn
+yarn-error.log
