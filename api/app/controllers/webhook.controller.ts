@@ -28,7 +28,7 @@ async function createCreditTransaction(review: Review, amount: number) {
   const creditTransaction = {
     id: generateTransactionId(),
     reviewId: review.id,
-    walletId: userWallet?.id,
+    walletId: Number(userWallet?.id),
     amount: +amount,
     transactionType: TRANSACTION_TYPE.CREDIT,
     transactionStatus: TRANSACTION_STATUS.SUCCESS,
