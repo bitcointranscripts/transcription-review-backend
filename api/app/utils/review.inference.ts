@@ -1,14 +1,17 @@
+// @ts-nocheck
 const config = require("./utils.config");
 const db = require("../sequelize/models");
 const diff = require("diff");
 const wordCount = require("word-count");
 const Op = db.Sequelize.Op;
 
+import { Transcript } from "../sequelize/models/transcript";
+
 const unixEpochTimeInMilliseconds = getUnixTimeFromHours(
   config.expiryTimeInHours
 );
 
-const buildIsActiveCondition = (currentTime) => {
+const buildIsActiveCondition = (currentTime: number) => {
   const timeStringAt24HoursPrior = new Date(
     currentTime - unixEpochTimeInMilliseconds
   ).toISOString();
@@ -27,7 +30,7 @@ const buildIsPendingCondition = () => {
   };
 };
 
-const buildIsInActiveCondition = (currentTime) => {
+const buildIsInActiveCondition = (currentTime: number) => {
   const timeStringAt24HoursPrior = new Date(
     currentTime - unixEpochTimeInMilliseconds
   ).toISOString();
@@ -44,13 +47,13 @@ const buildIsInActiveCondition = (currentTime) => {
   };
 };
 
-function getUnixTimeFromHours(hours) {
+function getUnixTimeFromHours(hours: number) {
   const millisecondsInHour = 60 * 60 * 1000;
   const unixTimeInMilliseconds = hours * millisecondsInHour;
   return unixTimeInMilliseconds;
 }
 
-function removeMarkdownElements(text) {
+function removeMarkdownElements(text: string) {
   // This regular expression matches Markdown headers, links, images, and inline code.
   const markdownRegex =
     /(\n)|(\\n)|(\#{1,6}\s+.+\n)|(!?\[.+\]\(.+\))|(`[^`]+`)/g;
@@ -59,14 +62,14 @@ function removeMarkdownElements(text) {
   return newText;
 }
 
-function removeArrayBrackets(text) {
+function removeArrayBrackets(text: string) {
   const arrayRegex = /\[[^\]]*\]/g;
-  const newText = text.replace(arrayRegex, '');
+  const newText = text.replace(arrayRegex, "");
 
   return newText;
 }
 
-async function calculateWordDiff(data) {
+async function calculateWordDiff(data: Transcript) {
   const fieldsToConsider = [
     "title",
     "transcript_by",
@@ -83,7 +86,6 @@ async function calculateWordDiff(data) {
     data.originalContent.body
   );
   const totalWords = originalTextWithoutMarkdown.split(/\s+/).length;
-
 
   fieldsToConsider.forEach((field) => {
     let originalText = data.originalContent[field] || "";
@@ -113,8 +115,6 @@ async function calculateWordDiff(data) {
     }
 
     let difference = diff.diffWords(originalText, modifiedText);
-
-
 
     addedWords += difference
       .filter((part) => part.added)
