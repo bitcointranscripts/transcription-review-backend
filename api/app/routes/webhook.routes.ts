@@ -1,10 +1,11 @@
-module.exports = app => {
-    const webhook = require("../controllers/webhook.controller");
-  
-    var router = require("express").Router();
-  
-  
-    /**
+import express from "express";
+import type { Express } from "express";
+
+export function webhookRoutes(app: Express) {
+  const webhook = require("../controllers/webhook.controller");
+  const router = express.Router();
+
+  /**
    * @swagger
    * components:
    *   schemas:
@@ -18,8 +19,8 @@ module.exports = app => {
    *           type: integer
    *           description: Id of the transcript that gets reviewed
    */
-  
-    /**
+
+  /**
    * @swagger
    * tags:
    *   name: Webhook
@@ -73,10 +74,8 @@ module.exports = app => {
    *         description: Some server error
    */
 
-  
-    // update the review table with the PR timestamp and set status to archived
-    router.post("/", webhook.create);
-  
-    app.use("/api/webhook", router);
-  };
-  
+  // update the review table with the PR timestamp and set status to archived
+  router.post("/", webhook.create);
+
+  app.use("/api/webhook", router);
+}
