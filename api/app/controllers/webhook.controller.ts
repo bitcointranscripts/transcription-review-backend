@@ -1,3 +1,10 @@
+// @ts-nocheck
+import { Review } from "../sequelize/models/review";
+import { Transcript } from "../sequelize/models/transcript";
+import { Transaction } from "../sequelize/models/transaction";
+import { Wallet } from "../sequelize/models/wallet";
+import { User } from "../sequelize/models/user";
+
 const db = require("../sequelize/models");
 const {
   TRANCRIPT_STATUS,
@@ -10,25 +17,22 @@ const {
   generateTransactionId,
 } = require("../utils/transaction");
 
-const Review = db.review;
-const Transcript = db.transcript;
-const Transaction = db.transaction;
-const User = db.user;
-const Wallet = db.wallet;
-
 // create a new credit transaction when a review is merged
-async function createCreditTransaction(review, amount) {
+async function createCreditTransaction(
+  review: Review,
+  amount: string | number
+) {
   const dbTransaction = await db.sequelize.transaction();
   const currentTime = new Date();
   const user = await User.findByPk(review.userId);
   const userWallet = await Wallet.findOne({
-    where: { userId: user.id },
+    where: { userId: user?.id },
   });
-  const newWalletBalance = userWallet.balance + +amount;
+  const newWalletBalance = (userWallet?.balance ?? 0) + +amount;
   const creditTransaction = {
     id: generateTransactionId(),
     reviewId: review.id,
-    walletId: userWallet.id,
+    walletId: userWallet?.id,
     amount: +amount,
     transactionType: TRANSACTION_TYPE.CREDIT,
     transactionStatus: TRANSACTION_STATUS.SUCCESS,
@@ -38,7 +42,7 @@ async function createCreditTransaction(review, amount) {
     await Transaction.create(creditTransaction, {
       transaction: dbTransaction,
     });
-    await userWallet.update(
+    await userWallet?.update(
       {
         balance: newWalletBalance,
         updatedAt: currentTime,
@@ -57,7 +61,7 @@ async function createCreditTransaction(review, amount) {
   }
 }
 
-exports.create = async (req, res) => {
+export async function create(req: Request, res: Response) {
   const pull_request = req.body;
 
   //check if req.body return anything
@@ -135,7 +139,5 @@ exports.create = async (req, res) => {
         }`,
       });
     }
-  } else {
-    res.sendStatus(200);
   }
-};
+}
