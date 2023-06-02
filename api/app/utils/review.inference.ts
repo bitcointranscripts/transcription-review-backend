@@ -1,8 +1,11 @@
 // @ts-nocheck
 const config = require("./utils.config");
-const db = require("../sequelize/models");
+
 const diff = require("diff");
 const wordCount = require("word-count");
+
+import { db } from "../sequelize/models";
+
 const Op = db.Sequelize.Op;
 
 import { Transcript } from "../sequelize/models/transcript";
@@ -130,7 +133,7 @@ async function calculateWordDiff(data: Transcript) {
   return { totalDiff, totalWords, addedWords, removedWords };
 }
 
-module.exports = {
+export {
   getUnixTimeFromHours,
   buildIsActiveCondition,
   buildIsPendingCondition,
