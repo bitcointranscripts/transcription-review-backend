@@ -9,14 +9,14 @@ import { db } from "../sequelize/models";
 import { Review } from "../sequelize/models/review";
 import { Transcript } from "../sequelize/models/transcript";
 import { User } from "../sequelize/models/user";
-
-const Op = db.Sequelize.Op;
-const {
+import { setupExpiryTimeCron } from "../utils/cron";
+import {
   buildIsActiveCondition,
   calculateWordDiff,
   buildIsPendingCondition,
-} = require("../utils/review.inference");
-const { setupExpiryTimeCron } = require("../utils/cron");
+} from "../utils/review.inference";
+
+const Op = db.Sequelize.Op;
 
 // Create and Save a new Transcript
 export function create(req: Request, res: Response) {
@@ -97,9 +97,13 @@ export async function findOne(req: Request, res: Response) {
 
   await Transcript.findByPk(id)
     .then(async (data) => {
-      const { totalWords } = await calculateWordDiff(data);
-      await Object.assign(data?.dataValues, { contentTotalWords: totalWords });
-      res.send(data);
+      if (data) {
+        const { totalWords } = await calculateWordDiff(data);
+        await Object.assign(data?.dataValues, {
+          contentTotalWords: totalWords,
+        });
+        res.send(data);
+      }
     })
     .catch((err) => {
       res.status(500).send({
