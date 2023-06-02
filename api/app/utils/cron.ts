@@ -2,13 +2,8 @@ import cron from "cron";
 
 import { Review } from "../sequelize/models/review";
 import { Transcript } from "../sequelize/models/transcript";
-// import { config } from "./config";
-
-const db = require("../sequelize/models");
-
-const config = require("./utils.config");
-
 import { getUnixTimeFromHours } from "../utils/review.inference";
+import { config } from "./utils.config";
 
 const CronJob = cron.CronJob;
 
