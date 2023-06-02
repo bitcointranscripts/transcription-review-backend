@@ -1,17 +1,18 @@
-// @ts-nocheck
-const { v4: uuidv4 } = require("uuid");
-const db = require("../sequelize/models");
-const { calculateWordDiff } = require("../utils/review.inference");
-const User = db.user;
-const Review = db.review;
-const Transcript = db.transcript;
-const Wallet = db.wallet;
+import { v4 as uuidv4 } from "uuid";
+import { Request, Response } from "express";
+import { Review } from "../sequelize/models/review";
+import { Transcript } from "../sequelize/models/transcript";
+import { User } from "../sequelize/models/user";
+import { Wallet } from "../sequelize/models/wallet";
+import { db } from "../sequelize/models";
+import { calculateWordDiff } from "../utils/review.inference";
+
 const Op = db.Sequelize.Op;
 
 // Create and Save a new User
-export function create(req: Request, res: Response) {
+export async function create(req: Request, res: Response) {
   // Validate request
-  if (!req.body.username) {
+  if (!req?.body?.username) {
     res.status(400).send({
       message: "Username can not be empty!",
     });
@@ -34,10 +35,12 @@ export function create(req: Request, res: Response) {
     });
     return res.send(user);
   } catch (error) {
+    const message =
+      error instanceof Error
+        ? error.message
+        : "Unable to create user. Some error occurred while creating the user.";
     res.status(500).send({
-      message:
-        error.message ||
-        "Unable to create user. Some error occurred while creating the user.",
+      message,
     });
   }
 }
@@ -45,9 +48,9 @@ export function create(req: Request, res: Response) {
 // Retrieve all Users from the database.
 export function findAll(req: Request, res: Response) {
   const username = req.query.username;
-  var condition = username
+  const condition = username
     ? { username: { [Op.iLike]: `%${username}%` } }
-    : null;
+    : {};
 
   User.findAll({ where: condition })
     .then((data) => {
@@ -85,7 +88,7 @@ export function update(req: Request, res: Response) {
     where: { id: id },
   })
     .then((num) => {
-      if (num == 1) {
+      if (typeof num === "string" && num == 1) {
         res.send({
           message: "User was updated successfully.",
         });
@@ -102,7 +105,7 @@ export function update(req: Request, res: Response) {
     });
 }
 
-export async function getUserReviews(req: Request, res: Response) {
+export async function getUserWallet(req: Request, res: Response) {
   const userId = req.params.id;
   if (!userId) {
     res.status(400).send({
@@ -126,14 +129,14 @@ export async function getUserReviews(req: Request, res: Response) {
     });
 }
 
-exports.getUserReviews = async (req, res) => {
+export async function getUserReviews(req: Request, res: Response) {
   const id = req.params.id;
 
   var condition = { userId: { [Op.eq]: id } };
 
   await Review.findAll({ where: condition, include: { model: Transcript } })
     .then(async (data) => {
-      const reviews = [];
+      const reviews: Review[] = [];
       const appendReviewData = data.map(async ({ dataValues }) => {
         const transcript = dataValues.transcript.dataValues;
         const { totalWords } = await calculateWordDiff(transcript);
@@ -152,5 +155,5 @@ exports.getUserReviews = async (req, res) => {
           "Some error occurred while retrieving reviews for the user.",
       });
     });
-};
+}
 //FIXME: Add an archive route in order to cater for archived(deleted) users  and filling the archivedAt field in the model.
