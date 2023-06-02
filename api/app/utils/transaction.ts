@@ -1,5 +1,6 @@
-const { SATS_REWARD_RATE_PER_WORD } = require("./constants");
-const { calculateWordDiff } = require("./review.inference");
+import { Transcript } from "../sequelize/models/transcript";
+import { SATS_REWARD_RATE_PER_WORD } from "./constants";
+import { calculateWordDiff } from "./review.inference";
 
 function generateTransactionId() {
   const timestamp = Date.now().toString(36); // Convert timestamp to base36 string
@@ -8,7 +9,7 @@ function generateTransactionId() {
   return timestamp + randomString;
 }
 
-async function calculateCreditAmount(associatedTranscript) {
+async function calculateCreditAmount(associatedTranscript: Transcript) {
   const { totalDiff, totalWords } = await calculateWordDiff(
     associatedTranscript
   );
@@ -18,4 +19,4 @@ async function calculateCreditAmount(associatedTranscript) {
   return creditAmount;
 }
 
-module.exports = { generateTransactionId, calculateCreditAmount };
+export { generateTransactionId, calculateCreditAmount };
