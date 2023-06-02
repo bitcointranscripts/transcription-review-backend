@@ -1,7 +1,15 @@
-const db = require("../sequelize/models");
-const Transcript = db.transcript;
-const Review = db.review;
-const User = db.user;
+const { TRANCRIPT_STATUS } = require("../utils/constants");
+const { maxPendingReviews } = require("../utils/utils.config");
+
+// Create and Save a new Transcript
+
+import { Request, Response } from "express";
+
+import { db } from "../sequelize/models";
+import { Review } from "../sequelize/models/review";
+import { Transcript } from "../sequelize/models/transcript";
+import { User } from "../sequelize/models/user";
+
 const Op = db.Sequelize.Op;
 const {
   buildIsActiveCondition,
@@ -9,11 +17,9 @@ const {
   buildIsPendingCondition,
 } = require("../utils/review.inference");
 const { setupExpiryTimeCron } = require("../utils/cron");
-const { TRANCRIPT_STATUS } = require("../utils/constants");
-const { maxPendingReviews } = require("../utils/utils.config");
 
 // Create and Save a new Transcript
-exports.create = async (req, res) => {
+export function create(req: Request, res: Response) {
   // Validate request
   if (!req.body.content) {
     res.status(400).send({
@@ -22,7 +28,7 @@ exports.create = async (req, res) => {
     return;
   }
 
-  const getFirstFiveWords = (paragraph) => {
+  const getFirstFiveWords = (paragraph: string) => {
     const words = paragraph.trim().split(/\s+/);
     return words.slice(0, 5).join(" ");
   };
@@ -53,10 +59,10 @@ exports.create = async (req, res) => {
           err.message || "Some error occurred while creating the Transcript.",
       });
     });
-};
+}
 
 // Retrieve all unarchived and queued transcripts from the database.
-exports.findAll = async (_req, res) => {
+export function findAll(req: Request, res: Response) {
   let condition = {
     [Op.and]: [
       { archivedAt: null },
@@ -67,7 +73,7 @@ exports.findAll = async (_req, res) => {
 
   Transcript.findAll({ where: condition })
     .then((data) => {
-      const transcripts = [];
+      const transcripts: Transcript[] = [];
       const appendTotalWords = data.map(async ({ dataValues }) => {
         const { totalWords } = await calculateWordDiff(dataValues);
         await Object.assign(dataValues, { contentTotalWords: totalWords });
@@ -83,28 +89,28 @@ exports.findAll = async (_req, res) => {
           err.message || "Some error occurred while retrieving transcript.",
       });
     });
-};
+}
 
 // Find a single Transcript with an id
-exports.findOne = async (req, res) => {
+export async function findOne(req: Request, res: Response) {
   const id = req.params.id;
 
   await Transcript.findByPk(id)
     .then(async (data) => {
       const { totalWords } = await calculateWordDiff(data);
-      await Object.assign(data.dataValues, { contentTotalWords: totalWords });
+      await Object.assign(data?.dataValues, { contentTotalWords: totalWords });
       res.send(data);
     })
-    .catch((_err) => {
+    .catch((err) => {
       res.status(500).send({
         message: "Error retrieving Transcript with id=" + id,
       });
-      throw new Error(_err);
+      throw new Error(err);
     });
-};
+}
 
 // Update a Transcript by the id in the request
-exports.update = (req, res) => {
+export function update(req: Request, res: Response) {
   const id = req.params.id;
 
   //FIXME: Ensure only necessary fields are updated i.e. content, updatedAt
@@ -112,7 +118,7 @@ exports.update = (req, res) => {
     where: { id: id },
   })
     .then((num) => {
-      if (num == 1) {
+      if (typeof num === "number" && num == 1) {
         res.send({
           message: "Transcript was updated successfully.",
         });
@@ -127,10 +133,10 @@ exports.update = (req, res) => {
         message: "Error updating Transcript with id=" + id,
       });
     });
-};
+}
 
 // Archive a Transcript by the id in the request
-exports.archive = async (req, res) => {
+export async function archive(req: Request, res: Response) {
   const id = req.params.id;
 
   const uid = req.body.archivedBy;
@@ -151,7 +157,7 @@ exports.archive = async (req, res) => {
     }
   )
     .then((num) => {
-      if (num == 1) {
+      if (typeof num === "number" && num == 1) {
         res.send({
           message: "Transcript was archived successfully.",
         });
@@ -161,14 +167,14 @@ exports.archive = async (req, res) => {
         });
       }
     })
-    .catch((_err) => {
+    .catch((err) => {
       res.status(500).send({
         message: "Error archiving Transcript with id=" + id,
       });
     });
-};
+}
 
-exports.claim = async (req, res) => {
+export async function claim(req: Request, res: Response) {
   const transcriptId = req.params.id;
 
   const uid = req.body.claimedBy;
@@ -179,15 +185,19 @@ exports.claim = async (req, res) => {
     userId: { [Op.eq]: uid },
   };
 
-  const activeReview = await Review.findAll({ where: {...userCondition, ...activeCondition} });
+  const activeReview = await Review.findAll({
+    where: { ...userCondition, ...activeCondition },
+  });
   if (activeReview.length) {
     res.status(403).send({
       message: "Cannot claim transcript, user has an active review",
     });
     return;
   }
-  
-  const pendingReview = await Review.findAll({ where: {...userCondition, ...pendingCondition} });
+
+  const pendingReview = await Review.findAll({
+    where: { ...userCondition, ...pendingCondition },
+  });
   if (pendingReview.length >= maxPendingReviews) {
     res.status(403).send({
       message: "User has too many pending reviews, clear some and try again!",
@@ -211,7 +221,7 @@ exports.claim = async (req, res) => {
     }
   )
     .then((num) => {
-      if (num == 1) {
+      if (typeof num === "number" && num == 1) {
         // Save review in the database
         Review.create(review)
           .then((data) => {
@@ -230,9 +240,9 @@ exports.claim = async (req, res) => {
         });
       }
     })
-    .catch((_err) => {
+    .catch((err) => {
       res.status(500).send({
         message: "Error claiming Transcript with id=" + transcriptId,
       });
     });
-};
+}

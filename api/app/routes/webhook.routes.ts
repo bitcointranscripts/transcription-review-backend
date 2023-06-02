@@ -1,8 +1,8 @@
-import express from "express";
 import type { Express } from "express";
+import express from "express";
+import * as webhook from "../controllers/webhook.controller";
 
 export function webhookRoutes(app: Express) {
-  const webhook = require("../controllers/webhook.controller");
   const router = express.Router();
 
   /**

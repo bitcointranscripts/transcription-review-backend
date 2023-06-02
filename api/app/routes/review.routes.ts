@@ -1,8 +1,8 @@
-import express from "express";
 import type { Express } from "express";
+import express from "express";
+import * as reviews from "../controllers/review.controller";
 
 export function reviewRoutes(app: Express) {
-  const reviews = require("../controllers/review.controller.ts");
   const router = express.Router();
 
   /**
