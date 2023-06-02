@@ -1,14 +1,14 @@
-const db = require("../sequelize/models");
-const { TRANSACTION_STATUS, TRANSACTION_TYPE } = require("../utils/constants");
-const { generateTransactionId } = require("../utils/transaction");
+// @ts-nocheck
+import { Request, Response } from "express";
 
-const Transaction = db.transaction;
-const User = db.user;
-const Review = db.review;
-const Wallet = db.wallet;
+import { Review } from "../sequelize/models/review";
+import { Transaction } from "../sequelize/models/transaction";
+import { Wallet } from "../sequelize/models/wallet";
+import { TRANSACTION_STATUS, TRANSACTION_TYPE } from "../utils/constants";
+import { generateTransactionId } from "../utils/transaction";
 
 // Create and Save a new Transaction
-exports.create = async (req, res) => {
+export async function create(req: Request, res: Response) {
   // check if any fields are empty
   const requiredFields = ["userId", "amount", "transactionType"];
   if (
@@ -85,9 +85,9 @@ exports.create = async (req, res) => {
         err.message || "Some error occurred while creating the Transaction.",
     });
   }
-};
+}
 
-exports.findAll = async (req, res) => {
+export async function findAll(req: Request, res: Response) {
   const { userId, status, type } = req.query;
   // validate fields
   if (!userId) {
@@ -139,4 +139,4 @@ exports.findAll = async (req, res) => {
           err.message || "Some error occurred while retrieving transactions.",
       });
     });
-};
+}
