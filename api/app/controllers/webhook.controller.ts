@@ -1,5 +1,3 @@
-// @ts-nocheck
-
 import { Request, Response } from "express";
 
 import { db } from "../sequelize/models";
@@ -34,7 +32,7 @@ async function createCreditTransaction(
   const creditTransaction = {
     id: generateTransactionId(),
     reviewId: review.id,
-    walletId: userWallet?.id,
+    walletId: Number(userWallet?.id),
     amount: +amount,
     transactionType: TRANSACTION_TYPE.CREDIT,
     transactionStatus: TRANSACTION_STATUS.SUCCESS,
@@ -106,18 +104,26 @@ export async function create(req: Request, res: Response) {
       const associatedTranscript = await Transcript.findByPk(
         existingReview.transcriptId
       );
-      associatedTranscript.archivedAt = currentTime;
-      await associatedTranscript.save();
 
-      const creditAmount = await calculateCreditAmount(associatedTranscript);
-      await createCreditTransaction(existingReview, creditAmount);
+      if (associatedTranscript) {
+        associatedTranscript.archivedAt = currentTime;
+        await associatedTranscript?.save();
 
-      return res.sendStatus(200);
+        const creditAmount = await calculateCreditAmount(associatedTranscript);
+        await createCreditTransaction(existingReview, creditAmount);
+
+        return res.sendStatus(200);
+      } else {
+        // Could not find associated transcript
+        res.sendStatus(500);
+      }
     } catch (error) {
+      const message =
+        error instanceof Error
+          ? error.message
+          : "unable to update review or associated transcript";
       return res.status(500).send({
-        message: `Error: ${
-          error?.message ?? "unable to update review or associated transcript"
-        }`,
+        message,
       });
     }
   } else if (action === PR_EVENT_ACTIONS.CLOSED && !isMerged) {
@@ -130,16 +136,23 @@ export async function create(req: Request, res: Response) {
       const associatedTranscript = await Transcript.findByPk(
         existingReview.transcriptId
       );
-      associatedTranscript.claimedBy = null;
-      associatedTranscript.status = TRANCRIPT_STATUS.QUEUED;
-      await associatedTranscript.save();
 
-      res.sendStatus(200);
+      if (associatedTranscript) {
+        associatedTranscript.claimedBy = undefined;
+        associatedTranscript.status = TRANCRIPT_STATUS.QUEUED;
+        await associatedTranscript?.save();
+        res.sendStatus(200);
+      } else {
+        // Could not find associated transcript
+        res.sendStatus(500);
+      }
     } catch (error) {
+      const message =
+        error instanceof Error
+          ? error.message
+          : "unable to update review or associated transcript";
       return res.status(500).send({
-        message: `Error: ${
-          error?.message ?? "unable to update review or associated transcript"
-        }`,
+        message,
       });
     }
   }
