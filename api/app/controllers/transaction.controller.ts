@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { Request, Response } from "express";
 
 import { Review } from "../sequelize/models/review";
@@ -6,6 +5,9 @@ import { Transaction } from "../sequelize/models/transaction";
 import { Wallet } from "../sequelize/models/wallet";
 import { TRANSACTION_STATUS, TRANSACTION_TYPE } from "../utils/constants";
 import { generateTransactionId } from "../utils/transaction";
+import { ObjectValues } from "../utils/types";
+
+type TRANSACTION_TYPE_VALUES = ObjectValues<typeof TRANSACTION_STATUS>;
 
 // Create and Save a new Transaction
 export async function create(req: Request, res: Response) {
@@ -60,8 +62,8 @@ export async function create(req: Request, res: Response) {
     reviewId: req.body.reviewId ?? null,
     amount: +req.body.amount,
     transactionType: req.body.transactionType,
-    transactionStatus: TRANSACTION_STATUS.SUCCESS,
-    walletId: userWallet.id,
+    transactionStatus: TRANSACTION_STATUS.SUCCESS as TRANSACTION_TYPE_VALUES,
+    walletId: Number(userWallet.id),
     timestamp: currentTime,
   };
 
@@ -78,11 +80,14 @@ export async function create(req: Request, res: Response) {
     );
     return res.send(transactionResult);
   } catch (error) {
-    transaction.transactionStatus = TRANSACTION_STATUS.FAILURE;
+    const message =
+      error instanceof Error
+        ? error.message
+        : "Some error occurred while creating the Transaction.";
+    transaction.transactionStatus = TRANSACTION_STATUS.FAILED;
     Transaction.create(transaction);
     res.status(500).send({
-      message:
-        err.message || "Some error occurred while creating the Transaction.",
+      message,
     });
   }
 }
@@ -95,13 +100,15 @@ export async function findAll(req: Request, res: Response) {
       message: `Missing required fields: userId`,
     });
     return;
-  } else if (isNaN(userId)) {
+  } else if (isNaN(Number(userId))) {
     res.status(400).send({
       message: `userId is of type ${typeof userId}. userId should be a number.`,
     });
     return;
   }
-  const userWallet = await Wallet.findOne({ where: { userId: userId } });
+  const userWallet = await Wallet.findOne({
+    where: { userId: Number(userId) },
+  });
   if (!userWallet) {
     res.status(404).send({
       message: `Wallet for userId=${userId} does not exist`,
@@ -109,24 +116,49 @@ export async function findAll(req: Request, res: Response) {
     return;
   }
 
-  let condition = { walletId: userWallet.id };
+  let condition: {
+    walletId: string | number;
+    transactionStatus?: ObjectValues<typeof TRANSACTION_STATUS>;
+    transactionType?: ObjectValues<typeof TRANSACTION_TYPE>;
+  } = { walletId: userWallet.id };
   if (status) {
-    if (!Boolean(TRANSACTION_STATUS[status.toUpperCase()])) {
+    if (
+      !Boolean(
+        TRANSACTION_STATUS[
+          String(status).toUpperCase() as keyof typeof TRANSACTION_STATUS
+        ]
+      )
+    ) {
       res.status(400).send({
         message: `Invalid status: ${status}`,
       });
       return;
     }
-    condition = { ...condition, transactionStatus: status };
+    condition = {
+      ...condition,
+      transactionStatus: String(status) as ObjectValues<
+        typeof TRANSACTION_STATUS
+      >,
+    };
   }
   if (type) {
-    if (type && !Boolean(TRANSACTION_TYPE[type.toUpperCase()])) {
+    if (
+      type &&
+      !Boolean(
+        TRANSACTION_TYPE[
+          String(type).toUpperCase() as keyof typeof TRANSACTION_TYPE
+        ]
+      )
+    ) {
       res.status(400).send({
         message: `Invalid type: ${type}`,
       });
       return;
     }
-    condition = { ...condition, transactionType: type };
+    condition = {
+      ...condition,
+      transactionType: String(type) as ObjectValues<typeof TRANSACTION_TYPE>,
+    };
   }
 
   Transaction.findAll({ where: condition })
