@@ -1,7 +1,9 @@
-module.exports = (app) => {
-  const users = require("../controllers/user.controller.ts");
+import express from "express";
+import type { Express } from "express";
 
-  var router = require("express").Router();
+export function userRoutes(app: Express) {
+  const users = require("../controllers/user.controller.ts");
+  const router = express.Router();
 
   /**
    * @swagger
@@ -224,4 +226,4 @@ module.exports = (app) => {
   router.put("/:id", users.update);
 
   app.use("/api/users", router);
-};
+}
