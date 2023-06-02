@@ -1,8 +1,8 @@
-import express from "express";
 import type { Express } from "express";
+import express from "express";
+import * as users from "../controllers/user.controller";
 
 export function userRoutes(app: Express) {
-  const users = require("../controllers/user.controller.ts");
   const router = express.Router();
 
   /**

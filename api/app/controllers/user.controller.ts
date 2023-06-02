@@ -9,7 +9,7 @@ const Wallet = db.wallet;
 const Op = db.Sequelize.Op;
 
 // Create and Save a new User
-exports.create = async (req, res) => {
+export function create(req: Request, res: Response) {
   // Validate request
   if (!req.body.username) {
     res.status(400).send({
@@ -40,10 +40,10 @@ exports.create = async (req, res) => {
         "Unable to create user. Some error occurred while creating the user.",
     });
   }
-};
+}
 
 // Retrieve all Users from the database.
-exports.findAll = (req, res) => {
+export function findAll(req: Request, res: Response) {
   const username = req.query.username;
   var condition = username
     ? { username: { [Op.iLike]: `%${username}%` } }
@@ -58,10 +58,10 @@ exports.findAll = (req, res) => {
         message: err.message || "Some error occurred while retrieving users.",
       });
     });
-};
+}
 
 // Find a single user with an id
-exports.findOne = (req, res) => {
+export function findOne(req: Request, res: Response) {
   const id = req.params.id;
 
   User.findByPk(id)
@@ -73,11 +73,13 @@ exports.findOne = (req, res) => {
         message: "Error retrieving User with id=" + id,
       });
     });
-};
+}
 
 // Update a User by the id in the request
-exports.update = (req, res) => {
-  const id = req.params.id;
+export function update(req: Request, res: Response) {
+  const id = Number(req.params.id);
+
+  console.log(req.body);
 
   User.update(req.body, {
     where: { id: id },
@@ -98,9 +100,9 @@ exports.update = (req, res) => {
         message: "Error updating User with id=" + id,
       });
     });
-};
+}
 
-exports.getUserWallet = async (req, res) => {
+export async function getUserReviews(req: Request, res: Response) {
   const userId = req.params.id;
   if (!userId) {
     res.status(400).send({
@@ -122,7 +124,7 @@ exports.getUserWallet = async (req, res) => {
         message: "Some error occurred while retrieving wallet for the user.",
       });
     });
-};
+}
 
 exports.getUserReviews = async (req, res) => {
   const id = req.params.id;

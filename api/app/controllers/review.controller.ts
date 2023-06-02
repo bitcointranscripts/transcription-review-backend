@@ -13,7 +13,7 @@ const {
 } = require("../utils/review.inference");
 
 // Create and Save a new review
-exports.create = (req, res) => {
+export function create(req: Request, res: Response) {
   // Validate request
   if (!req.body.userId) {
     res.status(400).send({
@@ -45,10 +45,10 @@ exports.create = (req, res) => {
           err.message || "Some error occurred while creating the review.",
       });
     });
-};
+}
 
 // Retrieve all reviews from the database.
-exports.findAll = async (req, res) => {
+export async function findAll(req: Request, res: Response) {
   let queryStatus = req.query.status;
   let userId =
     req.query.userId !== "undefined" ? parseInt(req.query.userId) : undefined;
@@ -128,11 +128,11 @@ exports.findAll = async (req, res) => {
         message: err.message || "Some error occurred while retrieving reviews.",
       });
     });
-};
+}
 
 // Find a single review with an id
-exports.findOne = async (req, res) => {
-  const id = req.params.id;
+export function findOne(req: Request, res: Response) {
+  const id = parseInt(req.params.id);
 
   await Review.findByPk(id, { include: { model: Transcript } })
     .then(async (data) => {
@@ -146,10 +146,10 @@ exports.findOne = async (req, res) => {
         message: "Error retrieving review with id=" + id,
       });
     });
-};
+}
 
 // Update a review by the id in the request
-exports.update = async (req, res) => {
+export function update(req: Request, res: Response) {
   const id = req.params.id;
 
   await Review.update(req.body, {
@@ -171,10 +171,10 @@ exports.update = async (req, res) => {
         message: "Error updating review with id=" + id,
       });
     });
-};
+}
 
 // Submit a review by the id in the request
-exports.submit = async (req, res) => {
+export function submit(req: Request, res: Response) {
   const id = req.params.id;
   const { pr_url } = req.body;
 
@@ -206,4 +206,4 @@ exports.submit = async (req, res) => {
         message: "Error updating review with id=" + id,
       });
     });
-};
+}
