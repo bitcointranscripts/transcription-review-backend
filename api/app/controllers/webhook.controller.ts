@@ -1,9 +1,11 @@
 // @ts-nocheck
+
+import { Request, Response } from "express";
 import { Review } from "../sequelize/models/review";
-import { Transcript } from "../sequelize/models/transcript";
 import { Transaction } from "../sequelize/models/transaction";
-import { Wallet } from "../sequelize/models/wallet";
+import { Transcript } from "../sequelize/models/transcript";
 import { User } from "../sequelize/models/user";
+import { Wallet } from "../sequelize/models/wallet";
 
 const db = require("../sequelize/models");
 const {
@@ -57,7 +59,8 @@ async function createCreditTransaction(
       transactionStatus: TRANSACTION_STATUS.FAILED,
     };
     await Transaction.create(failedTransaction);
-    throw new Error(error);
+
+    throw error;
   }
 }
 
