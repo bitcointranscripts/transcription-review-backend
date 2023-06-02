@@ -1,8 +1,8 @@
-import express from "express";
 import type { Express } from "express";
+import express from "express";
+import * as transcripts from "../controllers/transcript.controller";
 
 export function transcriptRoutes(app: Express) {
-  const transcripts = require("../controllers/transcript.controller.js");
   const router = express.Router();
 
   /**
