@@ -1,3 +1,5 @@
+import cron from "cron";
+
 import { Review } from "../sequelize/models/review";
 import { Transcript } from "../sequelize/models/transcript";
 // import { config } from "./config";
@@ -5,8 +7,10 @@ import { Transcript } from "../sequelize/models/transcript";
 const db = require("../sequelize/models");
 
 const config = require("./utils.config");
-const { getUnixTimeFromHours } = require("../utils/review.inference");
-const CronJob = require("cron").CronJob;
+
+import { getUnixTimeFromHours } from "../utils/review.inference";
+
+const CronJob = cron.CronJob;
 
 // Requeue transcript if review has expired
 function setupExpiryTimeCron(review: Review) {
@@ -43,12 +47,10 @@ function setupExpiryTimeCron(review: Review) {
     },
     null,
     false,
-    null
+    undefined
   );
   job.start();
   return;
 }
 
-module.exports = {
-  setupExpiryTimeCron,
-};
+export { setupExpiryTimeCron };

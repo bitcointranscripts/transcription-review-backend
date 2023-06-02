@@ -1,16 +1,18 @@
-// @ts-nocheck
-const db = require("../sequelize/models");
 const { QUERY_REVIEW_STATUS } = require("../utils/constants");
-const Review = db.review;
-const User = db.user;
-const Transcript = db.transcript;
-const Op = db.Sequelize.Op;
-const {
+import { Request, Response } from "express";
+
+import { db } from "../sequelize/models";
+import { Review } from "../sequelize/models/review";
+import { Transcript } from "../sequelize/models/transcript";
+import { User } from "../sequelize/models/user";
+import {
   buildIsActiveCondition,
   buildIsInActiveCondition,
   buildIsPendingCondition,
   calculateWordDiff,
-} = require("../utils/review.inference");
+} from "../utils/review.inference";
+
+const Op = db.Sequelize.Op;
 
 // Create and Save a new review
 export function create(req: Request, res: Response) {
@@ -51,7 +53,9 @@ export function create(req: Request, res: Response) {
 export async function findAll(req: Request, res: Response) {
   let queryStatus = req.query.status;
   let userId =
-    req.query.userId !== "undefined" ? parseInt(req.query.userId) : undefined;
+    req.query.userId !== "undefined"
+      ? parseInt(req.query.userId as string)
+      : undefined;
   let username =
     req.query.username !== "undefined" ? req.query.username : undefined;
 
@@ -69,10 +73,12 @@ export async function findAll(req: Request, res: Response) {
         });
       }
     } catch (err) {
+      const message =
+        err instanceof Error
+          ? err.message
+          : `Some error occurred while getting user with username=${username}`;
       return res.status(500).send({
-        message:
-          err.message ||
-          `Some error occurred while getting user with username=${username}`,
+        message,
       });
     }
   }
@@ -111,7 +117,7 @@ export async function findAll(req: Request, res: Response) {
     include: { model: Transcript },
   })
     .then(async (data) => {
-      const reviews = [];
+      const reviews: Review[] = [];
       const appendReviewData = data.map(async ({ dataValues }) => {
         const transcript = dataValues.transcript.dataValues;
         const { totalWords } = await calculateWordDiff(transcript);
@@ -131,12 +137,12 @@ export async function findAll(req: Request, res: Response) {
 }
 
 // Find a single review with an id
-export function findOne(req: Request, res: Response) {
+export async function findOne(req: Request, res: Response) {
   const id = parseInt(req.params.id);
 
   await Review.findByPk(id, { include: { model: Transcript } })
     .then(async (data) => {
-      const transcript = data.dataValues.transcript.dataValues;
+      const transcript = data?.dataValues.transcript.dataValues;
       const { totalWords } = await calculateWordDiff(transcript);
       await Object.assign(transcript, { contentTotalWords: totalWords });
       res.send(data);
@@ -149,14 +155,14 @@ export function findOne(req: Request, res: Response) {
 }
 
 // Update a review by the id in the request
-export function update(req: Request, res: Response) {
+export async function update(req: Request, res: Response) {
   const id = req.params.id;
 
   await Review.update(req.body, {
     where: { id: id },
   })
     .then((num) => {
-      if (num == 1) {
+      if (typeof num === "string" && num == 1) {
         res.send({
           message: "review was updated successfully.",
         });
@@ -174,7 +180,7 @@ export function update(req: Request, res: Response) {
 }
 
 // Submit a review by the id in the request
-export function submit(req: Request, res: Response) {
+export async function submit(req: Request, res: Response) {
   const id = req.params.id;
   const { pr_url } = req.body;
 
@@ -191,7 +197,7 @@ export function submit(req: Request, res: Response) {
     }
   )
     .then((num) => {
-      if (num == 1) {
+      if (typeof num === "string" && num == 1) {
         res.send({
           message: "review was updated successfully.",
         });
