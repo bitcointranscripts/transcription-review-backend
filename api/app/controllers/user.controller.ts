@@ -88,7 +88,7 @@ export function update(req: Request, res: Response) {
     where: { id: id },
   })
     .then((num) => {
-      if (typeof num === "string" && num == 1) {
+      if (typeof num === "number" && num == 1) {
         res.send({
           message: "User was updated successfully.",
         });
