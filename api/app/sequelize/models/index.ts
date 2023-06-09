@@ -2,7 +2,7 @@ import { Sequelize, Model, ModelStatic } from "sequelize";
 import path from "path";
 import fs from "fs";
 const env = process.env.NODE_ENV || "development";
-const dbConfig = require(__dirname + "../../../config/config.ts")[env];
+const dbConfig = require(__dirname + "../../../config/config.js")[env];
 const db: any = {};
 
 const basename = path.basename(__filename);
