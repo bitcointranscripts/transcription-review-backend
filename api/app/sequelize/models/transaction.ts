@@ -3,7 +3,8 @@ import { Wallet } from "./wallet";
 import { Review } from "./review";
 
 class Transaction extends Model {
-  public walletId!: number;
+  public id!: string;
+  public walletId!: string;
   public reviewId!: number;
   public amount!: number;
   public transactionType!: "credit" | "debit";
@@ -26,6 +27,7 @@ export default function initModel(
 ): ModelStatic<Transaction> {
   return Transaction.init(
     {
+      id: DataTypes.STRING,
       walletId: DataTypes.STRING,
       reviewId: DataTypes.INTEGER,
       amount: {
