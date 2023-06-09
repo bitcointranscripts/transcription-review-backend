@@ -2,16 +2,7 @@ import { Sequelize, Model, ModelStatic, DataTypes } from "sequelize";
 import { Wallet } from "./wallet";
 import { Review } from "./review";
 
-interface TransactionAttributes {
-  walletId: number;
-  reviewId: number;
-  amount: number;
-  transactionType: "credit" | "debit";
-  transactionStatus: "success" | "failed" | "pending";
-  timestamp?: Date;
-}
-
-class Transaction extends Model<TransactionAttributes> {
+class Transaction extends Model {
   public walletId!: number;
   public reviewId!: number;
   public amount!: number;

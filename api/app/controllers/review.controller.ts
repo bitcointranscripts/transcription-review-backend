@@ -162,7 +162,7 @@ export async function update(req: Request, res: Response) {
     where: { id: id },
   })
     .then((num) => {
-      if (typeof num === "string" && num == 1) {
+      if (typeof num === "number" && num == 1) {
         res.send({
           message: "review was updated successfully.",
         });
@@ -197,7 +197,7 @@ export async function submit(req: Request, res: Response) {
     }
   )
     .then((num) => {
-      if (typeof num === "string" && num == 1) {
+      if (typeof num === "number" && num == 1) {
         res.send({
           message: "review was updated successfully.",
         });

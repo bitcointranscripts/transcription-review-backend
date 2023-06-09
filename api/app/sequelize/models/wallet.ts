@@ -4,16 +4,9 @@ import { Sequelize, Model, DataTypes, ModelStatic } from "sequelize";
 import { User } from "./user";
 import { Transaction } from "./transaction";
 
-interface WalletAttributes {
-  userId: number;
-  id: string | number;
-  balance: number;
-  updatedAt?: Date;
-}
-
-class Wallet extends Model<WalletAttributes> {
+class Wallet extends Model {
   public userId!: number;
-  public id!: string | number;
+  public id!: string;
   public balance!: number;
   public updatedAt!: Date;
 
@@ -36,9 +29,8 @@ export default function initModel(sequelize: Sequelize): ModelStatic<Wallet> {
     {
       userId: DataTypes.INTEGER,
       id: {
-        type: DataTypes.INTEGER,
+        type: DataTypes.STRING,
         primaryKey: true,
-        autoIncrement: true,
         allowNull: false,
       },
       balance: { type: DataTypes.INTEGER, defaultValue: 0 },
