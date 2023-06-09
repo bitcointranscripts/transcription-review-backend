@@ -19,7 +19,7 @@ async function createCreditTransaction(review: Review, amount: number) {
   if (!user) throw new Error(`Could not find user with id=${review.userId}`);
 
   const userWallet = await Wallet.findOne({
-    where: { userId: user?.id },
+    where: { userId: user.id },
   });
   if (!userWallet)
     throw new Error(`Could not get wallet for user with id=${user.id}`);
@@ -28,7 +28,7 @@ async function createCreditTransaction(review: Review, amount: number) {
   const creditTransaction = {
     id: generateTransactionId(),
     reviewId: review.id,
-    walletId: Number(userWallet?.id),
+    walletId: Number(userWallet.id),
     amount: +amount,
     transactionType: TRANSACTION_TYPE.CREDIT,
     transactionStatus: TRANSACTION_STATUS.SUCCESS,
@@ -38,7 +38,7 @@ async function createCreditTransaction(review: Review, amount: number) {
     await Transaction.create(creditTransaction, {
       transaction: dbTransaction,
     });
-    await userWallet?.update(
+    await userWallet.update(
       {
         balance: newWalletBalance,
       },
