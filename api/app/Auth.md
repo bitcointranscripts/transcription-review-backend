@@ -11,6 +11,7 @@
 1. User login with github, we send just the Oauth token to the backend
 2. The backend calls [github api](https://docs.github.com/en/rest/users/users?apiVersion=2022-11-28#get-the-authenticated-user) to verify the user
 3. If the user login details matches the stored data in the db, we send a new jwt (with new token encrypted) to the frontend
+4. Edge case: For existing users without a jwt, we collect the token from the frontend(gotten from github) and check if the user exists in the db. If true, we create a new jwt (with the token encrpted in it) and send it to the frontend for auth.
 
 ## Middleware (auth routes)
 
@@ -24,5 +25,6 @@
     iv. fetch and create transactions
     v. get review by id
 5. Admin can:
-    i. archive transcript
-    ii. update user role
+    i. perform all user operations
+    ii. archive transcript
+    iii. update user role
