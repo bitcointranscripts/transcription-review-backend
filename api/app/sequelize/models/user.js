@@ -19,6 +19,8 @@ module.exports = (sequelize, DataTypes) => {
   User.init({
     githubUsername: DataTypes.STRING,
     authToken: DataTypes.STRING,
+    email_address: DataTypes.STRING,
+    jwt: DataTypes.STRING,
     permissions: DataTypes.ENUM('reviewer', 'admin'),
     archivedAt: DataTypes.DATE
   }, {
