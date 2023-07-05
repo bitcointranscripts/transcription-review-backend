@@ -16,3 +16,5 @@ docker-compose-dev.yml
 
 # yarn
 yarn-error.log
+
+.DS_STORE

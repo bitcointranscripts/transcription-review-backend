@@ -1,10 +1,10 @@
 export interface ReviewAttributes {
   id?: number;
-  claimedAt?: Date;
-  submittedAt?: Date;
-  archivedAt?: Date;
-  mergedAt?: Date;
+  claimedAt?: Date | null;
+  submittedAt?: Date | null;
+  archivedAt?: Date | null;
+  mergedAt?: Date | null;
   userId: number;
   transcriptId: number;
-  pr_url?: string;
+  pr_url?: string | null;
 }

@@ -31,8 +31,8 @@ export class Review extends Model<ReviewAttributes> {
   @Column(DataType.DATE)
   public submittedAt?: Date;
 
-  @Column(DataType.DATE)
-  public archivedAt?: Date;
+  @Column({type: DataType.DATE, allowNull: true})
+  public archivedAt?: Date | null;
 
   @Column(DataType.DATE)
   public mergedAt?: Date;
@@ -44,9 +44,6 @@ export class Review extends Model<ReviewAttributes> {
   @ForeignKey(() => Transcript)
   @Column(DataType.INTEGER)
   public transcriptId!: Transcript["id"];
-
-  @Column(DataType.STRING)
-  public pr_url?: string;
 
   @BelongsTo(() => User)
   public user!: User;
