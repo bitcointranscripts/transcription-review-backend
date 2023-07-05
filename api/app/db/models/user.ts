@@ -10,14 +10,7 @@ import {
 import { Review } from "./review";
 import { Transcript } from "./transcript";
 import { Wallet } from "./wallet";
-
-interface UserAttributes {
-  id?: number;
-  githubUsername: string;
-  authToken?: string;
-  permissions: "reviewer" | "admin";
-  archivedAt: Date | null;
-}
+import { USERPERMISSIONS, UserAttributes } from "../../types/user";
 
 @Table({
   tableName: "users",
@@ -38,8 +31,8 @@ export class User extends Model<UserAttributes> {
   authToken?: string;
   // Todo! make this not nullable
 
-  @Column(DataType.ENUM("reviewer", "admin"))
-  public permissions!: "reviewer" | "admin";
+  @Column(DataType.ENUM({ values: Object.values(USERPERMISSIONS) }))
+  public permissions!: USERPERMISSIONS;
 
   @Column(DataType.DATE)
   public archivedAt!: Date | null;
