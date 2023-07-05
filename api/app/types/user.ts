@@ -1,4 +1,4 @@
-export enum USERPERMISSIONS {
+export enum USER_PERMISSIONS {
   REVIEWER = "reviewer",
   ADMIN = "admin",
 }
@@ -8,5 +8,5 @@ export interface UserAttributes {
   githubUsername: string;
   authToken?: string;
   permissions: "reviewer" | "admin";
-  archivedAt: Date | null;
+  archivedAt?: Date | null;
 }

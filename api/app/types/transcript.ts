@@ -13,9 +13,8 @@ export interface TranscriptAttributes {
   content: any;
   originalContent: any;
   transcriptHash: string;
-  pr_url?: string;
   status: string;
-  claimedBy?: number;
-  archivedBy?: number;
-  archivedAt?: Date;
+  claimedBy?: number | null;
+  archivedBy?: number | null;
+  archivedAt?: Date | null;
 }

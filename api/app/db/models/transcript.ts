@@ -29,26 +29,23 @@ export class Transcript extends Model<TranscriptAttributes> {
   @Column(DataType.STRING)
   transcriptHash!: string;
 
-  @Column(DataType.STRING)
-  pr_url?: string;
-
   @Column({
     type: DataType.DATE,
   })
-  archivedAt?: Date;
+  archivedAt?: Date | null;
 
   @Column(DataType.INTEGER)
-  archivedBy?: User["id"]
+  archivedBy?: User["id"] | null;
 
   @Column({
-    type: DataType.ENUM({values: Object.values(TranscriptStatus)}),
+    type: DataType.ENUM({ values: Object.values(TranscriptStatus) }),
     defaultValue: TranscriptStatus.not_queued,
   })
   status!: string;
 
   @ForeignKey(() => User)
   @Column(DataType.INTEGER)
-  claimedBy?: User["id"];
+  claimedBy?: User["id"] | null;
 
   @BelongsTo(() => User, {
     as: "claimedByUser",
