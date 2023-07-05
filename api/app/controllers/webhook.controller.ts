@@ -1,17 +1,10 @@
 import { Request, Response } from "express";
 
-import { db } from "../sequelize/models";
-import { Review } from "../sequelize/models/review";
-import { Transaction } from "../sequelize/models/transaction";
-import { Transcript } from "../sequelize/models/transcript";
-import { User } from "../sequelize/models/user";
-import { Wallet } from "../sequelize/models/wallet";
-import {
-  PR_EVENT_ACTIONS,
-  TRANCRIPT_STATUS,
-  TRANSACTION_STATUS,
-  TRANSACTION_TYPE,
-} from "../utils/constants";
+import { Review, Transaction, Wallet, Transcript, User } from "../db/models";
+import { sequelize } from "../db";
+import { TRANSACTION_STATUS, TRANSACTION_TYPE } from "../types/transaction";
+import { TranscriptStatus } from "../types/transcript";
+import { PR_EVENT_ACTIONS } from "../utils/constants";
 import {
   calculateCreditAmount,
   generateTransactionId,
@@ -19,7 +12,7 @@ import {
 
 // create a new credit transaction when a review is merged
 async function createCreditTransaction(review: Review, amount: number) {
-  const dbTransaction = await db.sequelize.transaction();
+  const dbTransaction = await sequelize.transaction();
   const currentTime = new Date();
 
   const user = await User.findByPk(review.userId);
@@ -35,7 +28,7 @@ async function createCreditTransaction(review: Review, amount: number) {
   const creditTransaction = {
     id: generateTransactionId(),
     reviewId: review.id,
-    walletId: Number(userWallet.id),
+    walletId: userWallet.id,
     amount: +amount,
     transactionType: TRANSACTION_TYPE.CREDIT,
     transactionStatus: TRANSACTION_STATUS.SUCCESS,
@@ -48,7 +41,6 @@ async function createCreditTransaction(review: Review, amount: number) {
     await userWallet.update(
       {
         balance: newWalletBalance,
-        updatedAt: currentTime,
       },
       { transaction: dbTransaction }
     );
@@ -141,7 +133,7 @@ export async function create(req: Request, res: Response) {
 
       if (associatedTranscript) {
         associatedTranscript.claimedBy = undefined;
-        associatedTranscript.status = TRANCRIPT_STATUS.QUEUED;
+        associatedTranscript.status = TranscriptStatus.queued;
         await associatedTranscript?.save();
         res.sendStatus(200);
       } else {
