@@ -1,13 +1,9 @@
 import { v4 as uuidv4 } from "uuid";
 import { Request, Response } from "express";
-import { Review } from "../sequelize/models/review";
-import { Transcript } from "../sequelize/models/transcript";
-import { User } from "../sequelize/models/user";
-import { Wallet } from "../sequelize/models/wallet";
-import { db } from "../sequelize/models";
+import { Review, Transcript, User, Wallet } from "../db/models";
 import { calculateWordDiff } from "../utils/review.inference";
-
-const Op = db.Sequelize.Op;
+import { Op } from "sequelize";
+import { ReviewAttributes } from "../types/review";
 
 // Create and Save a new User
 export async function create(req: Request, res: Response) {
@@ -29,11 +25,11 @@ export async function create(req: Request, res: Response) {
     const walletId = uuidv4();
     const user = await User.create(userDetails);
     await Wallet.create({
-      userId: user.dataValues.id,
+      userId: user.id,
       balance: 0,
       id: walletId,
     });
-    return res.send(user);
+    return res.status(201).send(user);
   } catch (error) {
     const message =
       error instanceof Error
@@ -49,7 +45,7 @@ export async function create(req: Request, res: Response) {
 export function findAll(req: Request, res: Response) {
   const username = req.query.username;
   const condition = username
-    ? { username: { [Op.iLike]: `%${username}%` } }
+    ? { username: { [Op.iLike]: `%${username.toString()}%` } }
     : {};
 
   User.findAll({ where: condition })
@@ -65,7 +61,7 @@ export function findAll(req: Request, res: Response) {
 
 // Find a single user with an id
 export function findOne(req: Request, res: Response) {
-  const id = req.params.id;
+  const id = Number(req.params.id);
 
   User.findByPk(id)
     .then((data) => {
@@ -81,8 +77,6 @@ export function findOne(req: Request, res: Response) {
 // Update a User by the id in the request
 export function update(req: Request, res: Response) {
   const id = Number(req.params.id);
-
-  console.log(req.body);
 
   User.update(req.body, {
     where: { id: id },
@@ -136,13 +130,14 @@ export async function getUserReviews(req: Request, res: Response) {
 
   await Review.findAll({ where: condition, include: { model: Transcript } })
     .then(async (data) => {
-      const reviews: Review[] = [];
-      const appendReviewData = data.map(async ({ dataValues }) => {
-        const transcript = dataValues.transcript.dataValues;
-        const { totalWords } = await calculateWordDiff(transcript);
-        Object.assign(transcript, { contentTotalWords: totalWords });
-        dataValues.transcript = transcript;
-        reviews.push(dataValues);
+      const reviews: ReviewAttributes[] = [];
+      const appendReviewData = data.map(async (review) => {
+        const { transcript } = review;
+        const transcriptData = transcript.dataValues;
+        const { totalWords } = await calculateWordDiff(transcriptData);
+        Object.assign(transcriptData, { contentTotalWords: totalWords });
+        review.transcript = transcript;
+        reviews.push(review);
       });
       Promise.all(appendReviewData).then(() => {
         res.send(reviews);

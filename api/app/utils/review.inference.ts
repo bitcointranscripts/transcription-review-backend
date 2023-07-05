@@ -1,15 +1,11 @@
 import * as diff from "diff";
+import { Op } from "sequelize";
 
-import { db } from "../sequelize/models";
-import { Transcript } from "../sequelize/models/transcript";
+import { TranscriptAttributes } from "../types/transcript";
 import { wordCount } from "./functions";
-import { config } from "./utils.config";
+import { EXPIRYTIMEINHOURS } from "./constants";
 
-const Op = db.Sequelize.Op;
-
-const unixEpochTimeInMilliseconds = getUnixTimeFromHours(
-  config.expiryTimeInHours
-);
+const unixEpochTimeInMilliseconds = getUnixTimeFromHours(EXPIRYTIMEINHOURS);
 
 const buildIsActiveCondition = (currentTime: number) => {
   const timeStringAt24HoursPrior = new Date(
@@ -69,7 +65,7 @@ function removeArrayBrackets(text: string) {
   return newText;
 }
 
-async function calculateWordDiff(data: Transcript) {
+async function calculateWordDiff(data: TranscriptAttributes) {
   const fieldsToConsider = [
     "title",
     "transcript_by",
