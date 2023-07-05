@@ -3,9 +3,6 @@ import { Request, Response } from "express";
 import { Review, Transaction, Wallet } from "../db/models";
 import { TRANSACTION_STATUS, TRANSACTION_TYPE } from "../types/transaction";
 import { generateTransactionId } from "../utils/transaction";
-import { ObjectValues } from "../utils/types";
-
-type TRANSACTION_TYPE_VALUES = ObjectValues<typeof TRANSACTION_STATUS>;
 
 // Create and Save a new Transaction
 export async function create(req: Request, res: Response) {
