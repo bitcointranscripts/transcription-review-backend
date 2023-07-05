@@ -1,25 +1,21 @@
 import { Request, Response } from "express";
+import { Op } from "sequelize";
 
-import { db } from "../sequelize/models";
-import { Review } from "../sequelize/models/review";
-import { Transcript } from "../sequelize/models/transcript";
-import { User } from "../sequelize/models/user";
-import { TRANCRIPT_STATUS } from "../utils/constants";
+import { Review, Transcript, User } from "../db/models";
+import { TranscriptStatus } from "../types/transcript";
 import { setupExpiryTimeCron } from "../utils/cron";
 import {
   buildIsActiveCondition,
   buildIsPendingCondition,
   calculateWordDiff,
 } from "../utils/review.inference";
-import { config } from "../utils/utils.config";
-
-const Op = db.Sequelize.Op;
-const { maxPendingReviews } = config;
+import { MAXPENDINGREVIEWS } from "../utils/constants";
 
 // Create and Save a new Transcript
 export function create(req: Request, res: Response) {
+  const { content } = req.body;
   // Validate request
-  if (!req.body.content) {
+  if (!content) {
     res.status(400).send({
       message: "Content cannot be empty!",
     });
@@ -32,7 +28,7 @@ export function create(req: Request, res: Response) {
   };
 
   const generateUniqueStr = () => {
-    const oc = req.body.content;
+    const oc = content;
     const str = oc.title + getFirstFiveWords(oc.body);
     const transcriptHash = str.trim().toLowerCase();
 
@@ -41,9 +37,10 @@ export function create(req: Request, res: Response) {
 
   // Create a Transcript
   const transcript = {
-    originalContent: req.body.content,
-    content: req.body.content,
+    originalContent: content,
+    content: content,
     transcriptHash: generateUniqueStr(),
+    status: TranscriptStatus.not_queued,
   };
 
   // Save Transcript in the database
@@ -65,17 +62,18 @@ export function findAll(req: Request, res: Response) {
     [Op.and]: [
       { archivedAt: null },
       { archivedBy: null },
-      { status: TRANCRIPT_STATUS.QUEUED },
+      { status: TranscriptStatus.not_queued },
     ],
   };
 
   Transcript.findAll({ where: condition })
     .then((data) => {
       const transcripts: Transcript[] = [];
-      const appendTotalWords = data.map(async ({ dataValues }) => {
-        const { totalWords } = await calculateWordDiff(dataValues);
-        await Object.assign(dataValues, { contentTotalWords: totalWords });
-        transcripts.push(dataValues);
+      const appendTotalWords = data.map(async (transcript) => {
+        const transcriptData = transcript.dataValues;
+        const { totalWords } = await calculateWordDiff(transcriptData);
+        Object.assign(transcriptData, { contentTotalWords: totalWords });
+        transcripts.push(transcript);
       });
       Promise.all(appendTotalWords).then(() => {
         res.send(transcripts);
@@ -91,23 +89,23 @@ export function findAll(req: Request, res: Response) {
 
 // Find a single Transcript with an id
 export async function findOne(req: Request, res: Response) {
-  const id = req.params.id;
+  const id = Number(req.params.id);
 
   await Transcript.findByPk(id)
     .then(async (data) => {
       if (data) {
         const { totalWords } = await calculateWordDiff(data);
-        await Object.assign(data?.dataValues, {
+        Object.assign(data.dataValues, {
           contentTotalWords: totalWords,
         });
         res.send(data);
       }
     })
     .catch((err) => {
-      res.status(500).send({
-        message: "Error retrieving Transcript with id=" + id,
+      console.log(err);
+      res.status(404).send({
+        message: "Could not find Transcript with id=" + id,
       });
-      throw new Error(err);
     });
 }
 
@@ -139,11 +137,14 @@ export function update(req: Request, res: Response) {
 
 // Archive a Transcript by the id in the request
 export async function archive(req: Request, res: Response) {
-  const id = req.params.id;
+  const {
+    body: { archivedBy },
+    params: { id },
+  } = req;
 
-  const uid = req.body.archivedBy;
+  const userId = Number(archivedBy);
 
-  const reviewer = await User.findByPk(uid);
+  const reviewer = await User.findByPk(userId);
 
   if (!reviewer || reviewer.permissions !== "admin") {
     res.status(403).send({
@@ -153,23 +154,18 @@ export async function archive(req: Request, res: Response) {
   }
 
   Transcript.update(
-    { archivedAt: new Date(), archivedBy: req.body.archivedBy },
+    { archivedAt: new Date(), archivedBy: userId },
     {
-      where: { id: id },
+      where: { id: Number(id) },
     }
   )
     .then((num) => {
-      if (typeof num === "number" && num == 1) {
-        res.send({
-          message: "Transcript was archived successfully.",
-        });
-      } else {
-        res.send({
-          message: `Cannot archive Transcript with id=${id}. Maybe Transcript was not found or req.body is empty!`,
-        });
-      }
+      res.send({
+        message: "Transcript was archived successfully.",
+      });
     })
     .catch((err) => {
+      console.log(err);
       res.status(500).send({
         message: "Error archiving Transcript with id=" + id,
       });
@@ -200,7 +196,7 @@ export async function claim(req: Request, res: Response) {
   const pendingReview = await Review.findAll({
     where: { ...userCondition, ...pendingCondition },
   });
-  if (pendingReview.length >= maxPendingReviews) {
+  if (pendingReview.length >= MAXPENDINGREVIEWS) {
     res.status(403).send({
       message: "User has too many pending reviews, clear some and try again!",
     });
@@ -209,14 +205,13 @@ export async function claim(req: Request, res: Response) {
 
   const review = {
     userId: uid,
-    transcriptId,
+    transcriptId: Number(transcriptId),
   };
 
   await Transcript.update(
     {
-      status: TRANCRIPT_STATUS.NOT_QUEUED,
-      claimedAt: new Date(),
-      claimedBy: req.body.claimedBy,
+      status: TranscriptStatus.not_queued,
+      claimedBy: Number(req.body.claimedBy),
     },
     {
       where: { id: transcriptId },

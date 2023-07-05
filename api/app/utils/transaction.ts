@@ -1,4 +1,4 @@
-import { Transcript } from "../sequelize/models/transcript";
+import { TranscriptAttributes } from "../types/transcript";
 import { SATS_REWARD_RATE_PER_WORD } from "./constants";
 import { calculateWordDiff } from "./review.inference";
 
@@ -9,7 +9,7 @@ function generateTransactionId() {
   return timestamp + randomString;
 }
 
-async function calculateCreditAmount(associatedTranscript: Transcript) {
+async function calculateCreditAmount(associatedTranscript: TranscriptAttributes) {
   const { totalDiff, totalWords } = await calculateWordDiff(
     associatedTranscript
   );
