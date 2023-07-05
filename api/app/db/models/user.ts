@@ -10,7 +10,7 @@ import {
 import { Review } from "./review";
 import { Transcript } from "./transcript";
 import { Wallet } from "./wallet";
-import { USERPERMISSIONS, UserAttributes } from "../../types/user";
+import { USER_PERMISSIONS, UserAttributes } from "../../types/user";
 
 @Table({
   tableName: "users",
@@ -31,11 +31,11 @@ export class User extends Model<UserAttributes> {
   authToken?: string;
   // Todo! make this not nullable
 
-  @Column(DataType.ENUM({ values: Object.values(USERPERMISSIONS) }))
-  public permissions!: USERPERMISSIONS;
+  @Column(DataType.ENUM({ values: Object.values(USER_PERMISSIONS) }))
+  public permissions!: USER_PERMISSIONS;
 
   @Column(DataType.DATE)
-  public archivedAt!: Date | null;
+  public archivedAt?: Date | null;
 
   @HasOne(() => Wallet, "userId")
   wallet!: Wallet;

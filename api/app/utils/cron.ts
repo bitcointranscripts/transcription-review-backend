@@ -32,7 +32,7 @@ function setupExpiryTimeCron(review: Review) {
         // })
 
         Transcript.update(
-          { status: TRANSCRIPT_STATUS.QUEUED, claimedBy: undefined },
+          { status: TRANSCRIPT_STATUS.QUEUED, claimedBy: null },
           {
             where: { id: review.transcriptId },
           }
