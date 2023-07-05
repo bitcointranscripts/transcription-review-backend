@@ -1,18 +1,19 @@
 import cron from "cron";
 
-import { Review } from "../sequelize/models/review";
-import { Transcript } from "../sequelize/models/transcript";
+import { Review } from "../db/models/review";
+import { Transcript } from "../db/models/transcript";
+import { TRANSCRIPT_STATUS } from "../types/transcript";
 import { getUnixTimeFromHours } from "../utils/review.inference";
-import { config } from "./utils.config";
+import { EXPIRYTIMEINHOURS } from "./constants";
+
 
 const CronJob = cron.CronJob;
 
 // Requeue transcript if review has expired
 function setupExpiryTimeCron(review: Review) {
   const expiryTime =
-    // @ts-expect-error
     new Date(review.createdAt).getTime() +
-    getUnixTimeFromHours(config.expiryTimeInHours);
+    getUnixTimeFromHours(EXPIRYTIMEINHOURS);
   const expiryDate = new Date(expiryTime);
 
   const job = new CronJob(
@@ -31,7 +32,7 @@ function setupExpiryTimeCron(review: Review) {
         // })
 
         Transcript.update(
-          { status: "queued", claimedBy: null },
+          { status: TRANSCRIPT_STATUS.QUEUED, claimedBy: undefined },
           {
             where: { id: review.transcriptId },
           }

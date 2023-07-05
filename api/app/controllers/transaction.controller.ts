@@ -1,16 +1,12 @@
 import { Request, Response } from "express";
 
-import { Review } from "../sequelize/models/review";
-import { Transaction } from "../sequelize/models/transaction";
-import { Wallet } from "../sequelize/models/wallet";
-import { TRANSACTION_STATUS, TRANSACTION_TYPE } from "../utils/constants";
+import { Review, Transaction, Wallet } from "../db/models";
+import { TRANSACTION_STATUS, TRANSACTION_TYPE } from "../types/transaction";
 import { generateTransactionId } from "../utils/transaction";
-import { ObjectValues } from "../utils/types";
-
-type TRANSACTION_TYPE_VALUES = ObjectValues<typeof TRANSACTION_STATUS>;
 
 // Create and Save a new Transaction
 export async function create(req: Request, res: Response) {
+  const { reviewId, userId, amount, transactionType } = req.body;
   // check if any fields are empty
   const requiredFields = ["userId", "amount", "transactionType"];
   if (
@@ -30,15 +26,15 @@ export async function create(req: Request, res: Response) {
   const currentTime = new Date();
 
   // check if review exists
-  if (req.body.reviewId) {
+  if (reviewId) {
     const review = await Review.findOne({
       where: {
-        id: req.body.reviewId,
+        id: Number(reviewId),
       },
     });
     if (!review) {
       res.status(404).send({
-        message: `Could not create transaction: review with id=${req.body.reviewId} does not exist`,
+        message: `Could not create transaction: review with id=${reviewId} does not exist`,
       });
       return;
     }
@@ -47,23 +43,23 @@ export async function create(req: Request, res: Response) {
   // check if user wallet exists
   const userWallet = await Wallet.findOne({
     where: {
-      userId: req.body.userId,
+      userId: Number(userId),
     },
   });
   if (!userWallet) {
     res.status(404).send({
-      message: `Could not create transaction: wallet with for userId=${req.body.userId} does not exist`,
+      message: `Could not create transaction: wallet with for userId=${userId} does not exist`,
     });
     return;
   }
   const transactionId = generateTransactionId();
   const transaction = {
     id: transactionId,
-    reviewId: req.body.reviewId ?? null,
-    amount: +req.body.amount,
-    transactionType: req.body.transactionType,
-    transactionStatus: TRANSACTION_STATUS.SUCCESS as TRANSACTION_TYPE_VALUES,
-    walletId: Number(userWallet.id),
+    reviewId: reviewId ?? null,
+    amount: +amount,
+    transactionType: transactionType,
+    transactionStatus: TRANSACTION_STATUS.SUCCESS,
+    walletId: userWallet.id,
     timestamp: currentTime,
   };
 
@@ -75,7 +71,7 @@ export async function create(req: Request, res: Response) {
   try {
     const transactionResult = await Transaction.create(transaction);
     await Wallet.update(
-      { balance: newWalletBalance, updatedAt: currentTime },
+      { balance: newWalletBalance },
       { where: { id: userWallet.id } }
     );
     return res.send(transactionResult);
@@ -83,7 +79,7 @@ export async function create(req: Request, res: Response) {
     const message =
       error instanceof Error
         ? error.message
-        : "Some error occurred while creating the Transaction.";
+        : "Some error occurred while creating the Transaction";
     transaction.transactionStatus = TRANSACTION_STATUS.FAILED;
     Transaction.create(transaction);
     res.status(500).send({
@@ -111,21 +107,21 @@ export async function findAll(req: Request, res: Response) {
   });
   if (!userWallet) {
     res.status(404).send({
-      message: `Wallet for userId=${userId} does not exist`,
+      message: `Wallet for userId=${userId.toString()} does not exist`,
     });
     return;
   }
 
   let condition: {
-    walletId: string | number;
-    transactionStatus?: ObjectValues<typeof TRANSACTION_STATUS>;
-    transactionType?: ObjectValues<typeof TRANSACTION_TYPE>;
+    walletId: string;
+    transactionStatus?: TRANSACTION_STATUS;
+    transactionType?: TRANSACTION_TYPE;
   } = { walletId: userWallet.id };
   if (status) {
     if (
       !Boolean(
         TRANSACTION_STATUS[
-          String(status).toUpperCase() as keyof typeof TRANSACTION_STATUS
+          status.toString().toUpperCase() as keyof typeof TRANSACTION_STATUS
         ]
       )
     ) {
@@ -136,9 +132,7 @@ export async function findAll(req: Request, res: Response) {
     }
     condition = {
       ...condition,
-      transactionStatus: String(status) as ObjectValues<
-        typeof TRANSACTION_STATUS
-      >,
+      transactionStatus: status.toString() as TRANSACTION_STATUS,
     };
   }
   if (type) {
@@ -146,7 +140,7 @@ export async function findAll(req: Request, res: Response) {
       type &&
       !Boolean(
         TRANSACTION_TYPE[
-          String(type).toUpperCase() as keyof typeof TRANSACTION_TYPE
+          type.toString().toUpperCase() as keyof typeof TRANSACTION_TYPE
         ]
       )
     ) {
@@ -157,7 +151,7 @@ export async function findAll(req: Request, res: Response) {
     }
     condition = {
       ...condition,
-      transactionType: String(type) as ObjectValues<typeof TRANSACTION_TYPE>,
+      transactionType: type.toString() as TRANSACTION_TYPE,
     };
   }
 

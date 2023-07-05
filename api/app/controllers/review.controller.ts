@@ -1,9 +1,8 @@
 import { Request, Response } from "express";
+import { Op } from "sequelize";
 
-import { db } from "../sequelize/models";
-import { Review } from "../sequelize/models/review";
-import { Transcript } from "../sequelize/models/transcript";
-import { User } from "../sequelize/models/user";
+import { Review, Transcript } from "../db/models";
+import { User } from "../db/models/user";
 import { QUERY_REVIEW_STATUS } from "../utils/constants";
 import {
   buildIsActiveCondition,
@@ -11,20 +10,20 @@ import {
   buildIsPendingCondition,
   calculateWordDiff,
 } from "../utils/review.inference";
-
-const Op = db.Sequelize.Op;
+import { ReviewAttributes } from "../types/review";
 
 // Create and Save a new review
 export function create(req: Request, res: Response) {
+  const { userId, transcriptId } = req.body;
   // Validate request
-  if (!req.body.userId) {
+  if (!userId) {
     res.status(400).send({
       message: "User id can not be empty!",
     });
     return;
   }
 
-  if (!req.body.transcriptId) {
+  if (!transcriptId) {
     res.status(400).send({
       message: "Transcript id can not be empty!",
     });
@@ -32,8 +31,8 @@ export function create(req: Request, res: Response) {
   }
   // Create a review
   const review = {
-    userId: req.body.userId,
-    transcriptId: req.body.transcriptId,
+    userId: userId,
+    transcriptId: transcriptId,
   };
 
   // Save review in the database
@@ -63,10 +62,10 @@ export async function findAll(req: Request, res: Response) {
   if (username) {
     try {
       const foundUser = await User.findOne({
-        where: { githubUsername: username },
+        where: { githubUsername: username.toString() },
       });
-      if (foundUser?.dataValues?.id) {
-        userId = foundUser?.dataValues?.id;
+      if (foundUser?.dataValues.id) {
+        userId = foundUser?.dataValues.id;
       } else {
         return res.status(404).send({
           message: `User with username=${username} does not exist`,
@@ -86,7 +85,6 @@ export async function findAll(req: Request, res: Response) {
   let groupedCondition = {};
   const currentTime = new Date().getTime();
 
-  // userId condition
   const userIdCondition = { userId: { [Op.eq]: userId } };
 
   // add condition if query exists
@@ -117,13 +115,14 @@ export async function findAll(req: Request, res: Response) {
     include: { model: Transcript },
   })
     .then(async (data) => {
-      const reviews: Review[] = [];
-      const appendReviewData = data.map(async ({ dataValues }) => {
-        const transcript = dataValues.transcript.dataValues;
-        const { totalWords } = await calculateWordDiff(transcript);
-        Object.assign(transcript, { contentTotalWords: totalWords });
-        dataValues.transcript = transcript;
-        reviews.push(dataValues);
+      const reviews: ReviewAttributes[] = [];
+      const appendReviewData = data.map(async (review) => {
+        const { transcript } = review;
+        const transcriptData = transcript.dataValues;
+        const { totalWords } = await calculateWordDiff(transcriptData);
+        Object.assign(transcriptData, { contentTotalWords: totalWords });
+        review.transcript = transcript;
+        reviews.push(review);
       });
       Promise.all(appendReviewData).then(() => {
         res.send(reviews);
@@ -142,10 +141,18 @@ export async function findOne(req: Request, res: Response) {
 
   await Review.findByPk(id, { include: { model: Transcript } })
     .then(async (data) => {
-      const transcript = data?.dataValues.transcript.dataValues;
-      const { totalWords } = await calculateWordDiff(transcript);
-      await Object.assign(transcript, { contentTotalWords: totalWords });
-      res.send(data);
+      if (!data) {
+        return res.status(404).send({
+          message: `Review with id=${id} does not exist`,
+        });
+      }
+      const { transcript, ...review } = data;
+      const transcriptData = transcript.dataValues;
+      const { totalWords } = await calculateWordDiff(transcriptData);
+      Object.assign(transcriptData, { contentTotalWords: totalWords });
+      Promise.all([transcriptData, review]).then(() => {
+        res.send(review.dataValues);
+      });
     })
     .catch((_err) => {
       res.status(500).send({
