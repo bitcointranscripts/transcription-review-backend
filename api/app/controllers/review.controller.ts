@@ -1,8 +1,7 @@
 import { Request, Response } from "express";
 import { Op } from "sequelize";
 
-import { Review, Transcript } from "../db/models";
-import { User } from "../db/models/user";
+import { Review, Transcript, User } from "../db/models";
 import { QUERY_REVIEW_STATUS } from "../utils/constants";
 import {
   buildIsActiveCondition,

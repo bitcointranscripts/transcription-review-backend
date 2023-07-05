@@ -5,8 +5,8 @@ export enum TRANSACTION_STATUS {
 }
 
 export enum TRANSACTION_TYPE {
-  CREDIT = "CREDIT",
-  DEBIT = "DEBIT",
+  CREDIT = "credit",
+  DEBIT = "debit",
 }
 
 export interface TransactionAttributes {

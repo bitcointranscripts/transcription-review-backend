@@ -11,12 +11,7 @@ import {
 import { v4 as uuidv4 } from "uuid";
 import { Transaction } from "./transaction";
 import { User } from "./user";
-
-interface WalletAttributes {
-  id: string;
-  balance: number;
-  userId: number;
-}
+import { WalletAttributes } from "../../types/wallet";
 
 @Table({
   tableName: "wallets",
