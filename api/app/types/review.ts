@@ -1,6 +1,5 @@
 export interface ReviewAttributes {
   id?: number;
-  claimedAt?: Date | null;
   submittedAt?: Date | null;
   archivedAt?: Date | null;
   mergedAt?: Date | null;
