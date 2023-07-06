@@ -7,7 +7,7 @@ services:
       - "8080:8080"
 
   nginx:
-    image: public.ecr.aws/p7a4n0s1/nginx:latest
+    build: ./nginx
     container_name: nginx
     ports:
       - "80:80"

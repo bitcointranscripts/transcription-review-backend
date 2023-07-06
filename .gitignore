@@ -6,7 +6,7 @@ todos.*
 .env.prod
 .env.staging
 e.yml
-docker-compose-dev.yml
+docker-compose-prod.yml
 
 # Elastic Beanstalk Files
 .elasticbeanstalk/*
