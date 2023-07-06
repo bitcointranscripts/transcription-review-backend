@@ -19,6 +19,7 @@ export async function create(req: Request, res: Response) {
   const userDetails = {
     githubUsername: req.body.username,
     permissions: req.body.permissions,
+    email: req.body.email,
   };
 
   try {
