@@ -26,9 +26,6 @@ export class Review extends Model<ReviewAttributes> {
   public id!: number;
 
   @Column(DataType.DATE)
-  public claimedAt?: Date;
-
-  @Column(DataType.DATE)
   public submittedAt?: Date;
 
   @Column({type: DataType.DATE, allowNull: true})

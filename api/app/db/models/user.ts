@@ -28,8 +28,13 @@ export class User extends Model<UserAttributes> {
   public githubUsername!: string;
 
   @Column(DataType.STRING)
+  email!: string
+
+  @Column(DataType.STRING)
+  jwt?: string
+
+  @Column(DataType.STRING)
   authToken?: string;
-  // Todo! make this not nullable
 
   @Column(DataType.ENUM({ values: Object.values(USER_PERMISSIONS) }))
   public permissions!: USER_PERMISSIONS;
