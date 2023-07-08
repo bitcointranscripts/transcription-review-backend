@@ -13,5 +13,5 @@
       "experimentalDecorators": true,
     },
 
-    "lib": ["esNext"]
+    "lib": ["es6"]
   }
