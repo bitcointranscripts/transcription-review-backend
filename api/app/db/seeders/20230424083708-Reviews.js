@@ -14,7 +14,6 @@ module.exports = {
     */
 
    await queryInterface.bulkInsert('reviews', [{
-    claimedAt: "2023-04-23T00:00:00.000Z",
     submittedAt: "2023-04-23T00:00:00.000Z",
     mergedAt: "2023-04-23T00:00:00.000Z",
     userId: 1,
