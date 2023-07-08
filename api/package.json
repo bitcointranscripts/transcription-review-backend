@@ -15,10 +15,13 @@
   "license": "ISC",
   "scripts": {
     "start": "ts-node server.ts",
+    "tsc": "tsc -w",
+    "dev": "nodemon NODE_ENV=development server.ts",
+    "clean": "rm -rf dist && true",
+    "build": "yarn run clean && tsc",
     "migrate": "npx sequelize db:migrate",
     "migrate:undo": "npx sequelize db:migrate:undo",
-    "seed": "npx sequelize db:seed:all",
-    "dev": "nodemon NODE_ENV=development server.ts"
+    "seed": "npx sequelize db:seed:all"
   },
   "nodemonConfig": {
     "watch": [
@@ -35,6 +38,7 @@
     "express": "^4.17.1",
     "pg": "^8.7.3",
     "pg-hstore": "^2.3.4",
+    "reflect-metadata": "^0.1.13",
     "sequelize": "^6.21.1",
     "sequelize-typescript": "^2.1.5",
     "swagger-jsdoc": "^6.2.8",
