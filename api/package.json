@@ -23,7 +23,6 @@
     "migrate:undo": "npx sequelize db:migrate:undo",
     "seed": "npx sequelize db:seed:all"
   },
-  
   "nodemonConfig": {
     "watch": [
       "*"
