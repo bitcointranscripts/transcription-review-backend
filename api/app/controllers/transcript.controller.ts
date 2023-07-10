@@ -62,7 +62,7 @@ export function findAll(req: Request, res: Response) {
     [Op.and]: [
       { archivedAt: null },
       { archivedBy: null },
-      { status: TranscriptStatus.not_queued },
+      { status: TranscriptStatus.queued },
     ],
   };
 
@@ -91,6 +91,13 @@ export function findAll(req: Request, res: Response) {
 export async function findOne(req: Request, res: Response) {
   const id = Number(req.params.id);
 
+  if (!id) {
+    res.status(400).send({
+      message: "Transcript id cannot be empty!",
+    });
+    return;
+  }
+
   await Transcript.findByPk(id)
     .then(async (data) => {
       if (data) {
@@ -110,15 +117,22 @@ export async function findOne(req: Request, res: Response) {
 }
 
 // Update a Transcript by the id in the request
-export function update(req: Request, res: Response) {
+export async function update(req: Request, res: Response) {
   const id = req.params.id;
 
-  //FIXME: Ensure only necessary fields are updated i.e. content, updatedAt
-  Transcript.update(req.body, {
-    where: { id: id },
-  })
-    .then((num) => {
-      if (typeof num === "number" && num == 1) {
+  if (!req.body) {
+    res.status(400).send({
+      message: "Content cannot be empty!",
+    });
+    return;
+  }
+
+  try {
+    //FIXME: Ensure only necessary fields are updated i.e. content, updatedAt
+    await Transcript.update(req.body, {
+      where: { id: id },
+    }).then((response) => {
+      if (response[0] === 1) {
         res.send({
           message: "Transcript was updated successfully.",
         });
@@ -127,12 +141,12 @@ export function update(req: Request, res: Response) {
           message: `Cannot update Transcript with id=${id}. Maybe Transcript was not found or req.body is empty!`,
         });
       }
-    })
-    .catch((err) => {
-      res.status(500).send({
-        message: "Error updating Transcript with id=" + id,
-      });
     });
+  } catch (error) {
+    res.status(500).send({
+      message: "Error updating Transcript with id=" + id,
+    });
+  }
 }
 
 // Archive a Transcript by the id in the request
@@ -141,6 +155,20 @@ export async function archive(req: Request, res: Response) {
     body: { archivedBy },
     params: { id },
   } = req;
+
+  if (!archivedBy) {
+    res.status(400).send({
+      message: "ArchivedBy cannot be empty!",
+    });
+    return;
+  }
+
+  if (!id) {
+    res.status(400).send({
+      message: "Transcript id cannot be empty!",
+    });
+    return;
+  }
 
   const userId = Number(archivedBy);
 
@@ -153,23 +181,28 @@ export async function archive(req: Request, res: Response) {
     return;
   }
 
-  Transcript.update(
-    { archivedAt: new Date(), archivedBy: userId },
-    {
-      where: { id: Number(id) },
-    }
-  )
-    .then((num) => {
+  try {
+    const responseData = await Transcript.update(
+      { archivedAt: new Date(), archivedBy: userId },
+      {
+        where: { id: Number(id) },
+      }
+    );
+    if (responseData[0] === 0) {
       res.send({
-        message: "Transcript was archived successfully.",
+        message: `Cannot archive Transcript with id=${id}. Maybe Transcript was not found or req.body is empty!`,
       });
-    })
-    .catch((err) => {
-      console.log(err);
-      res.status(500).send({
-        message: "Error archiving Transcript with id=" + id,
-      });
+    }
+
+    res.send({
+      message: "Transcript was archived successfully.",
     });
+  } catch (error) {
+    console.log(error);
+    res.status(500).send({
+      message: "Error archiving Transcript with id=" + id,
+    });
+  }
 }
 
 export async function claim(req: Request, res: Response) {
@@ -208,38 +241,36 @@ export async function claim(req: Request, res: Response) {
     transcriptId: Number(transcriptId),
   };
 
-  await Transcript.update(
-    {
-      status: TranscriptStatus.not_queued,
-      claimedBy: Number(req.body.claimedBy),
-    },
-    {
-      where: { id: transcriptId },
-    }
-  )
-    .then((num) => {
-      if (typeof num === "number" && num == 1) {
-        // Save review in the database
-        Review.create(review)
-          .then((data) => {
-            res.send(data);
-            setupExpiryTimeCron(data);
-          })
-          .catch((err) => {
-            res.status(500).send({
-              message:
-                err.message || "Some error occurred while creating the review.",
-            });
-          });
-      } else {
-        res.send({
-          message: `Cannot claim Transcript with id=${transcriptId}. Maybe Transcript was not found or req.body is empty!`,
-        });
+  try {
+    const resp = await Transcript.update(
+      {
+        status: TranscriptStatus.not_queued,
+        claimedBy: Number(req.body.claimedBy),
+      },
+      {
+        where: { id: transcriptId },
       }
-    })
-    .catch((err) => {
-      res.status(500).send({
-        message: "Error claiming Transcript with id=" + transcriptId,
+    );
+    if (resp[0] === 0) {
+      res.send({
+        message: `Cannot claim Transcript with id=${transcriptId}. Maybe Transcript was not found or req.body is empty!`,
       });
+    }
+    await Review.create(review)
+      .then((data) => {
+        res.send(data);
+        return setupExpiryTimeCron(data);
+      })
+      .catch((err) => {
+        res.status(500).send({
+          message:
+            err.message || "Some error occurred while creating the Review.",
+        });
+      });
+  } catch (error) {
+    console.log(error);
+    res.status(500).send({
+      message: "Error claiming Transcript with id=" + transcriptId,
     });
+  }
 }
