@@ -1,0 +1,17 @@
+{
+    "compilerOptions": {
+      "target": "es6",                        
+      "module": "CommonJS",                   
+      "outDir": "./dist",                     
+      "strict": true, 
+      "sourceMap": true,                       
+      "moduleResolution": "node",            
+      "esModuleInterop": true,               
+      "skipLibCheck": true,                  
+      "forceConsistentCasingInFileNames": true,
+      "emitDecoratorMetadata": true,
+      "experimentalDecorators": true,
+    },
+
+    "lib": ["es6"]
+  }

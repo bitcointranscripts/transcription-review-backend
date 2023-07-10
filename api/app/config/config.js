@@ -1,4 +1,4 @@
-const dotenv = require("dotenv")
+const dotenv = require("dotenv");
 dotenv.config();
 
 module.exports = {
@@ -6,7 +6,7 @@ module.exports = {
     url: process.env.DB_URL,
     dialect: "postgres",
     pool: { maxConnections: 5, maxIdleTime: 30 },
-    language: 'en'
+    language: "en",
   },
   staging: {
     url: process.env.DB_URL,
@@ -14,11 +14,11 @@ module.exports = {
     dialectOptions: {
       ssl: {
         require: true,
-        rejectUnauthorized: false
-      }
+        rejectUnauthorized: false,
+      },
     },
     pool: { maxConnections: 5, maxIdleTime: 30 },
-    language: 'en'
+    language: "en",
   },
   production: {
     url: process.env.DB_URL,
@@ -26,11 +26,11 @@ module.exports = {
     dialectOptions: {
       ssl: {
         require: true,
-        rejectUnauthorized: false
+        rejectUnauthorized: false,
       },
-      keepAlive: true
+      keepAlive: true,
     },
     pool: { maxConnections: 5, maxIdleTime: 30 },
-    language: 'en'
-  }
-}
+    language: "en",
+  },
+};
