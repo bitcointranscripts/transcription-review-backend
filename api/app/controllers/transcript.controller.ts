@@ -63,6 +63,7 @@ export function findAll(req: Request, res: Response) {
       { archivedAt: null },
       { archivedBy: null },
       { status: TranscriptStatus.queued },
+      { status: TranscriptStatus.queued },
     ],
   };
 
@@ -120,16 +121,9 @@ export async function findOne(req: Request, res: Response) {
 export async function update(req: Request, res: Response) {
   const id = req.params.id;
 
-  if (!id) {
-    res.status(400).send({
-      message: "transcript id cannot be empty!",
-    });
-    return;
-  }
-
   if (!req.body) {
     res.status(400).send({
-      message: "Request body cannot be empty!",
+      message: "Content cannot be empty!",
     });
     return;
   }
