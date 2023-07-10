@@ -4,32 +4,43 @@ import { Review, Transcript, User, Wallet } from "../db/models";
 import { calculateWordDiff } from "../utils/review.inference";
 import { Op } from "sequelize";
 import { ReviewAttributes } from "../types/review";
+import { generateJwtToken, verifyGitHubToken } from "../utils/auth";
 
 // Create and Save a new User
-export async function create(req: Request, res: Response) {
+export async function signUp(req: Request, res: Response) {
   // Validate request
-  if (!req?.body?.username) {
-    res.status(400).send({
-      message: "Username can not be empty!",
-    });
-    return;
-  }
-
-  // Create a User
-  const userDetails = {
-    githubUsername: req.body.username,
-    permissions: req.body.permissions,
-    email: req.body.email,
-  };
-
   try {
+    // Validate request
+    if (!req.body.username) {
+      return res.status(400).send({
+        message: "Username can not be empty!",
+      });
+    }
+
+    // Create a User
+    const userDetails = {
+      githubUsername: req.body.username,
+      permissions: req.body.permissions,
+      email: req.body.email,
+      authToken: req.body.githubAuthToken,
+      jwt: "",
+    };
+
     const walletId = uuidv4();
     const user = await User.create(userDetails);
+
+    // Generate JWT with user information
+    const token = generateJwtToken(user);
+
+    // Update the user record with the JWT
+    await User.update({ jwt: token }, { where: { id: user.id } });
+
     await Wallet.create({
       userId: user.id,
       balance: 0,
       id: walletId,
     });
+
     return res.status(201).send(user);
   } catch (error) {
     const message =
@@ -41,6 +52,53 @@ export async function create(req: Request, res: Response) {
     });
   }
 }
+
+// Sign in a user
+export async function signIn(req: Request, res: Response) {
+  try {
+    // Validate request
+    if (!req.body.oauthToken) {
+      return res.status(400).send({
+        message: "OAuth token can not be empty!",
+      });
+    }
+
+    const { oauthToken } = req.body;
+
+    // Call GitHub API to verify the OAuth token
+    const githubUser = await verifyGitHubToken(oauthToken);
+
+    // Find user in the database by githubUsername or email
+    const user = await User.findOne({
+      where: {
+        [Op.or]: [
+          { githubUsername: githubUser.login },
+          { email: githubUser.email },
+        ],
+      },
+    });
+
+    if (!user) {
+      return res.status(401).json({ message: "Invalid login credentials" });
+    }
+
+    // Generate JWT with user information
+    const token = generateJwtToken(user);
+
+    // Send the JWT back to the frontend
+    res.status(200).json({ token });
+  } catch (error) {
+    const message =
+      error instanceof Error
+        ? error.message
+        : "Unable to sign in. Some error occurred while signing you in.";
+    res.status(500).send({
+      message
+    });
+    res.status(500).json({ message: "Failed to log in" });
+  }
+}
+
 
 // Retrieve all Users from the database.
 export function findAll(req: Request, res: Response) {

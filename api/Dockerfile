@@ -18,4 +18,4 @@ ARG NODE_ENV=NODE_ENV
 
 EXPOSE 8080/tcp
 
-CMD ["node", "dist/server.js"]
+CMD ["node", "./dist/server.js"]

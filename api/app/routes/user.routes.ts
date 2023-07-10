@@ -48,7 +48,7 @@ export function userRoutes(app: Express) {
    *                       description: The user's permissions.
    *                       enum: [admin, reviewer]
    */
-  router.post("/", users.create);
+  router.post("/", users.signUp);
 
   // Retrieve all users
   /**
