@@ -15,7 +15,8 @@ import {
   transactionRoutes,
   transcriptRoutes,
   userRoutes,
-  webhookRoutes
+  webhookRoutes,
+  lightningRoutes
 } from "./app/routes";
 import { sequelize } from "./app/db";
 
@@ -83,6 +84,7 @@ transactionRoutes(app);
 transcriptRoutes(app);
 logout(app);
 webhookRoutes(app);
+lightningRoutes(app);
 
 const PORT = process.env.PORT;
 app
