@@ -3,3 +3,4 @@ export * from "./transaction.routes";
 export * from "./transcript.routes";
 export * from "./user.routes";
 export * from "./webhook.routes";
+export * from "./lightning.routes";
