@@ -190,9 +190,6 @@ export async function submit(req: Request, res: Response) {
   const id = req.params.id;
   const { pr_url } = req.body;
 
-  console.log("pr_url", pr_url);
-  console.log("id", id);
-
   if (!pr_url) {
     return res.status(400).send({
       message: "pr_url is missing",

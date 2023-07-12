@@ -35,7 +35,7 @@ export class Review extends Model<ReviewAttributes> {
   public mergedAt?: Date;
 
   @Column(DataType.STRING)
-  public pr_url!: string;
+  public pr_url?: string;
 
   @ForeignKey(() => User)
   @Column(DataType.INTEGER)
