@@ -195,27 +195,28 @@ export async function submit(req: Request, res: Response) {
       message: "pr_url is missing",
     });
   }
-  const submittedAt = new Date();
-  await Review.update(
-    { submittedAt, pr_url },
-    {
-      where: { id: id },
-    }
-  )
-    .then((num) => {
-      if (typeof num === "number" && num == 1) {
-        res.send({
-          message: "review was updated successfully.",
-        });
-      } else {
-        res.status(404).send({
-          message: `Cannot update review with id=${id}. Maybe review was not found`,
-        });
+
+  try {
+    const [num] = await Review.update(
+      { submittedAt: new Date(), pr_url },
+      {
+        where: { id: id },
       }
-    })
-    .catch((_err) => {
-      res.status(500).send({
-        message: "Error updating review with id=" + id,
+    );
+
+    if (num === 1) {
+      res.send({
+        message: "Review was updated successfully.",
       });
+    } else {
+      res.status(404).send({
+        message: `Cannot update review with id=${id}. Maybe review was not found`,
+      });
+    }
+  } catch (err) {
+    res.status(500).send({
+      message: "Error updating review with id=" + id,
     });
+  }
 }
+
