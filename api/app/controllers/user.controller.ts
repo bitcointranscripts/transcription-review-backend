@@ -153,3 +153,32 @@ export async function getUserReviews(req: Request, res: Response) {
     });
 }
 //FIXME: Add an archive route in order to cater for archived(deleted) users  and filling the archivedAt field in the model.
+
+export async function logout(req: Request, res: Response) {
+  const userId = req.body.userId;
+  if (!userId) {
+    res.status(400).send({
+      message: "userId can not be empty!",
+    });
+    return;
+  }
+
+  await User.update(
+    { jwt: null },
+    {
+      where: {
+        id: userId,
+      },
+    }
+  )
+    .then((_data) => {
+      res.status(200).send({
+        message: "User logged out successfully.",
+      });
+    })
+    .catch((_err) => {
+      res.status(500).send({
+        message: "Some error occurred while logging out the user.",
+      });
+    });
+}

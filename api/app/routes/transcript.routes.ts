@@ -1,6 +1,7 @@
 import type { Express } from "express";
 import express from "express";
 import * as transcripts from "../controllers/transcript.controller";
+import { admin, auth } from "../middleware/auth";
 
 export function transcriptRoutes(app: Express) {
   const router = express.Router();
@@ -166,22 +167,22 @@ export function transcriptRoutes(app: Express) {
    */
 
   // Create a new transcript
-  router.post("/", transcripts.create);
+  router.post("/", auth, transcripts.create);
 
   // Retrieve all transcripts
   router.get("/", transcripts.findAll);
 
   // Retrieve a single transcript with id
-  router.get("/:id", transcripts.findOne);
+  router.get("/:id", auth, transcripts.findOne);
 
   // Update a transcript with id
-  router.put("/:id", transcripts.update);
+  router.put("/:id", auth, transcripts.update);
 
   // Archive a transcript with id
-  router.put("/:id/archive", transcripts.archive);
+  router.put("/:id/archive", auth, admin, transcripts.archive);
 
   // Claim a transcript with id
-  router.put("/:id/claim", transcripts.claim);
+  router.put("/:id/claim", auth, transcripts.claim);
 
   app.use("/api/transcripts", router);
 }
