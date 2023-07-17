@@ -1,6 +1,7 @@
 import type { Express } from "express";
 import express from "express";
 import * as users from "../controllers/user.controller";
+import { auth } from "../middleware/auth";
 
 export function userRoutes(app: Express) {
   const router = express.Router();
@@ -155,12 +156,12 @@ export function userRoutes(app: Express) {
    *                       description: Date when a user record is updated.
    *                       example: 2023-03-08T13:42:08.699Z
    */
-  router.get("/:id", users.findOne);
+  router.get("/:id", auth, users.findOne);
 
-  router.get("/:id/reviews", users.getUserReviews);
+  router.get("/:id/reviews", auth, users.getUserReviews);
 
   // Get a user wallet details
-  router.get("/:id/wallet", users.getUserWallet);
+  router.get("/:id/wallet", auth, users.getUserWallet);
 
   // Update a user with id
   /**
@@ -223,7 +224,7 @@ export function userRoutes(app: Express) {
    *                       description: Date when a user record is updated.
    *                       example: 2023-03-08T13:42:08.699Z
    */
-  router.put("/:id", users.update);
+  router.put("/:id", auth, users.update);
 
   app.use("/api/users", router);
 }
