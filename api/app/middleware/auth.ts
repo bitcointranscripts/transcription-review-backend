@@ -1,5 +1,3 @@
-// src/middleware/auth.ts
-
 import { NextFunction, Request, Response } from "express";
 import jwt from "jsonwebtoken";
 
@@ -57,7 +55,7 @@ export const auth = async (req: Request, res: Response, next: NextFunction) => {
       return res.status(403).json({ error: "User not found" });
     }
     // create jwt token
-    // use genrsteJwt function
+    // Todo! use generateJwt function
     const token = jwt.sign(
       { id: user.id, permissions: user.permissions, githubToken },
       jwtSecret,
