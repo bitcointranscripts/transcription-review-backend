@@ -44,6 +44,8 @@ export const auth = async (req: Request, res: Response, next: NextFunction) => {
     }
   } else {
     // Todo! validate github token here
+    // we should use the github token to get the user id i.e. the github username
+    // this implementation using id is temporary
     const userId = req.body.userId;
     if (!userId) {
       return res
