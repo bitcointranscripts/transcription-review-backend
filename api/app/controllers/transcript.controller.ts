@@ -12,7 +12,7 @@ import {
 import { MAXPENDINGREVIEWS } from "../utils/constants";
 
 // Create and Save a new Transcript
-export function create(req: Request, res: Response) {
+export async function create(req: Request, res: Response) {
   const { content } = req.body;
   // Validate request
   if (!content) {
@@ -44,7 +44,7 @@ export function create(req: Request, res: Response) {
   };
 
   // Save Transcript in the database
-  Transcript.create(transcript)
+  await Transcript.create(transcript)
     .then((data) => {
       res.send(data);
     })
@@ -57,7 +57,7 @@ export function create(req: Request, res: Response) {
 }
 
 // Retrieve all unarchived and queued transcripts from the database.
-export function findAll(req: Request, res: Response) {
+export async function findAll(req: Request, res: Response) {
   let condition = {
     [Op.and]: [
       { archivedAt: null },
@@ -66,7 +66,7 @@ export function findAll(req: Request, res: Response) {
     ],
   };
 
-  Transcript.findAll({ where: condition })
+  await Transcript.findAll({ where: condition })
     .then((data) => {
       const transcripts: Transcript[] = [];
       const appendTotalWords = data.map(async (transcript) => {

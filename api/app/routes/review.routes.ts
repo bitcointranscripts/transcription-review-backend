@@ -1,6 +1,7 @@
 import type { Express } from "express";
 import express from "express";
 import * as reviews from "../controllers/review.controller";
+import { auth } from "../middleware/auth";
 
 export function reviewRoutes(app: Express) {
   const router = express.Router();
@@ -170,7 +171,7 @@ export function reviewRoutes(app: Express) {
   // Submit a review with id
   router.put("/:id/submit", reviews.submit);
 
-  app.use("/api/reviews", router);
+  app.use("/api/reviews", auth, router);
 }
 
 // export default reviewRoutes;
