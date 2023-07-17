@@ -10,6 +10,7 @@ import swaggerJsdoc from "swagger-jsdoc";
 import swaggerUi from "swagger-ui-express";
 
 import {
+  logout,
   reviewRoutes,
   transactionRoutes,
   transcriptRoutes,
@@ -80,6 +81,7 @@ userRoutes(app);
 reviewRoutes(app);
 transactionRoutes(app);
 transcriptRoutes(app);
+logout(app);
 webhookRoutes(app);
 
 const PORT = process.env.PORT;
