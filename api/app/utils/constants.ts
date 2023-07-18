@@ -12,6 +12,13 @@ const QUERY_REVIEW_STATUS = {
 
 const SATS_REWARD_RATE_PER_WORD = 0.5;
 
+const expiresInHours = 24;
+
+const currentTime = Math.floor(Date.now() / 1000);
+
+const JWTEXPIRYTIMEINHOURS = currentTime + (expiresInHours * 60 * 60);
+
+
 const EXPIRYTIMEINHOURS = 24;
 const MAXPENDINGREVIEWS = 3;
 
@@ -21,4 +28,7 @@ export {
   SATS_REWARD_RATE_PER_WORD,
   EXPIRYTIMEINHOURS,
   MAXPENDINGREVIEWS,
+  JWTEXPIRYTIMEINHOURS
 };
+
+
