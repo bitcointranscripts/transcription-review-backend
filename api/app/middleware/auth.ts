@@ -3,15 +3,16 @@ import jwt from "jsonwebtoken";
 
 import { User } from "../db/models";
 import { USER_PERMISSIONS } from "../types/user";
+import { verifyGitHubToken, generateJwtToken } from "../utils/auth";
 
 export const auth = async (req: Request, res: Response, next: NextFunction) => {
   const authHeader = req.headers.authorization;
   const prefix = "Bearer ";
 
-  if (!process.env.JWT_SECRET) {
+  if (!process.env.JWT_SECRET_KEY) {
     throw new Error("JWT_SECRET environment variable is not defined");
   }
-  const jwtSecret = process.env.JWT_SECRET;
+  const jwtSecret = process.env.JWT_SECRET_KEY;
 
   if (authHeader && authHeader.startsWith(prefix)) {
     const [_, token] = authHeader.split(" ");
@@ -29,7 +30,7 @@ export const auth = async (req: Request, res: Response, next: NextFunction) => {
         if (!user || user.jwt !== token) {
           return res.status(403).json({ error: "User not found" });
         }
-
+        
         req.body.userId = user.id;
         req.body.userPermissions = user.permissions;
         next();
