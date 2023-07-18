@@ -49,7 +49,37 @@ export function userRoutes(app: Express) {
    *                       description: The user's permissions.
    *                       enum: [admin, reviewer]
    */
-  router.post("/", users.create);
+  router.post("/signup", users.signUp);
+
+  // Sign in a user
+
+   /**
+   * @swagger
+   * /api/users:
+   *   post:
+   *     summary: Create a JSONPlaceholder user.
+   *     responses:
+   *       200:
+   *         description: Successfully signed in
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 data:
+   *                   type: object
+   *                   properties:
+   *                     username:
+   *                       type: string
+   *                       description: The user's github username.
+   *                       example: glozow
+   *                     permissions:
+   *                       type: string
+   *                       description: The user's permissions.
+   *                       enum: [admin, reviewer]
+   */
+   router.post("/signin", auth, users.signIn);
+  
 
   // Retrieve all users
   /**

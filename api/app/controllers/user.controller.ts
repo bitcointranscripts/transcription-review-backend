@@ -4,33 +4,52 @@ import { Review, Transcript, User, Wallet } from "../db/models";
 import { calculateWordDiff } from "../utils/review.inference";
 import { Op } from "sequelize";
 import { ReviewAttributes } from "../types/review";
+import { generateJwtToken, verifyGitHubToken } from "../utils/auth";
+import {UserAttributes} from "../types/user";
 
-// Create and Save a new User
-export async function create(req: Request, res: Response) {
-  // Validate request
-  if (!req?.body?.username) {
-    res.status(400).send({
-      message: "Username can not be empty!",
-    });
-    return;
-  }
-
-  // Create a User
-  const userDetails = {
-    githubUsername: req.body.username,
-    permissions: req.body.permissions,
-    email: req.body.email,
-  };
-
+export async function signUp(req: Request, res: Response) {
+  const githubToken = req.headers["x-github-token"];
   try {
+    // Validate request
+    if (!req.body.username) {
+      return res.status(400).send({
+        message: "Username cannot be empty!",
+      });
+    }
+
+    if(!githubToken) {
+      return res.status(403).send({
+        message: "Github token cannot be empty!",
+      });
+    }
+
+    // Create a User
+    const userDetails: UserAttributes = {
+      githubUsername: req.body.username,
+      permissions: req.body.permissions,
+      email: req.body.email,
+    };
+
     const walletId = uuidv4();
     const user = await User.create(userDetails);
+
+
+    // Generate JWT with user information
+    const token = generateJwtToken(user, githubToken.toString());
+
+    // Update the user record with the JWT
+    await User.update({ jwt: token }, { where: { id: user.id } });
+
+    // Include the JWT in the user object
+    const userWithJwt = { ...user.toJSON(), jwt: token };
+
     await Wallet.create({
       userId: user.id,
       balance: 0,
       id: walletId,
     });
-    return res.status(201).send(user);
+
+    return res.status(201).send(userWithJwt);
   } catch (error) {
     const message =
       error instanceof Error
@@ -41,6 +60,50 @@ export async function create(req: Request, res: Response) {
     });
   }
 }
+
+
+// Sign in a user
+export const signIn = async (req: Request, res: Response) => {
+  try {
+    // Get the user ID from the request body
+    const userId = req.body.userId;
+
+    if (!userId) {
+      return res.status(400).send({
+        message: "User ID cannot be empty",
+      });
+    }
+
+    // Find the user in the database
+    const user = await User.findOne({
+      where: {
+        id: userId,
+      },
+    });
+    
+    if (!user) {
+      return res.status(404).json({ error: "User not found" });
+    }
+
+    // Retrieve the JWT from the user object
+    const { jwt } = user;
+
+    if (!jwt) {
+      return res.status(401).json({ error: "JWT not found for the user" });
+    }
+
+    return res.status(200).send({ jwt });
+  } catch (error) {
+    const message =
+      error instanceof Error
+        ? error.message
+        : "Unable to sign in. Some error occurred while signing in.";
+    res.status(500).send({
+      message,
+    });
+  }
+};
+
 
 // Retrieve all Users from the database.
 export function findAll(req: Request, res: Response) {
