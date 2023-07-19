@@ -1,7 +1,14 @@
 import { config } from "dotenv";
 import { Sequelize } from "sequelize-typescript";
 
-import { Review, Transaction, Transcript, User, Wallet } from "./models";
+import {
+  Review,
+  Transaction,
+  Transcript,
+  User,
+  Wallet,
+  Settings,
+} from "./models";
 
 config();
 const DB_URL =
@@ -9,5 +16,5 @@ const DB_URL =
 export const sequelize = new Sequelize(DB_URL, {
   dialect: "postgres",
   logging: process.env.NODE_ENV === "production",
-  models: [Review, User, Transcript, Transaction, Wallet],
+  models: [Review, User, Transcript, Transaction, Wallet, Settings],
 });
