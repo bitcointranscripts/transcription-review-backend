@@ -8,7 +8,7 @@ export interface UserAttributes {
   githubUsername: string;
   email: string;
   jwt?: string | null;
-  authToken?: string;
+  albyToken?: string;
   permissions: "reviewer" | "admin";
   archivedAt?: Date | null;
 }
