@@ -11,6 +11,7 @@ import { Review } from "./review";
 import { Transcript } from "./transcript";
 import { Wallet } from "./wallet";
 import { USER_PERMISSIONS, UserAttributes } from "../../types/user";
+import { Settings } from "./settings";
 
 @Table({
   tableName: "users",
@@ -34,7 +35,7 @@ export class User extends Model<UserAttributes> {
   jwt?: string
 
   @Column(DataType.STRING)
-  authToken?: string;
+  albyToken?: string;
 
   @Column(DataType.ENUM({ values: Object.values(USER_PERMISSIONS) }))
   public permissions!: USER_PERMISSIONS;
@@ -50,4 +51,7 @@ export class User extends Model<UserAttributes> {
 
   @HasMany(() => Transcript, "archivedBy")
   archivedTranscripts!: Transcript[];
+
+  @HasOne(() => Settings, "userId")
+  setting!: Settings;
 }
