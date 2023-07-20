@@ -9,25 +9,30 @@ export async function saveAlbyToken(req: Request, res: Response) {
   try {
     const { code } = req.body;
     const userTokens: any = await fetchUserToken(code);
-    const tokens = JSON.parse(userTokens);
 
     // the tokens contains both the access_token and the refresh_token
+    const tokens = JSON.parse(userTokens);
+  
 
-    // User.findOne(id).update({
-    //   settings:tokens.refresh_token
-    // }).then(()=>{
-    //   res.status(200).json({"messsage":"Alby wallet activated successfully"})
-    // }).catch((error:any)=>{
-    //   res.status(400).json({"error":error.message})
-    // })
-
+    //set the user alby token with refresh_token
+    User.update(
+      { albyToken: tokens.refresh_token },
+      { where: { id: req.body.userId } }
+    )
+      .then(() => {
+        res
+          .status(200)
+          .send({ messsage: "Alby withdrawal option activated successfully" });
+      })
+      .catch((error: any) => {
+        res.status(400).send({ error: error.message });
+      });
   } catch (error) {
-    res.status(400).json({ message: "Something's wrong" });
+    res.status(400).send({ message: "Something went wrong" });
   }
 }
 
 export async function generateInvoice(req: Request, res: Response) {
-
   //pass the first refresh token, amount and memo as a part of the request parameter
 
   try {
@@ -35,29 +40,25 @@ export async function generateInvoice(req: Request, res: Response) {
     const response: any = await fetchAccessToken(req);
     const tokens: AccessToken = JSON.parse(response);
 
+
     //update the user's old refreshToken with the new refreshToken
-    // const { data, error } = await User.findOne(userId).update({
-    //   settings: tokens.refresh_token,
-    // });
+    await User.update(
+      { albyToken: tokens.refresh_token },
+      { where: { id: req.body.userId } }
+    )
 
-    // if (Error) {
-    //   res.status(400).json({ message: "Something wrong with fetching data" });
-    //   return;
-    // }
-
+    //fetch an invoice from the user's alby wallet
     const info: any = await fetchInvoice(tokens, req);
     if (JSON.parse(info).error) {
-      res.status(400).json({ message: "Something went wrong" });
+      res.status(400).send({ message: "Something went wrong" });
       return;
     }
 
-    res
-      .status(200)
-      .json({
-        message: "Invoice generated successfully",
-        data: JSON.parse(info),
-      });
+    res.status(200).send({
+      message: "Invoice generated successfully",
+      data: JSON.parse(info),
+    });
   } catch (error: any) {
-    res.status(400).json({ message: "Something went wrong" });
+    res.status(400).send({ message: "Something went wrong" });
   }
 }
