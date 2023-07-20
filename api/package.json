@@ -31,6 +31,7 @@
     "exec": "ts-node ./server.ts"
   },
   "dependencies": {
+    "@node-lightning/invoice": "^0.28.0",
     "axios": "^1.4.0",
     "cors": "^2.8.5",
     "cron": "^2.3.0",
