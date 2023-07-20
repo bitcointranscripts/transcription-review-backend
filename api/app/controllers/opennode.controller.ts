@@ -1,23 +1,52 @@
 require("dotenv").config();
 import { Request, Response } from "express";
+import { Wallet } from "../db/models";
 const opennode = require("opennode");
 opennode.setCredentials(
   process.env.OPENNODE_API_KEY,
   process.env.OPENNODE_API_ENV
 );
-import { WithdrawalResponse,OpenNodeResponse } from "../types/lightning";
+import { WithdrawalResponse, OpenNodeResponse } from "../types/lightning";
+import { decode } from "@node-lightning/invoice";
 
 export async function lninvoiceWithdrawal(req: Request, res: Response) {
-  const { invoice } = req.body;
+  const { invoice, userId } = req.body;
 
   if (invoice === "") {
-    return res.status(400).json({ message: "Please enter a valid invoice" });
+    return res.status(400).send({ message: "Please enter a valid invoice" });
+  }
+
+  //decode the invoice to check its amount
+  let result = decode(invoice);
+  let amount = Number(result._value); //value of the invoice in bigint millisats, 1 sat = 10000n
+  let timestamp = result.timestamp * 1000; //get the time the invoice was generated
+
+  //check if the user's balance is sufficient to pay the invoice
+  const userWallet = await Wallet.findOne({
+    where: { userId: userId },
+  });
+
+  const balance = userWallet?.balance;
+
+  if (balance! * 10000 < amount) {
+    res.status(400).send({
+      message:
+        "You currently do not have sufficient balance to withdraw this amount",
+    });
+    return;
+  }
+
+  //check if the invoice was created more than five minutes ago
+  if (timestamp + 5 * 60 * 1000 < Date.now()) {
+    res.status(400).send({
+      message: "The invoice is no longer valid for payment as it has timed out",
+    });
+    return;
   }
 
   const withdrawal = {
     type: "ln",
     address: invoice,
-    //amount: 120, - Required if the invoice has no amount set (amount = 0)
     callback_url: "https://example.com/webhook/opennode/withdrawal",
   };
 
@@ -28,20 +57,33 @@ export async function lninvoiceWithdrawal(req: Request, res: Response) {
       return;
     })
     .catch((error: any) => {
-      res.status(400).json(error);
+      res.status(400).send(error);
       return;
     });
 }
 
 export const lnurlWithdrawal = async (req: Request, res: Response) => {
-  const { amount } = req.body;
+  const { amount, userId } = req.body;
 
   if (typeof amount != "number") {
-    res.status(400).json({ message: "You need to enter a valid amount" });
+    res.status(400).send({ message: "You need to enter a valid amount" });
     return;
   }
 
-  //all the logic to confirm if a user's virtual wallet balance is sufficient before generating LNURLwithdraw
+  //logic to check user's virtual wallet balance before generating LNURLwithdraw
+  const userWallet = await Wallet.findOne({
+    where: { userId: userId },
+  });
+
+  const balance = userWallet?.balance;
+
+  if (balance! < amount) {
+    res.status(400).send({
+      message:
+        "You currently do not have sufficient balance to withdraw this amount",
+    });
+    return;
+  }
 
   const withdrawal = {
     min_amt: amount,
@@ -54,11 +96,11 @@ export const lnurlWithdrawal = async (req: Request, res: Response) => {
   opennode
     .createLnUrlWithdrawal(withdrawal)
     .then((response: OpenNodeResponse) => {
-      res.status(200).json(response);
+      res.status(200).send(response);
       return;
     })
     .catch((error: any) => {
-      res.status(400).json(error);
+      res.status(400).send(error);
       return;
     });
 };
