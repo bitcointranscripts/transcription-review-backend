@@ -221,7 +221,8 @@ export async function claim(req: Request, res: Response) {
   });
   if (activeReview.length) {
     res.status(403).send({
-      message: "Cannot claim transcript, user has an active review",
+      message:
+        "Please finish editing & submit the transcript you're working on first",
     });
     return;
   }
