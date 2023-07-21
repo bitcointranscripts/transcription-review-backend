@@ -1,6 +1,6 @@
 # Node api for BTC Transcript Review
 
-- This repo houses the api that powers [review.btctranscripts.com](https://review.btcranscripts.com)
+- This repo houses the api that powers [review.btctranscripts.com](https://review.btctranscripts.com)
 
 ## Setup for Development
 
