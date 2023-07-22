@@ -12,7 +12,7 @@ export enum TRANSACTION_TYPE {
 export interface TransactionAttributes {
   id: string;
   walletId: string;
-  reviewId: number;
+  reviewId: number | null;
   amount: number;
   transactionType: TRANSACTION_TYPE;
   transactionStatus: TRANSACTION_STATUS;

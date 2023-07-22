@@ -1,53 +1,59 @@
 import { Request, Response } from "express";
 import { fetchUserToken, fetchAccessToken } from "../helpers/albyToken";
-import { User } from "../db/models";
+import { Settings, User } from "../db/models";
 import { fetchInvoice } from "../helpers/fetchInvoice";
 import { AccessToken } from "../types/lightning";
 
-//save alby refresh token the first time it is substituted for the code
 export async function saveAlbyToken(req: Request, res: Response) {
   try {
-    const { code } = req.body;
-    const userTokens: any = await fetchUserToken(code);
+    const { code, userId } = req.body;
 
-    // the tokens contains both the access_token and the refresh_token
-    const tokens = JSON.parse(userTokens);
-  
-
-    //set the user alby token with refresh_token
-    User.update(
-      { albyToken: tokens.refresh_token },
-      { where: { id: req.body.userId } }
-    )
-      .then(() => {
-        res
-          .status(200)
-          .send({ messsage: "Alby withdrawal option activated successfully" });
-      })
-      .catch((error: any) => {
-        res.status(400).send({ error: error.message });
+    if (!code) {
+      res.status(400).send({
+        message: "You need to pass an alby authorization code",
       });
+    }
+    const userTokens = await fetchUserToken(code);
+    const tokens: AccessToken = userTokens;
+
+    const userUpdateResponse = await User.update(
+      { albyToken: tokens.refresh_token },
+      { where: { id: userId } }
+    );
+
+    if (userUpdateResponse[0] === 0) {
+      return res.status(500).send({
+        message: "Error occurred while updating user info",
+      });
+    }
+
+    const settingsUpdateResponse = await Settings.update(
+      { instantWithdrawal: true },
+      { where: { userId: userId } }
+    );
+    if (settingsUpdateResponse[0] === 0) {
+      return res.status(500).send({
+        message: "Error occurred while updating user settings",
+      });
+    }
+    return res.status(200).send({
+      message: "User Alby settings activated successfully",
+    });
   } catch (error) {
     res.status(400).send({ message: "Something went wrong" });
   }
 }
 
 export async function generateInvoice(req: Request, res: Response) {
-  //pass the first refresh token, amount and memo as a part of the request parameter
-
   try {
-    //use refreshToken to generate fresh accessToken
-    const response: any = await fetchAccessToken(req);
-    const tokens: AccessToken = JSON.parse(response);
+    const response = await fetchAccessToken(req);
+    const tokens: AccessToken = response;
 
-
-    //update the user's old refreshToken with the new refreshToken
     await User.update(
       { albyToken: tokens.refresh_token },
       { where: { id: req.body.userId } }
-    )
+    );
 
-    //fetch an invoice from the user's alby wallet
     const info: any = await fetchInvoice(tokens, req);
     if (JSON.parse(info).error) {
       res.status(400).send({ message: "Something went wrong" });

@@ -14,10 +14,10 @@ export function lightningRoutes(app: Express) {
   router.post("/alby/invoice",auth, alby.generateInvoice);
 
   // Generate a LN-URL withdraw QR code
-  router.post("/opennode/lnurl-withdraw",auth, opennode.lnurlWithdrawal);
+  router.post("/lnurl-withdraw",auth, opennode.lnurlWithdrawal);
 
   // Pay a Lightning invoice
-  router.post("/opennode/invoice",auth, opennode.lninvoiceWithdrawal);
+  router.post("/invoice",auth, opennode.lninvoiceWithdrawal);
 
   app.use("/api/lightning", router);
 }
