@@ -1,72 +1,57 @@
 require("dotenv").config();
-const request = require("request");
 import { Request } from "express";
+import { AlbyTokens } from "../types/lightning";
+import axios from "axios";
 
-
-
-//fetch the access token for Alby using the code
+const ALBY_API_TOKEN = process.env.ALBY_API_TOKEN || "";
+const ALBY_REDIRECT_URL = process.env.ALBY_REDIRECT_URL || "";
+const ALBY_CLIENT = process.env.ALBY_CLIENT_ID || "";
+const ALBY_SECRET = process.env.ALBY_SECRET_ID || "";
+if (!ALBY_API_TOKEN || !ALBY_REDIRECT_URL || !ALBY_CLIENT || !ALBY_SECRET) {
+  throw new Error("Alby environment variable not set");
+}
 export async function fetchUserToken(code: string) {
-    return new Promise((resolve, reject) => {
-      try {
-        var options = {
-          method: "POST",
-          url: process.env.ALBY_TOKEN_API,
-          headers: {
-            Authorization:
-              "Basic " +
-              Buffer.from(
-                process.env.ALBY_CLIENT_ID + ":" + process.env.ALBY_SECRET_ID
-              ).toString("base64"),
-          },
-          formData: {
-            code: code,
-            grant_type: "authorization_code",
-            redirect_uri: process.env.REDIRECT_URL,
-          },
-        };
-        request(options, function (error: any, response: any, body: any) {
-          if (error) {
-            reject(error.message);
-          } else {
-            resolve(body);
-          }
-        });
-      } catch (error: any) {
-        reject(error.message);
+  try {
+    const response = await axios.post(
+      ALBY_API_TOKEN,
+      new URLSearchParams({
+        code: code,
+        grant_type: "authorization_code",
+        redirect_uri: ALBY_REDIRECT_URL,
+      }),
+      {
+        headers: {
+          Authorization:
+            "Basic " +
+            Buffer.from(ALBY_CLIENT + ":" + ALBY_SECRET).toString("base64"),
+        },
       }
-    });
+    );
+    return response.data as AlbyTokens;
+  } catch (error: any) {
+    throw new Error(error.message);
   }
-  
+}
 
-// fetch the access token for Alby using the refreshtoken
 export async function fetchAccessToken(req: Request) {
-    return new Promise((resolve, reject) => {
-      try {
-        var options = {
-          method: "POST",
-          url: process.env.ALBY_TOKEN_API,
-          headers: {
-            "Content-Type": "multipart/form-data",
-            Authorization:
-              "Basic " +
-              Buffer.from(
-                process.env.ALBY_CLIENT_ID + ":" + process.env.ALBY_SECRET_ID
-              ).toString("base64"),
-          },
-          formData: {
-            refresh_token: req.body.refreshToken,
-            grant_type: "refresh_token",
-          },
-        };
-        request(options, function (error: any, response: any, body: any) {
-          if (error) {
-            reject(error.message);
-          } else {
-            resolve(body);
-          }
-        });
-      } catch (error: any) {
-        reject(error.message);
+  try {
+    const response = await axios.post(
+      ALBY_API_TOKEN,
+      new URLSearchParams({
+        refresh_token: req.body.refreshToken,
+        grant_type: "refresh_token",
+      }),
+      {
+        headers: {
+          "Content-Type": "multipart/form-data",
+          Authorization:
+            "Basic " +
+            Buffer.from(ALBY_CLIENT + ":" + ALBY_SECRET).toString("base64"),
+        },
       }
-    });
+    );
+    return response.data as AlbyTokens;
+  } catch (error: any) {
+    throw new Error(error.message);
   }
+}
