@@ -1,6 +1,5 @@
 require("dotenv").config();
 import { Request, Response } from "express";
-import { Wallet } from "../db/models";
 const opennode = require("opennode");
 opennode.setCredentials(
   process.env.OPENNODE_API_KEY,
@@ -8,27 +7,36 @@ opennode.setCredentials(
 );
 import { WithdrawalResponse, OpenNodeResponse } from "../types/lightning";
 import { decode } from "@node-lightning/invoice";
+import { INVOICEEXPIRYTIME } from "../utils/constants";
+import { Wallet, Transaction } from "../db/models";
+import { generateTransactionId } from "../utils/transaction";
+import { TRANSACTION_STATUS, TRANSACTION_TYPE } from "../types/transaction";
 
 export async function lninvoiceWithdrawal(req: Request, res: Response) {
   const { invoice, userId } = req.body;
 
-  if (invoice === "") {
+  if (!invoice) {
     return res.status(400).send({ message: "Please enter a valid invoice" });
   }
 
-  //decode the invoice to check its amount
   let result = decode(invoice);
-  let amount = Number(result._value); //value of the invoice in bigint millisats, 1 sat = 10000n
-  let timestamp = result.timestamp * 1000; //get the time the invoice was generated
+  let amount = Number(result._value);
+  let timestamp = result.timestamp * 1000;
 
-  //check if the user's balance is sufficient to pay the invoice
   const userWallet = await Wallet.findOne({
     where: { userId: userId },
   });
 
-  const balance = userWallet?.balance;
+  if (!userWallet) {
+    res.status(404).send({
+      message: `Could not create transaction: wallet with for userId=${userId} does not exist`,
+    });
+    return;
+  }
 
-  if (balance! * 10000 < amount) {
+  const balance = userWallet.balance;
+
+  if (balance * 10000 < amount) {
     res.status(400).send({
       message:
         "You currently do not have sufficient balance to withdraw this amount",
@@ -36,30 +44,50 @@ export async function lninvoiceWithdrawal(req: Request, res: Response) {
     return;
   }
 
-  //check if the invoice was created more than five minutes ago
-  if (timestamp + 5 * 60 * 1000 < Date.now()) {
+  const expiryPeriod = timestamp + Number(INVOICEEXPIRYTIME);
+  if (expiryPeriod < Date.now()) {
     res.status(400).send({
       message: "The invoice is no longer valid for payment as it has timed out",
     });
     return;
   }
 
-  const withdrawal = {
-    type: "ln",
-    address: invoice,
-    callback_url: "https://example.com/webhook/opennode/withdrawal",
+  //create a debit transaction
+  const transactionId = generateTransactionId();
+  const transaction = {
+    id: transactionId,
+    reviewId: 0,
+    amount: +amount,
+    transactionType: TRANSACTION_TYPE.DEBIT,
+    transactionStatus: TRANSACTION_STATUS.PENDING,
+    walletId: userWallet.id,
+    timestamp: new Date(),
   };
 
-  opennode
-    .initiateWithdrawalAsync(withdrawal)
-    .then((withdrawal: WithdrawalResponse) => {
-      res.status(200).json(withdrawal);
-      return;
-    })
-    .catch((error: any) => {
-      res.status(400).send(error);
-      return;
+  try {
+    await Transaction.create(transaction);
+    const withdrawal = {
+      type: "ln",
+      address: invoice,
+      callback_url: "https://example.com/webhook/opennode/withdrawal",
+    };
+
+    const response: WithdrawalResponse = await opennode.initiateWithdrawalAsync(
+      withdrawal
+    );
+    res.status(200).json(response);
+    return;
+  } catch (error) {
+    const message =
+      error instanceof Error
+        ? error.message
+        : "Some error occurred while creating the Transaction";
+    transaction.transactionStatus = TRANSACTION_STATUS.FAILED;
+    Transaction.create(transaction);
+    res.status(500).send({
+      message,
     });
+  }
 }
 
 export const lnurlWithdrawal = async (req: Request, res: Response) => {
@@ -70,14 +98,20 @@ export const lnurlWithdrawal = async (req: Request, res: Response) => {
     return;
   }
 
-  //logic to check user's virtual wallet balance before generating LNURLwithdraw
   const userWallet = await Wallet.findOne({
     where: { userId: userId },
   });
 
-  const balance = userWallet?.balance;
+  if (!userWallet) {
+    res.status(404).send({
+      message: `Could not create transaction: wallet with for userId=${userId} does not exist`,
+    });
+    return;
+  }
 
-  if (balance! < amount) {
+  const balance = userWallet.balance;
+
+  if (balance < amount) {
     res.status(400).send({
       message:
         "You currently do not have sufficient balance to withdraw this amount",
@@ -85,22 +119,42 @@ export const lnurlWithdrawal = async (req: Request, res: Response) => {
     return;
   }
 
-  const withdrawal = {
-    min_amt: amount,
-    max_amt: amount,
-    description: "payout of " + amount + " sats from BTC-transcript",
-    external_id: "my-external-uuid",
-    callback_url: "https://example.com/webhook/opennode",
+  //create a debit transaction
+  const transactionId = generateTransactionId();
+  const transaction = {
+    id: transactionId,
+    reviewId: 0,
+    amount: +amount,
+    transactionType: TRANSACTION_TYPE.DEBIT,
+    transactionStatus: TRANSACTION_STATUS.PENDING,
+    walletId: userWallet.id,
+    timestamp: new Date(),
   };
 
-  opennode
-    .createLnUrlWithdrawal(withdrawal)
-    .then((response: OpenNodeResponse) => {
-      res.status(200).send(response);
-      return;
-    })
-    .catch((error: any) => {
-      res.status(400).send(error);
-      return;
+  try {
+    await Transaction.create(transaction);
+    const withdrawal = {
+      min_amt: amount,
+      max_amt: amount,
+      description: "payout of " + amount + " sats from BTC-transcript",
+      external_id: transaction.id,
+      callback_url: "https://example.com/webhook/opennode",
+    };
+
+    const response: OpenNodeResponse = await opennode.createLnUrlWithdrawal(
+      withdrawal
+    );
+    res.status(200).send(response);
+    return;
+  } catch (error) {
+    const message =
+      error instanceof Error
+        ? error.message
+        : "Some error occurred while creating the Transaction";
+    transaction.transactionStatus = TRANSACTION_STATUS.FAILED;
+    Transaction.create(transaction);
+    res.status(500).send({
+      message,
     });
+  }
 };
