@@ -30,3 +30,19 @@ export interface OpenNodeResponse {
     expiry_date: string;
     used: boolean;
   }
+
+
+export interface AlbyTokens {
+   access_token: string,
+   expires_in: number,
+   refresh_token: string,
+   scope: string,
+   token_type: string
+}
+
+
+export interface AlbyInvoice{
+  payment_hash: string,
+  payment_request: string,
+  expires_at: string
+}
