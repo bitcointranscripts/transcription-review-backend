@@ -2,6 +2,7 @@ import type { Express } from "express";
 import express from "express";
 import * as users from "../controllers/user.controller";
 import { auth } from "../middleware/auth";
+import validateGitHubToken from "../middleware/validate-github-token";
 
 export function userRoutes(app: Express) {
   const router = express.Router();
@@ -78,7 +79,7 @@ export function userRoutes(app: Express) {
    *                       description: The user's permissions.
    *                       enum: [admin, reviewer]
    */
-   router.post("/signin", auth, users.signIn);
+   router.post("/signin", validateGitHubToken, users.signIn);
   
 
   // Retrieve all users

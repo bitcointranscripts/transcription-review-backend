@@ -1,35 +1,37 @@
+import axios from "axios";
 import jwt from "jsonwebtoken";
-import { JWTEXPIRYTIMEINHOURS } from "./constants";
+
 import { UserAttributes } from "../types/user";
+import { JWTEXPIRYTIMEINHOURS } from "./constants";
 
-
-// Verify the OAuth token with GitHub API
 export async function verifyGitHubToken(token: string | string[] | undefined) {
-  const response = await fetch("https://api.github.com/user", {
+  const response = await axios.get("https://api.github.com/user", {
     headers: {
       Authorization: `Bearer ${token}`,
-      Accept: "application/vnd.github.v3+json",
+      Accept: "application/json",
     },
   });
 
-  if (!response.ok) {
+  if (response.status !== 200 || response.statusText !== "OK") {
     throw new Error("Failed to verify GitHub token");
   }
 
-  return response.json();
+  return response.data;
 }
 
-  // Generate JWT with user information
-  export function generateJwtToken(user: UserAttributes, githubAuthToken: string) {
-    const secretKey = process.env.JWT_SECRET_KEY;
+export function generateJwtToken(
+  user: UserAttributes,
+  githubAuthToken: string
+) {
+  const secretKey = process.env.JWT_SECRET;
 
-    if (!secretKey) {
-      throw new Error("JWT_SECRET environment variable is not defined");
-    }
-    const token = jwt.sign(
-      { userId: user.id, permissions: user.permissions, githubAuthToken},
-      secretKey,
-      { expiresIn: JWTEXPIRYTIMEINHOURS}
-    );
-    return token;
+  if (!secretKey) {
+    throw new Error("JWT_SECRET environment variable is not defined");
   }
+  const token = jwt.sign(
+    { userId: user.id, permissions: user.permissions, githubAuthToken },
+    secretKey,
+    { expiresIn: JWTEXPIRYTIMEINHOURS }
+  );
+  return token;
+}
