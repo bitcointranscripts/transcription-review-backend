@@ -6,14 +6,7 @@ import { USER_PERMISSIONS } from "../types/user";
 
 export const auth = async (req: Request, res: Response, next: NextFunction) => {
   const authHeader = req.headers.authorization;
-  const userId = req.body.userId;
   const prefix = "Bearer ";
-
-  if (!userId) {
-    return res
-      .status(401)
-      .json({ error: "Unauthorized. No user ID provided!" });
-  }
 
   if (!process.env.JWT_SECRET) {
     throw new Error("JWT_SECRET environment variable is not defined");
@@ -32,7 +25,7 @@ export const auth = async (req: Request, res: Response, next: NextFunction) => {
           return res.status(403).json({ error: "Invalid token payload" });
         }
 
-        const user = await User.findByPk(userId);
+        const user = await User.findByPk(payload.userId);
         if (!user || user.jwt !== token) {
           return res.status(403).json({ error: "User not found" });
         }
@@ -44,6 +37,8 @@ export const auth = async (req: Request, res: Response, next: NextFunction) => {
     } catch (error) {
       return res.status(403).json({ error: "Invalid token" });
     }
+  } else {
+    return res.status(403).json({ error: "Token not found" });
   }
 };
 
