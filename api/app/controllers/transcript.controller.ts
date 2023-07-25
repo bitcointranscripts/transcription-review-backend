@@ -40,7 +40,7 @@ export async function create(req: Request, res: Response) {
     originalContent: content,
     content: content,
     transcriptHash: generateUniqueStr(),
-    status: TranscriptStatus.not_queued,
+    status: TranscriptStatus.queued,
   };
 
   // Save Transcript in the database
