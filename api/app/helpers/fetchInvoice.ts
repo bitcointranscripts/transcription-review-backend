@@ -1,8 +1,15 @@
 import axios, { AxiosResponse } from "axios";
 import { Request } from "express";
 
+import axios, { AxiosResponse } from "axios";
+import { Request } from "express";
+
 import { AccessToken, AlbyInvoice } from "../types/lightning";
 
+const ALBY_API_URL = process.env.ALBY_API_URL;
+if (!ALBY_API_URL) {
+  throw new Error("Alby api url variable not set");
+}
 
 export async function fetchInvoice(tokens: AccessToken, req: Request) {
   try {
