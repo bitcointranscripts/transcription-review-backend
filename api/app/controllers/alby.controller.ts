@@ -1,8 +1,15 @@
 import { Request, Response } from "express";
-import { fetchUserToken, fetchAccessToken } from "../helpers/albyToken";
-import { Settings, User } from "../db/models";
+
+import { decode } from "@node-lightning/invoice";
+
+import { Settings, Transaction, User, Wallet } from "../db/models";
+import { fetchAccessToken, fetchUserToken } from "../helpers/albyToken";
 import { fetchInvoice } from "../helpers/fetchInvoice";
+import { payInvoice } from "../helpers/lightning";
 import { AccessToken } from "../types/lightning";
+import { TRANSACTION_STATUS, TRANSACTION_TYPE } from "../types/transaction";
+import { PICO_BTC_TO_SATS } from "../utils/constants";
+import { generateTransactionId } from "../utils/transaction";
 
 export async function saveAlbyToken(req: Request, res: Response) {
   try {
@@ -40,31 +47,89 @@ export async function saveAlbyToken(req: Request, res: Response) {
       message: "User Alby settings activated successfully",
     });
   } catch (error) {
-    res.status(400).send({ message: "Something went wrong" });
+    res.status(500).send({ message: "Something went wrong" });
   }
 }
 
-export async function generateInvoice(req: Request, res: Response) {
-  try {
-    const response = await fetchAccessToken(req);
-    const tokens: AccessToken = response;
+export async function payAlbyInvoice(req: Request, res: Response) {
+  const { userId, refreshToken } = req.body;
+  if (!refreshToken) {
+    res.status(400).send({ message: "Please enter a valid refresh token" });
+    return;
+  }
 
-    await User.update(
-      { albyToken: tokens.refresh_token },
-      { where: { id: req.body.userId } }
-    );
+  const albyResponse = await fetchAccessToken(refreshToken);
+  const tokens: AccessToken = albyResponse;
 
-    const info: any = await fetchInvoice(tokens, req);
-    if (JSON.parse(info).error) {
-      res.status(400).send({ message: "Something went wrong" });
-      return;
-    }
-
-    res.status(200).send({
-      message: "Invoice generated successfully",
-      data: JSON.parse(info),
+  await User.update(
+    { albyToken: tokens.refresh_token },
+    { where: { id: userId } }
+  );
+  const userWallet = await Wallet.findOne({
+    where: { userId: userId },
+  });
+  if (!userWallet) {
+    return res.status(404).send({
+      message: `Could not create transaction: wallet with for userId=${userId} does not exist`,
     });
-  } catch (error: any) {
-    res.status(400).send({ message: "Something went wrong" });
+  }
+
+  const info: any = await fetchInvoice(tokens, req);
+  const albyInvoiceData = JSON.parse(info);
+  const invoice = albyInvoiceData.payment_request;
+
+  if (albyInvoiceData.error) {
+    return res.status(500).send({ message: "Something went wrong" });
+  }
+
+  const decodedInvoice = decode(invoice);
+  const amount = Number(decodedInvoice._value);
+  const newAmount = Number(amount / PICO_BTC_TO_SATS);
+
+  const balance = userWallet.balance;
+  if (balance < newAmount) {
+    return res.status(403).send({
+      message:
+        "You currently do not have sufficient balance to withdraw this amount",
+    });
+  }
+
+  const transactionId = generateTransactionId();
+  const transaction = {
+    id: transactionId,
+    reviewId: 1, // FIXME: reviewId is not nullable
+    amount: newAmount,
+    transactionType: TRANSACTION_TYPE.DEBIT,
+    transactionStatus: TRANSACTION_STATUS.PENDING,
+    walletId: userWallet.id,
+    timestamp: new Date(),
+  };
+  try {
+    const result = await Transaction.create(transaction);
+    if (!result) {
+      throw new Error("Transaction failed");
+    }
+    const response = await payInvoice(invoice);
+    if (!response) {
+      throw new Error("Payment failed");
+    }
+    await Transaction.update(
+      { transactionStatus: TRANSACTION_STATUS.SUCCESS },
+      { where: { id: transactionId } }
+    );
+    await Wallet.update(
+      { balance: balance - amount * PICO_BTC_TO_SATS },
+      { where: { id: userWallet.id } }
+    );
+    res.status(200).json({ message: "Invoice paid successfully" });
+  } catch (err) {
+    Transaction.update(
+      { transactionStatus: TRANSACTION_STATUS.FAILED },
+      { where: { id: transactionId } }
+    );
+    console.error(err);
+    return res
+      .status(500)
+      .json({ error: "An error occurred. Could not pay invoice" });
   }
 }
