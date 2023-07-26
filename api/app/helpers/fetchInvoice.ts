@@ -1,11 +1,10 @@
-import {Request} from "express"
-require("dotenv").config();
-import { AccessToken, AlbyInvoice } from "../types/lightning";
 import axios, { AxiosResponse } from "axios";
+import { Request } from "express";
 
+import { AccessToken, AlbyInvoice } from "../types/lightning";
 
-const ALBY_API_URL = process.env.ALBY_API_URL
-if(!ALBY_API_URL){
+const ALBY_API_URL = process.env.ALBY_API_URL;
+if (!ALBY_API_URL) {
   throw new Error("Alby api url variable not set");
 }
 
@@ -23,7 +22,11 @@ export async function fetchInvoice(tokens: AccessToken, req: Request) {
       },
     };
 
-    const response: AxiosResponse = await axios.post(apiUrl, requestBody, config);
+    const response: AxiosResponse = await axios.post(
+      apiUrl,
+      requestBody,
+      config
+    );
     return response.data as AlbyInvoice;
   } catch (error: any) {
     throw new Error(error.message);
