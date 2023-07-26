@@ -33,12 +33,12 @@ export async function fetchUserToken(code: string) {
   }
 }
 
-export async function fetchAccessToken(req: Request) {
+export async function fetchAccessToken(refreshToken: string) {
   try {
     const response = await axios.post(
       ALBY_API_TOKEN,
       new URLSearchParams({
-        refresh_token: req.body.refreshToken,
+        refresh_token: refreshToken,
         grant_type: "refresh_token",
       }),
       {
