@@ -29,10 +29,10 @@ export class User extends Model<UserAttributes> {
   public githubUsername!: string;
 
   @Column(DataType.STRING)
-  email!: string
+  email!: string;
 
   @Column(DataType.STRING)
-  jwt?: string
+  jwt?: string;
 
   @Column(DataType.STRING)
   albyToken?: string;
