@@ -4,7 +4,7 @@ import { Review, Transcript, User, Wallet } from "../db/models";
 import { calculateWordDiff } from "../utils/review.inference";
 import { Op } from "sequelize";
 import { ReviewAttributes } from "../types/review";
-import { generateJwtToken, verifyGitHubToken } from "../utils/auth";
+import { generateJwtToken } from "../utils/auth";
 import {UserAttributes} from "../types/user";
 
 export async function signUp(req: Request, res: Response) {
