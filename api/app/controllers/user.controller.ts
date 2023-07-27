@@ -1,34 +1,55 @@
-import { v4 as uuidv4 } from "uuid";
 import { Request, Response } from "express";
-import { Review, Transaction, Transcript, User, Wallet } from "../db/models";
-import { calculateWordDiff } from "../utils/review.inference";
 import { Op } from "sequelize";
+import { v4 as uuidv4 } from "uuid";
+
+import { Review, Transaction, Transcript, User, Wallet } from "../db/models";
 import { ReviewAttributes } from "../types/review";
+import { USER_PERMISSIONS } from "../types/user";
+import { generateJwtToken } from "../utils/auth";
+import { calculateWordDiff } from "../utils/review.inference";
 
 export const signIn = async (req: Request, res: Response) => {
   try {
-    const userId = req.body.userId;
-    if (!userId) {
-      return res.status(400).send({
-        message: "User ID cannot be empty",
+    const githubToken = req.headers["x-github-token"];
+    const { username, email } = req.body;
+
+    let condition = {};
+    if (email) {
+      condition = { email };
+    } else {
+      condition = { githubUsername: username };
+    }
+
+    let user: User | null = null;
+    user = await User.findOne({
+      where: condition,
+    });
+
+    if (!user) {
+      user = await User.create({
+        email: email ?? "",
+        permissions: USER_PERMISSIONS.REVIEWER,
+        githubUsername: username,
+      });
+
+      const walletId = uuidv4();
+      await Wallet.create({
+        userId: user.id,
+        balance: 0,
+        id: walletId,
       });
     }
 
-    const user = await User.findOne({
-      where: {
-        id: userId,
-      },
-    });
-    if (!user) {
-      return res.status(404).json({ error: "User not found" });
-    }
+    const token = generateJwtToken(user, githubToken!.toString());
+    const response = await User.update(
+      { jwt: token },
+      { where: condition }
+    );
 
-    const { jwt } = user;
-    if (!jwt) {
-      return res.status(401).json({ error: "JWT not found for the user" });
+    if (response[0] !== 1) {
+      return res.status(500).json({ error: "Failed to update user token" });
     }
-
-    return res.status(200).send({ jwt });
+    return res.status(200).send({ jwt: token });
   } catch (error) {
     const message =
       error instanceof Error
