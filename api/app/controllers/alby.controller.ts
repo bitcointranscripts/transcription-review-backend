@@ -118,7 +118,7 @@ export async function payAlbyInvoice(req: Request, res: Response) {
       { where: { id: transactionId } }
     );
     await Wallet.update(
-      { balance: balance - amount * PICO_BTC_TO_SATS },
+      { balance: balance - newAmount },
       { where: { id: userWallet.id } }
     );
     res.status(200).json({ message: "Invoice paid successfully" });
