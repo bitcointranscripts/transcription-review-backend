@@ -5,7 +5,7 @@ import { calculateWordDiff } from "../utils/review.inference";
 import { Op } from "sequelize";
 import { ReviewAttributes } from "../types/review";
 import { generateJwtToken } from "../utils/auth";
-import {UserAttributes} from "../types/user";
+import { UserAttributes } from "../types/user";
 
 export async function signUp(req: Request, res: Response) {
   const githubToken = req.headers["x-github-token"];
@@ -17,7 +17,7 @@ export async function signUp(req: Request, res: Response) {
       });
     }
 
-    if(!githubToken) {
+    if (!githubToken) {
       return res.status(403).send({
         message: "Github token cannot be empty!",
       });
@@ -32,7 +32,6 @@ export async function signUp(req: Request, res: Response) {
 
     const walletId = uuidv4();
     const user = await User.create(userDetails);
-
 
     // Generate JWT with user information
     const token = generateJwtToken(user, githubToken.toString());
@@ -61,7 +60,6 @@ export async function signUp(req: Request, res: Response) {
   }
 }
 
-
 // Sign in a user
 export const signIn = async (req: Request, res: Response) => {
   try {
@@ -80,7 +78,7 @@ export const signIn = async (req: Request, res: Response) => {
         id: userId,
       },
     });
-    
+
     if (!user) {
       return res.status(404).json({ error: "User not found" });
     }
@@ -103,7 +101,6 @@ export const signIn = async (req: Request, res: Response) => {
     });
   }
 };
-
 
 // Retrieve all Users from the database.
 export function findAll(req: Request, res: Response) {
