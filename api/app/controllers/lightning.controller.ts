@@ -68,7 +68,7 @@ export async function payInvoiceController(req: Request, res: Response) {
       { balance: balance - newAmount },
       { where: { id: userWallet.id } }
     );
-    res.status(200).json({ message: "Invoice paid successfully" });
+    res.status(200).json({ status: 200, message: "Invoice paid successfully" });
   } catch (err) {
     Transaction.update(
       { transactionStatus: TRANSACTION_STATUS.FAILED },
@@ -77,6 +77,6 @@ export async function payInvoiceController(req: Request, res: Response) {
     console.error(err);
     return res
       .status(500)
-      .json({ error: "An error occurred. Could not pay invoice" });
+      .json({ status: 500, error: "An error occurred. Could not pay invoice" });
   }
 }
