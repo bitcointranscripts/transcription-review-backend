@@ -32,8 +32,6 @@ export async function payInvoiceController(req: Request, res: Response) {
   }
 
   const newAmount = Number(amount / PICO_BTC_TO_SATS);
-  console.log({ newAmount });
-  console.log({amount})
   const balance = userWallet.balance;
   if (balance < newAmount) {
     return res.status(403).send({
