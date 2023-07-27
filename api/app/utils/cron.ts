@@ -10,7 +10,7 @@ import { EXPIRYTIMEINHOURS } from "./constants";
 const CronJob = cron.CronJob;
 
 // Requeue transcript if review has expired
-function setupExpiryTimeCron(review: Review) {
+async function setupExpiryTimeCron(review: Review) {
   const expiryTime =
     new Date(review.createdAt).getTime() +
     getUnixTimeFromHours(EXPIRYTIMEINHOURS);
@@ -31,7 +31,7 @@ function setupExpiryTimeCron(review: Review) {
         //   where: { id: review.id }
         // })
 
-        Transcript.update(
+        await Transcript.update(
           { status: TRANSCRIPT_STATUS.QUEUED, claimedBy: null },
           {
             where: { id: review.transcriptId },
