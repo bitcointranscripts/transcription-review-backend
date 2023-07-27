@@ -1,91 +1,29 @@
 import { v4 as uuidv4 } from "uuid";
 import { Request, Response } from "express";
-import { Review, Transcript, User, Wallet } from "../db/models";
+import { Review, Transaction, Transcript, User, Wallet } from "../db/models";
 import { calculateWordDiff } from "../utils/review.inference";
 import { Op } from "sequelize";
 import { ReviewAttributes } from "../types/review";
-import { generateJwtToken } from "../utils/auth";
-import { UserAttributes } from "../types/user";
 
-export async function signUp(req: Request, res: Response) {
-  const githubToken = req.headers["x-github-token"];
-  try {
-    // Validate request
-    if (!req.body.username) {
-      return res.status(400).send({
-        message: "Username cannot be empty!",
-      });
-    }
-
-    if (!githubToken) {
-      return res.status(403).send({
-        message: "Github token cannot be empty!",
-      });
-    }
-
-    // Create a User
-    const userDetails: UserAttributes = {
-      githubUsername: req.body.username,
-      permissions: req.body.permissions,
-      email: req.body.email,
-    };
-
-    const walletId = uuidv4();
-    const user = await User.create(userDetails);
-
-    // Generate JWT with user information
-    const token = generateJwtToken(user, githubToken.toString());
-
-    // Update the user record with the JWT
-    await User.update({ jwt: token }, { where: { id: user.id } });
-
-    // Include the JWT in the user object
-    const userWithJwt = { ...user.toJSON(), jwt: token };
-
-    await Wallet.create({
-      userId: user.id,
-      balance: 0,
-      id: walletId,
-    });
-
-    return res.status(201).send(userWithJwt);
-  } catch (error) {
-    const message =
-      error instanceof Error
-        ? error.message
-        : "Unable to create user. Some error occurred while creating the user.";
-    res.status(500).send({
-      message,
-    });
-  }
-}
-
-// Sign in a user
 export const signIn = async (req: Request, res: Response) => {
   try {
-    // Get the user ID from the request body
     const userId = req.body.userId;
-
     if (!userId) {
       return res.status(400).send({
         message: "User ID cannot be empty",
       });
     }
 
-    // Find the user in the database
     const user = await User.findOne({
       where: {
         id: userId,
       },
     });
-
     if (!user) {
       return res.status(404).json({ error: "User not found" });
     }
 
-    // Retrieve the JWT from the user object
     const { jwt } = user;
-
     if (!jwt) {
       return res.status(401).json({ error: "JWT not found for the user" });
     }
@@ -144,11 +82,11 @@ export function update(req: Request, res: Response) {
   })
     .then((num) => {
       if (typeof num === "number" && num == 1) {
-        res.send({
+        res.status(200).send({
           message: "User was updated successfully.",
         });
       } else {
-        res.send({
+        res.status(200).send({
           message: `Cannot update User with id=${id}. Maybe User was not found or req.body is empty!`,
         });
       }
@@ -169,19 +107,39 @@ export async function getUserWallet(req: Request, res: Response) {
     return;
   }
 
-  await Wallet.findOne({
-    where: {
-      userId: userId,
-    },
-  })
-    .then((data) => {
-      res.send(data);
-    })
-    .catch((err) => {
-      res.status(500).send({
-        message: "Some error occurred while retrieving wallet for the user.",
-      });
+  try {
+    const wallet = await Wallet.findOne({
+      where: {
+        userId: userId,
+      },
+      include: { model: Transaction },
     });
+    if (!wallet) {
+      const user = await User.findOne({
+        where: {
+          id: userId,
+        },
+      });
+      if (!user) {
+        return res
+          .status(404)
+          .send({ status: 404, message: "user does not exist" });
+      }
+      const walletId = uuidv4();
+      const wallet = await Wallet.create({
+        userId: user.id,
+        balance: 0,
+        id: walletId,
+      });
+      const walletData = { ...wallet, transactions: [] };
+      res.status(200).send(walletData);
+    }
+    res.status(200).send(wallet);
+  } catch (err) {
+    res.status(500).send({
+      message: "Some error occurred while retrieving wallet for the user.",
+    });
+  }
 }
 
 export async function getUserReviews(req: Request, res: Response) {

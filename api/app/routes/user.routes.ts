@@ -7,51 +7,6 @@ import validateGitHubToken from "../middleware/validate-github-token";
 export function userRoutes(app: Express) {
   const router = express.Router();
 
-  /**
-   * @swagger
-   * components:
-   *   schemas:
-   *     User:
-   *       type: object
-   *       properties:
-   *         username:
-   *           type: string
-   *           description: The user's github username.
-   *           example: glozow
-   *         permissions:
-   *           type: string
-   *           description: The user's permissions.
-   *           enum: [admin, reviewer]
-   */
-  // Create a new User
-
-  /**
-   * @swagger
-   * /api/users:
-   *   post:
-   *     summary: Create a JSONPlaceholder user.
-   *     responses:
-   *       201:
-   *         description: Created
-   *         content:
-   *           application/json:
-   *             schema:
-   *               type: object
-   *               properties:
-   *                 data:
-   *                   type: object
-   *                   properties:
-   *                     username:
-   *                       type: string
-   *                       description: The user's github username.
-   *                       example: glozow
-   *                     permissions:
-   *                       type: string
-   *                       description: The user's permissions.
-   *                       enum: [admin, reviewer]
-   */
-  router.post("/signup", users.signUp);
-
   // Sign in a user
 
    /**
@@ -131,7 +86,7 @@ export function userRoutes(app: Express) {
    *                         description: Date when a user record is updated.
    *                         example: 2023-03-08T13:42:08.699Z
    */
-  router.get("/", users.findAll);
+  router.get("/", auth, users.findAll);
 
   // Retrieve a single User with id
   /**

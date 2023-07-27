@@ -1,7 +1,9 @@
 import { NextFunction, Request, Response } from "express";
+import { v4 as uuidv4 } from "uuid";
 
-import { User } from "../db/models";
+import { User, Wallet } from "../db/models";
 import { generateJwtToken, verifyGitHubToken } from "../utils/auth";
+import { USER_PERMISSIONS } from "../types/user";
 
 const validateGitHubToken = async (
   req: Request,
@@ -19,9 +21,10 @@ const validateGitHubToken = async (
   try {
     const githubUser = await verifyGitHubToken(githubToken);
     if (!githubUser.login) {
-      return res.status(403).json({ error: "Failed to verify GitHub token" });
+      throw new Error();
     }
 
+    let user: User | null = null;
     let conditions = {};
     if (!githubUser.email) {
       conditions = { githubUsername: githubUser.login };
@@ -29,11 +32,22 @@ const validateGitHubToken = async (
       conditions = { email: githubUser.email };
     }
 
-    const user = await User.findOne({
+    user = await User.findOne({
       where: conditions,
     });
     if (!user) {
-      return res.status(404).json({ error: "User not found" });
+      user = await User.create({
+        email: githubUser.email ?? "",
+        permissions: USER_PERMISSIONS.REVIEWER,
+        githubUsername: githubUser.login,
+      });
+
+      const walletId = uuidv4();
+      await Wallet.create({
+        userId: user.id,
+        balance: 0,
+        id: walletId,
+      });
     }
 
     const token = generateJwtToken(user, githubToken.toString());
