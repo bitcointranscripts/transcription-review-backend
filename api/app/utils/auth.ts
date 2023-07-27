@@ -28,8 +28,14 @@ export function generateJwtToken(
   if (!secretKey) {
     throw new Error("JWT_SECRET environment variable is not defined");
   }
+  const isEmailPresent = user.email ? true : false;
   const token = jwt.sign(
-    { userId: user.id, permissions: user.permissions, githubAuthToken },
+    {
+      userId: user.id,
+      permissions: user.permissions,
+      githubAuthToken,
+      isEmailPresent,
+    },
     secretKey,
     { expiresIn: JWTEXPIRYTIMEINHOURS }
   );
