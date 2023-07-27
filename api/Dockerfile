@@ -1,10 +1,12 @@
-FROM node:lts-alpine
+FROM node:18-alpine
+
+RUN apk add g++ make py3-pip
 
 WORKDIR /usr/src/app
 
 COPY package*.json ./
 
-RUN yarn install
+RUN yarn install --immutable --immutable-cache --check-cache
 
 COPY . .
 
