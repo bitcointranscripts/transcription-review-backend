@@ -14,7 +14,7 @@ export async function payInvoiceController(req: Request, res: Response) {
     return res.status(400).json({ error: "Invoice is required" });
   }
   if (!userId) {
-    return res.status(400).send({ message: "Please enter a valid invoice" });
+    return res.status(400).send({ message: "userId field is required" });
   }
 
   const decodedInvoice = decode(invoice);
