@@ -70,10 +70,10 @@ export function findAll(req: Request, res: Response) {
 
   User.findAll({ where: condition })
     .then((data) => {
-      res.send(data);
+      return res.send(data);
     })
     .catch((err) => {
-      res.status(500).send({
+      return res.status(500).send({
         message: err.message || "Some error occurred while retrieving users.",
       });
     });
@@ -85,10 +85,10 @@ export function findOne(req: Request, res: Response) {
 
   User.findByPk(id)
     .then((data) => {
-      res.send(data);
+      return res.send(data);
     })
     .catch((_err) => {
-      res.status(500).send({
+      return res.status(500).send({
         message: "Error retrieving User with id=" + id,
       });
     });
@@ -103,17 +103,17 @@ export function update(req: Request, res: Response) {
   })
     .then((num) => {
       if (typeof num === "number" && num == 1) {
-        res.status(200).send({
+        return res.status(200).send({
           message: "User was updated successfully.",
         });
       } else {
-        res.status(200).send({
+        return res.status(200).send({
           message: `Cannot update User with id=${id}. Maybe User was not found or req.body is empty!`,
         });
       }
     })
     .catch((err) => {
-      res.status(500).send({
+      return res.status(500).send({
         message: "Error updating User with id=" + id,
       });
     });
@@ -122,10 +122,9 @@ export function update(req: Request, res: Response) {
 export async function getUserWallet(req: Request, res: Response) {
   const userId = req.params.id;
   if (!userId) {
-    res.status(400).send({
+    return res.status(400).send({
       message: "userId can not be empty!",
     });
-    return;
   }
 
   try {
@@ -152,12 +151,13 @@ export async function getUserWallet(req: Request, res: Response) {
         balance: 0,
         id: walletId,
       });
-      const walletData = { ...wallet, transactions: [] };
-      res.status(200).send(walletData);
+      const walletData = { ...wallet.dataValues, transactions: [] };
+      return res.status(200).send(walletData);
     }
-    res.status(200).send(wallet);
+    return res.status(200).send(wallet);
   } catch (err) {
-    res.status(500).send({
+    console.log(err);
+    return res.status(500).send({
       message: "Some error occurred while retrieving wallet for the user.",
     });
   }
@@ -184,7 +184,7 @@ export async function getUserReviews(req: Request, res: Response) {
       });
     })
     .catch((err) => {
-      res.status(500).send({
+      return res.status(500).send({
         message:
           err.message ||
           "Some error occurred while retrieving reviews for the user.",
