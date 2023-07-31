@@ -27,7 +27,7 @@ export const signIn = async (req: Request, res: Response) => {
 
     if (!user) {
       user = await User.create({
-        email: email ?? "",
+        email: email || null,
         permissions: USER_PERMISSIONS.REVIEWER,
         githubUsername: username,
       });
