@@ -2,7 +2,14 @@ import { Request, Response } from "express";
 import { Op } from "sequelize";
 import { v4 as uuidv4 } from "uuid";
 
-import { Review, Transaction, Transcript, User, Wallet } from "../db/models";
+import {
+  Review,
+  Settings,
+  Transaction,
+  Transcript,
+  User,
+  Wallet,
+} from "../db/models";
 import { ReviewAttributes } from "../types/review";
 import { USER_PERMISSIONS } from "../types/user";
 import { generateJwtToken } from "../utils/auth";
@@ -38,13 +45,28 @@ export const signIn = async (req: Request, res: Response) => {
         balance: 0,
         id: walletId,
       });
+
+      await Settings.create({
+        userId: user.id,
+        instantWithdrawal: false,
+      });
+    }
+
+    // Todo! this is for legacy users, remove this after full migration
+    const settings = await Settings.findOne({
+      where: {
+        userId: user.id,
+      },
+    });
+    if (!settings) {
+      await Settings.create({
+        userId: user.id,
+        instantWithdrawal: false,
+      });
     }
 
     const token = generateJwtToken(user, githubToken!.toString());
-    const response = await User.update(
-      { jwt: token },
-      { where: condition }
-    );
+    const response = await User.update({ jwt: token }, { where: condition });
 
     if (response[0] !== 1) {
       return res.status(500).json({ error: "Failed to update user token" });
@@ -130,10 +152,27 @@ export async function getUserWallet(req: Request, res: Response) {
   try {
     const wallet = await Wallet.findOne({
       where: {
-        userId: userId,
+        userId: Number(userId),
       },
       include: { model: Transaction },
     });
+    let settings = await Settings.findOne({
+      where: {
+        userId: userId,
+      },
+    });
+    if (!settings) {
+      await Settings.create({
+        userId: Number(userId),
+        instantWithdrawal: false,
+      })
+        .then((data) => {
+          settings = data;
+        })
+        .catch((_err) => {
+          throw new Error("Error creating settings for user");
+        });
+    }
     if (!wallet) {
       const user = await User.findOne({
         where: {
@@ -151,10 +190,18 @@ export async function getUserWallet(req: Request, res: Response) {
         balance: 0,
         id: walletId,
       });
-      const walletData = { ...wallet.dataValues, transactions: [] };
+      const walletData = {
+        ...wallet.dataValues,
+        transactions: [],
+        instantWithdrawal: settings!.instantWithdrawal,
+      };
       return res.status(200).send(walletData);
     }
-    return res.status(200).send(wallet);
+    const walletData = {
+      ...wallet.dataValues,
+      instantWithdrawal: settings!.instantWithdrawal,
+    };
+    return res.status(200).send(walletData);
   } catch (err) {
     console.log(err);
     return res.status(500).send({
