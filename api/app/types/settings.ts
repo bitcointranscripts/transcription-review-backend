@@ -1,4 +1,4 @@
 export interface SettingsAttribute {
-  instantWithdrawal: Boolean;
+  instantWithdraw: Boolean;
   userId: number
 }
