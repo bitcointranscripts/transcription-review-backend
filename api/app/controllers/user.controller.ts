@@ -48,7 +48,7 @@ export const signIn = async (req: Request, res: Response) => {
 
       await Settings.create({
         userId: user.id,
-        instantWithdrawal: false,
+        instantWithdraw: false,
       });
     }
 
@@ -61,7 +61,7 @@ export const signIn = async (req: Request, res: Response) => {
     if (!settings) {
       await Settings.create({
         userId: user.id,
-        instantWithdrawal: false,
+        instantWithdraw: false,
       });
     }
 
@@ -164,7 +164,7 @@ export async function getUserWallet(req: Request, res: Response) {
     if (!settings) {
       await Settings.create({
         userId: Number(userId),
-        instantWithdrawal: false,
+        instantWithdraw: false,
       })
         .then((data) => {
           settings = data;
@@ -193,13 +193,13 @@ export async function getUserWallet(req: Request, res: Response) {
       const walletData = {
         ...wallet.dataValues,
         transactions: [],
-        instantWithdrawal: settings!.instantWithdrawal,
+        instantWithdraw: settings!.instantWithdraw,
       };
       return res.status(200).send(walletData);
     }
     const walletData = {
       ...wallet.dataValues,
-      instantWithdrawal: settings!.instantWithdrawal,
+      instantWithdraw: settings!.instantWithdraw,
     };
     return res.status(200).send(walletData);
   } catch (err) {

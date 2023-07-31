@@ -26,7 +26,7 @@ export class Settings extends Model<SettingsAttribute> {
     allowNull: false,
     defaultValue: false
   })
-  public instantWithdrawal!: boolean;
+  public instantWithdraw!: boolean;
 
   @ForeignKey(() => User)
   @Column({
