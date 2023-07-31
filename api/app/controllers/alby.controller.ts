@@ -35,7 +35,7 @@ export async function saveAlbyToken(req: Request, res: Response) {
     }
 
     const settingsUpdateResponse = await Settings.update(
-      { instantWithdrawal: true },
+      { instantWithdraw: true },
       { where: { userId: userId } }
     );
     if (settingsUpdateResponse[0] === 0) {
