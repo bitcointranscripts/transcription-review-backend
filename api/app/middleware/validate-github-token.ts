@@ -27,7 +27,7 @@ const validateGitHubToken = async (
   } catch (error) {
     console.log(error)
     return res
-      .status(403)
+      .status(401)
       .json({ error: "Failed to verify GitHub token in validate" });
   }
 };

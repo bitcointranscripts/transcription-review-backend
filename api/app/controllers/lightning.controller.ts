@@ -34,7 +34,7 @@ export async function payInvoiceController(req: Request, res: Response) {
   const newAmount = Number(amount / PICO_BTC_TO_SATS);
   const balance = userWallet.balance;
   if (balance < newAmount) {
-    return res.status(403).send({
+    return res.status(500).send({
       message:
         "You currently do not have sufficient balance to withdraw this amount",
     });
