@@ -18,16 +18,16 @@ export const auth = async (req: Request, res: Response, next: NextFunction) => {
     try {
       jwt.verify(token, jwtSecret, async (err, payload) => {
         if (err) {
-          return res.status(403).json({ error: "Invalid token" });
+          return res.status(401).json({ error: "Invalid token" });
         }
 
         if (typeof payload === "string" || !payload) {
-          return res.status(403).json({ error: "Invalid token payload" });
+          return res.status(401).json({ error: "Invalid token payload" });
         }
 
         const user = await User.findByPk(payload.userId);
         if (!user || user.jwt !== token) {
-          return res.status(403).json({ error: "User not found" });
+          return res.status(401).json({ error: "User not found" });
         }
 
         req.body.userId = user.id;
@@ -35,10 +35,10 @@ export const auth = async (req: Request, res: Response, next: NextFunction) => {
         next();
       });
     } catch (error) {
-      return res.status(403).json({ error: "Invalid token" });
+      return res.status(401).json({ error: "Invalid token" });
     }
   } else {
-    return res.status(403).json({ error: "Token not found" });
+    return res.status(401).json({ error: "Token not found" });
   }
 };
 
