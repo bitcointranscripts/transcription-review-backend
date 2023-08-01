@@ -220,7 +220,7 @@ export async function claim(req: Request, res: Response) {
     where: { ...userCondition, ...activeCondition },
   });
   if (activeReview.length) {
-    res.status(403).send({
+    res.status(500).send({
       message:
         "Please finish editing & submit the transcript you're working on first",
     });
@@ -231,7 +231,7 @@ export async function claim(req: Request, res: Response) {
     where: { ...userCondition, ...pendingCondition },
   });
   if (pendingReview.length >= MAXPENDINGREVIEWS) {
-    res.status(403).send({
+    res.status(500).send({
       message: "User has too many pending reviews, clear some and try again!",
     });
     return;
