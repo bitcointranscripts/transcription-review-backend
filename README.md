@@ -1,13 +1,16 @@
-# Node api for BTC Transcript Review
+![ChatBTC](https://raw.githubusercontent.com/bitcointranscripts/transcription-review-front-end/dev/public/btc-transcripts-landscape.png)
+
+# Node API for BTC Transcript Review
 
 - This repo houses the api that powers [review.btctranscripts.com](https://review.btctranscripts.com)
+- The front end repo is located at [github.com/bitcointranscripts/transcription-review-front-end](https://github.com/bitcointranscripts/transcription-review-front-end).
 
 ## Setup for Development
 
 ## Prerequisites
 
 - Docker
-- Ensure ports 8080,5433 and 5432 are open and accept connections (to access the backend api)
+- Ensure ports 8080, 5433 and 5432 are open and accept connections (to access the backend api)
 - Ensure port 3000 is open to accept connections (to access the frontend client)
 
 ### Steps to set up
