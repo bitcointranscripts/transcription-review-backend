@@ -17,7 +17,7 @@ module.exports = {
         rejectUnauthorized: false,
       },
     },
-    pool: { maxConnections: 5, maxIdleTime: 30 },
+    pool: { maxConnections: 100, maxIdleTime: 30 },
     language: "en",
   },
   production: {
@@ -30,7 +30,7 @@ module.exports = {
       },
       keepAlive: true,
     },
-    pool: { maxConnections: 5, maxIdleTime: 30 },
+    pool: { maxConnections: 100, maxIdleTime: 30 },
     language: "en",
   },
 };
