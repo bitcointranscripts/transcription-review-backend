@@ -6,7 +6,7 @@ import axios from "axios";
 const ALBY_API_TOKEN = process.env.ALBY_API_TOKEN || "";
 const ALBY_REDIRECT_URL = process.env.ALBY_REDIRECT_URL || "";
 const ALBY_CLIENT = process.env.ALBY_CLIENT_ID || "";
-const ALBY_SECRET = process.env.ALBY_SECRET_ID || "";
+const ALBY_SECRET = process.env.ALBY_CLIENT_SECRET || "";
 if (!ALBY_API_TOKEN || !ALBY_REDIRECT_URL || !ALBY_CLIENT || !ALBY_SECRET) {
   throw new Error("Alby environment variable not set");
 }
