@@ -47,6 +47,9 @@ export async function create(req: Request, res: Response) {
 
 // Retrieve all unarchived and queued transcripts from the database.
 export async function findAll(req: Request, res: Response) {
+  const page: number = Number(req.query.page) || 1;
+  const limit: number = Number(req.query.limit) || 5;
+  const offset: number = (page - 1) * limit;
   let condition = {
     [Op.and]: [
       { archivedAt: null },
@@ -55,12 +58,19 @@ export async function findAll(req: Request, res: Response) {
     ],
   };
 
-  await Transcript.findAll({ where: condition })
+  await Transcript.findAll({
+    where: condition,
+    offset,
+    limit,
+    order: [["id", "ASC"]],
+  })
     .then((data) => {
       const transcripts: Transcript[] = [];
       const appendTotalWords = data.map(async (transcript) => {
         const transcriptData = transcript.dataValues;
         const { totalWords } = await calculateWordDiff(transcriptData);
+        delete transcriptData.content.body;
+        delete transcriptData.originalContent;
         Object.assign(transcriptData, { contentTotalWords: totalWords });
         transcripts.push(transcript);
       });

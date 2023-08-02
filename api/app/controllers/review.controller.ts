@@ -50,6 +50,10 @@ export function create(req: Request, res: Response) {
 // Retrieve all reviews from the database.
 export async function findAll(req: Request, res: Response) {
   let queryStatus = req.query.status;
+  const page: number = Number(req.query.page) || 1;
+  const limit: number = Number(req.query.limit) || 5;
+  const offset: number = (page - 1) * limit;
+
   let userId =
     req.query.userId !== "undefined"
       ? parseInt(req.query.userId as string)
@@ -111,6 +115,9 @@ export async function findAll(req: Request, res: Response) {
 
   await Review.findAll({
     where: groupedCondition,
+    limit: limit,
+    offset: offset,
+    order: [["createdAt", "DESC"]],
     include: { model: Transcript },
   })
     .then(async (data) => {
