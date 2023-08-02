@@ -50,48 +50,31 @@ export function create(req: Request, res: Response) {
 // Retrieve all reviews from the database.
 export async function findAll(req: Request, res: Response) {
   let queryStatus = req.query.status;
+  const userId = Number(req.body.userId);
   const page: number = Number(req.query.page) || 1;
   const limit: number = Number(req.query.limit) || 5;
   const offset: number = (page - 1) * limit;
 
-  let userId =
-    req.query.userId !== "undefined"
-      ? parseInt(req.query.userId as string)
-      : undefined;
-  let username =
-    req.query.username !== "undefined" ? req.query.username : undefined;
+  const user = await User.findOne({
+    where: {
+      id: userId,
+    },
+  });
 
-  // find reviews by username
-  if (username) {
-    try {
-      const foundUser = await User.findOne({
-        where: { githubUsername: username.toString() },
-      });
-      if (foundUser?.dataValues.id) {
-        userId = foundUser?.dataValues.id;
-      } else {
-        return res.status(404).send({
-          message: `User with username=${username} does not exist`,
-        });
-      }
-    } catch (err) {
-      const message =
-        err instanceof Error
-          ? err.message
-          : `Some error occurred while getting user with username=${username}`;
-      return res.status(500).send({
-        message,
-      });
-    }
+  if (!user) {
+    res.status(400).send({
+      message: `User with id=${userId} does not exist`,
+    });
+    return;
   }
 
   let groupedCondition = {};
   const currentTime = new Date().getTime();
 
-  const userIdCondition = { userId: { [Op.eq]: userId } };
+  const userIdCondition = { userId: { [Op.eq]: user.id } };
 
   // add condition if query exists
-  if (Boolean(userId)) {
+  if (Boolean(user.id)) {
     groupedCondition = { ...groupedCondition, ...userIdCondition };
   }
   if (queryStatus) {
@@ -113,32 +96,51 @@ export async function findAll(req: Request, res: Response) {
     }
   }
 
-  await Review.findAll({
-    where: groupedCondition,
-    limit: limit,
-    offset: offset,
-    order: [["createdAt", "DESC"]],
-    include: { model: Transcript },
-  })
-    .then(async (data) => {
-      const reviews: ReviewAttributes[] = [];
-      const appendReviewData = data.map(async (review) => {
-        const { transcript } = review;
-        const transcriptData = transcript.dataValues;
-        const { totalWords } = await calculateWordDiff(transcriptData);
-        Object.assign(transcriptData, { contentTotalWords: totalWords });
-        review.transcript = transcript;
-        reviews.push(review);
-      });
-      Promise.all(appendReviewData).then(() => {
-        res.send(reviews);
-      });
-    })
-    .catch((err) => {
-      res.status(500).send({
-        message: err.message || "Some error occurred while retrieving reviews.",
-      });
+  try {
+    const totalItems = await Review.count({
+      where: groupedCondition,
     });
+    const totalPages = Math.ceil(totalItems / limit);
+    const hasNextPage = page < totalPages;
+    const hasPreviousPage = page > 1;
+
+    const data = await Review.findAll({
+      where: groupedCondition,
+      limit: limit,
+      offset: offset,
+      order: [["createdAt", "DESC"]],
+      include: { model: Transcript },
+    });
+    const reviews: ReviewAttributes[] = [];
+    const appendReviewData = data.map(async (review) => {
+      const { transcript } = review;
+      const transcriptData = transcript.dataValues;
+      const { totalWords } = await calculateWordDiff(transcriptData);
+      Object.assign(transcriptData, { contentTotalWords: totalWords });
+      review.transcript = transcript;
+      reviews.push(review);
+    });
+
+    await Promise.all(appendReviewData);
+    const response = {
+      totalItems: totalItems,
+      itemsPerPage: limit,
+      totalPages: totalPages,
+      currentPage: page,
+      hasNextPage,
+      hasPreviousPage,
+      data: reviews,
+    };
+    res.status(200).send(response);
+  } catch (error) {
+    console.log(error);
+    res.status(500).send({
+      message:
+        error instanceof Error
+          ? error.message
+          : "Some error occurred while retrieving reviews.",
+    });
+  }
 }
 
 // Find a single review with an id
@@ -226,4 +228,3 @@ export async function submit(req: Request, res: Response) {
     });
   }
 }
-
