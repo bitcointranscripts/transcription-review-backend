@@ -10,6 +10,7 @@ import {
   calculateWordDiff,
 } from "../utils/review.inference";
 import { MAXPENDINGREVIEWS } from "../utils/constants";
+import { generateUniqueHash } from "../helpers/transcript";
 
 // Create and Save a new Transcript
 export async function create(req: Request, res: Response) {
@@ -22,24 +23,12 @@ export async function create(req: Request, res: Response) {
     return;
   }
 
-  const getFirstFiveWords = (paragraph: string) => {
-    const words = paragraph.trim().split(/\s+/);
-    return words.slice(0, 5).join(" ");
-  };
-
-  const generateUniqueStr = () => {
-    const oc = content;
-    const str = oc.title + getFirstFiveWords(oc.body);
-    const transcriptHash = str.trim().toLowerCase();
-
-    return transcriptHash;
-  };
-
   // Create a Transcript
+  const transcriptHash = generateUniqueHash(content);
   const transcript = {
     originalContent: content,
     content: content,
-    transcriptHash: generateUniqueStr(),
+    transcriptHash,
     status: TranscriptStatus.queued,
   };
 
