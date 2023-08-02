@@ -58,32 +58,50 @@ export async function findAll(req: Request, res: Response) {
     ],
   };
 
-  await Transcript.findAll({
-    where: condition,
-    offset,
-    limit,
-    order: [["id", "ASC"]],
-  })
-    .then((data) => {
-      const transcripts: Transcript[] = [];
-      const appendTotalWords = data.map(async (transcript) => {
-        const transcriptData = transcript.dataValues;
-        const { totalWords } = await calculateWordDiff(transcriptData);
-        delete transcriptData.content.body;
-        delete transcriptData.originalContent;
-        Object.assign(transcriptData, { contentTotalWords: totalWords });
-        transcripts.push(transcript);
-      });
-      Promise.all(appendTotalWords).then(() => {
-        res.send(transcripts);
-      });
-    })
-    .catch((err) => {
-      res.status(500).send({
-        message:
-          err.message || "Some error occurred while retrieving transcript.",
-      });
+  try {
+    const totalItems = await Transcript.count({ where: condition });
+    const totalPages = Math.ceil(totalItems / limit);
+    const hasNextPage = page < totalPages;
+    const hasPreviousPage = page > 1;
+
+    const data = await Transcript.findAll({
+      where: condition,
+      offset: offset,
+      limit: limit,
+      order: [["id", "ASC"]],
     });
+
+    const transcripts: Transcript[] = [];
+    const appendTotalWords = data.map(async (transcript) => {
+      const transcriptData = transcript.dataValues;
+      const { totalWords } = await calculateWordDiff(transcriptData);
+      delete transcriptData.content.body;
+      delete transcriptData.originalContent;
+      Object.assign(transcriptData, { contentTotalWords: totalWords });
+      transcripts.push(transcript);
+    });
+
+    await Promise.all(appendTotalWords);
+    const response = {
+      totalItems: totalItems,
+      itemsPerPage: limit,
+      totalPages: totalPages,
+      currentPage: page,
+      hasNextPage,
+      hasPreviousPage,
+      data: transcripts,
+    };
+
+    res.status(200).send(response);
+  } catch (error) {
+    console.log(error);
+    res.status(500).send({
+      message:
+        error instanceof Error
+          ? error.message
+          : "Some error occurred while retrieving transcript.",
+    });
+  }
 }
 
 // Find a single Transcript with an id
