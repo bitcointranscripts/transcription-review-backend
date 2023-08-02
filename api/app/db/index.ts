@@ -11,10 +11,21 @@ import {
 } from "./models";
 
 config();
+
 const DB_URL =
   process.env.DB_URL || "postgres://postgres:postgres@localhost:5432/postgress";
 export const sequelize = new Sequelize(DB_URL, {
   dialect: "postgres",
   logging: process.env.NODE_ENV === "production",
   models: [Review, User, Transcript, Transaction, Wallet, Settings],
+  pool: {
+    max: 100,
+  },
+  dialectOptions: {
+    ssl: {
+      require: process.env.NODE_ENV === "production",
+      rejectUnauthorized: false,
+    },
+    keepAlive: true,
+  },
 });
