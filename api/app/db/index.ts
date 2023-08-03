@@ -1,5 +1,6 @@
 import { config } from "dotenv";
 import { Sequelize } from "sequelize-typescript";
+import { Redis } from "ioredis";
 
 import {
   Review,
@@ -14,6 +15,9 @@ config();
 
 const DB_URL =
   process.env.DB_URL || "postgres://postgres:postgres@localhost:5432/postgress";
+const REDIS_HOST = process.env.REDIS_HOST || "localhost";
+const REDIS_PORT = Number(process.env.REDIS_PORT) || 6379;
+
 export const sequelize = new Sequelize(DB_URL, {
   dialect: "postgres",
   logging: process.env.NODE_ENV === "production",
@@ -28,4 +32,9 @@ export const sequelize = new Sequelize(DB_URL, {
     },
     keepAlive: true,
   },
+});
+
+export const redis = new Redis({
+  host: REDIS_HOST,
+  port: REDIS_PORT,
 });
