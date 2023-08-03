@@ -11,6 +11,8 @@ import {
 } from "../utils/review.inference";
 import { MAXPENDINGREVIEWS } from "../utils/constants";
 import { generateUniqueHash } from "../helpers/transcript";
+import { redis } from "../db";
+import { CACHE_EXPIRATION, deleteCache, setCache } from "../db/helpers/redis";
 
 // Create and Save a new Transcript
 export async function create(req: Request, res: Response) {
@@ -64,6 +66,37 @@ export async function findAll(req: Request, res: Response) {
     const hasNextPage = page < totalPages;
     const hasPreviousPage = page > 1;
 
+    // const cachedTranscriptIds = await redis.lrange("transcript", 0, -1);
+    const cachedTranscriptIds = await redis.lrange(
+      `transcripts:page:${page}`,
+      0,
+      -1
+    );
+
+    if (cachedTranscriptIds.length > 0) {
+      console.log("Using cached transcripts");
+      let cachedTranscripts: Transcript[] = [];
+      for (let transcriptId of cachedTranscriptIds) {
+        let cachedTranscript = await redis.get(`transcript:${transcriptId}`);
+        if (cachedTranscript) {
+          const transcript = await JSON.parse(cachedTranscript);
+          cachedTranscripts.push(transcript);
+        }
+      }
+
+      if (cachedTranscripts.length > 0) {
+        const responseWithCachedResult = {
+          totalItems,
+          itemsPerPage: limit,
+          totalPages,
+          hasNextPage,
+          hasPreviousPage,
+          data: cachedTranscripts,
+        };
+        return res.status(200).send(responseWithCachedResult);
+      }
+    }
+
     const data = await Transcript.findAll({
       where: condition,
       offset: offset,
@@ -80,8 +113,40 @@ export async function findAll(req: Request, res: Response) {
       Object.assign(transcriptData, { contentTotalWords: totalWords });
       transcripts.push(transcript);
     });
-
     await Promise.all(appendTotalWords);
+
+    for (let transcript of transcripts) {
+      const transcriptData = transcript.dataValues;
+      const stringifiedData = JSON.stringify(transcriptData);
+      const transcriptId = transcriptData.id;
+      if (!transcriptId) {
+        continue;
+      }
+
+      redis.sismember("cachedTranscripts", transcriptId, (err, isCached) => {
+        if (err) {
+          console.log(err);
+        } else if (isCached === 0) {
+          const transaction = redis.multi();
+          transaction
+            .sadd("cachedTranscripts", transcriptId)
+            .set(
+              `transcript:${transcript.id}`,
+              stringifiedData,
+              "EX",
+              CACHE_EXPIRATION
+            )
+            .rpush(`transcripts:page:${page}`, transcriptId);
+          transaction.exec((err, _results) => {
+            if (err) {
+              console.log(err);
+            } else {
+              console.log(transcriptId, "Transcript cached successfully");
+            }
+          });
+        }
+      });
+    }
     const response = {
       totalItems: totalItems,
       itemsPerPage: limit,
@@ -148,9 +213,17 @@ export async function update(req: Request, res: Response) {
     //FIXME: Ensure only necessary fields are updated i.e. content, updatedAt
     await Transcript.update(req.body, {
       where: { id: id },
-    }).then((response) => {
+    }).then(async (response) => {
       if (response[0] === 1) {
-        res.send({
+        const totalItems = await Transcript.count();
+        const limit = 5;
+        const totalPages = Math.ceil(totalItems / limit);
+        for (let page = 1; page <= totalPages; page++) {
+          await redis.del(`transcripts:page:${page}`);
+        }
+        await deleteCache(`transcript:${id}`);
+        await redis.srem("cachedTranscripts", id);
+        return res.status(200).send({
           message: "Transcript was updated successfully.",
         });
       } else {
@@ -210,6 +283,14 @@ export async function archive(req: Request, res: Response) {
         message: `Cannot archive Transcript with id=${id}. Maybe Transcript was not found or req.body is empty!`,
       });
     }
+    const totalItems = await Transcript.count();
+    const limit = 5;
+    const totalPages = Math.ceil(totalItems / limit);
+    for (let page = 1; page <= totalPages; page++) {
+      await redis.del(`transcripts:page:${page}`);
+    }
+    await deleteCache(`transcript:${id}`);
+    await redis.srem("cachedTranscripts", id);
 
     res.send({
       message: "Transcript was archived successfully.",
@@ -274,6 +355,15 @@ export async function claim(req: Request, res: Response) {
         message: `Cannot claim Transcript with id=${transcriptId}. Maybe Transcript was not found or req.body is empty!`,
       });
     }
+    const totalItems = await Transcript.count();
+    const limit = 5;
+    const totalPages = Math.ceil(totalItems / limit);
+    for (let page = 1; page <= totalPages; page++) {
+      await redis.del(`transcripts:page:${page}`);
+    }
+    await deleteCache(`transcript:${transcriptId}`);
+    await redis.srem("cachedTranscripts", transcriptId);
+
     await Review.create(review)
       .then((data) => {
         res.send(data);
