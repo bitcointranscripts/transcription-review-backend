@@ -12,7 +12,6 @@ const validateGitHubToken = async (
 ) => {
   const githubToken = req.headers["x-github-token"];
   const email = req.body.email;
-  console.log({email})
 
   if (!githubToken) {
     return res
@@ -55,7 +54,7 @@ const validateGitHubToken = async (
     if (!githubUser.login) {
       throw new Error();
     }
-    console.log(githubToken);
+
     req.body.username = githubUser?.login;
     req.body.email = email;
     next();
