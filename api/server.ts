@@ -16,9 +16,9 @@ import {
   transcriptRoutes,
   userRoutes,
   webhookRoutes,
-  lightningRoutes
+  lightningRoutes,
 } from "./app/routes";
-import { sequelize } from "./app/db";
+import { redis, sequelize } from "./app/db";
 
 dotenv.config();
 
@@ -52,6 +52,13 @@ app.use(
 );
 
 async function synchronizeModels() {
+  redis.on("connect", () => {
+    console.log("Connected to Redis");
+  });
+
+  redis.on("error", (err) => {
+    console.log("Redis error: ", err);
+  });
   try {
     await sequelize.sync();
     console.log("Database initialized successfully.");

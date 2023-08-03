@@ -14,6 +14,7 @@ import { ReviewAttributes } from "../types/review";
 import { USER_PERMISSIONS } from "../types/user";
 import { generateJwtToken } from "../utils/auth";
 import { calculateWordDiff } from "../utils/review.inference";
+import { deleteCache, setCache } from "../db/helpers/redis";
 
 export const signIn = async (req: Request, res: Response) => {
   try {
@@ -52,25 +53,14 @@ export const signIn = async (req: Request, res: Response) => {
       });
     }
 
-    // Todo! this is for legacy users, remove this after full migration
-    const settings = await Settings.findOne({
-      where: {
-        userId: user.id,
-      },
-    });
-    if (!settings) {
-      await Settings.create({
-        userId: user.id,
-        instantWithdraw: false,
-      });
-    }
-
     const token = generateJwtToken(user, githubToken!.toString());
     const response = await User.update({ jwt: token }, { where: condition });
 
     if (response[0] !== 1) {
       return res.status(500).json({ error: "Failed to update user token" });
     }
+
+    await setCache(`user:${email}`, JSON.stringify(token));
     return res.status(200).send({ jwt: token });
   } catch (error) {
     const message =
@@ -92,6 +82,10 @@ export function findAll(req: Request, res: Response) {
 
   User.findAll({ where: condition })
     .then((data) => {
+      data.forEach((user) => {
+        user.jwt = undefined;
+        user.albyToken = undefined;
+      });
       return res.send(data);
     })
     .catch((err) => {
@@ -118,13 +112,15 @@ export function findOne(req: Request, res: Response) {
 
 // Update a User by the id in the request
 export function update(req: Request, res: Response) {
+  const email = req.body.email;
   const id = Number(req.params.id);
 
   User.update(req.body, {
     where: { id: id },
   })
-    .then((num) => {
+    .then(async (num) => {
       if (typeof num === "number" && num == 1) {
+        await deleteCache(`user:${email}`);
         return res.status(200).send({
           message: "User was updated successfully.",
         });

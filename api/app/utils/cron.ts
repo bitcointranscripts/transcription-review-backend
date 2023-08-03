@@ -5,7 +5,8 @@ import { Transcript } from "../db/models/transcript";
 import { TRANSCRIPT_STATUS } from "../types/transcript";
 import { getUnixTimeFromHours } from "../utils/review.inference";
 import { EXPIRYTIMEINHOURS } from "./constants";
-
+import { deleteCache } from "../db/helpers/redis";
+import { redis } from "../db";
 
 const CronJob = cron.CronJob;
 
@@ -37,6 +38,14 @@ async function setupExpiryTimeCron(review: Review) {
             where: { id: review.transcriptId },
           }
         );
+        const totalItems = await Transcript.count();
+        const limit = 5;
+        const totalPages = Math.ceil(totalItems / limit);
+        for (let page = 1; page <= totalPages; page++) {
+          await deleteCache(`transcripts:page:${page}`);
+        }
+        await deleteCache(`transcript:${review.transcriptId}`);
+        await redis.srem("cachedTranscripts", review.transcriptId);
       } catch (err) {
         console.log(err);
       }
