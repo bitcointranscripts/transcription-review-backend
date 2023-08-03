@@ -10,6 +10,8 @@ import {
   calculateWordDiff,
 } from "../utils/review.inference";
 import { ReviewAttributes } from "../types/review";
+import { redis } from "../db";
+import { deleteCache, setCache } from "../db/helpers/redis";
 
 // Create and Save a new review
 export function create(req: Request, res: Response) {
@@ -147,6 +149,19 @@ export async function findAll(req: Request, res: Response) {
 export async function findOne(req: Request, res: Response) {
   const id = parseInt(req.params.id);
 
+  if (!id) {
+    res.status(400).send({
+      message: "Review id cannot be empty!",
+    });
+    return;
+  }
+
+  const cachedResult = await redis.get(`review:${id}`);
+  if (cachedResult) {
+    res.status(200).send(JSON.parse(cachedResult));
+    return;
+  }
+
   await Review.findByPk(id, { include: { model: Transcript } })
     .then(async (data) => {
       if (!data) {
@@ -158,7 +173,8 @@ export async function findOne(req: Request, res: Response) {
       const transcriptData = transcript.dataValues;
       const { totalWords } = await calculateWordDiff(transcriptData);
       Object.assign(transcriptData, { contentTotalWords: totalWords });
-      Promise.all([transcriptData, review]).then(() => {
+      Promise.all([transcriptData, review]).then(async () => {
+        await setCache(`review:${id}`, JSON.stringify(review.dataValues));
         res.send(review.dataValues);
       });
     })
@@ -176,9 +192,10 @@ export async function update(req: Request, res: Response) {
   await Review.update(req.body, {
     where: { id: id },
   })
-    .then((num) => {
+    .then(async (num) => {
       if (typeof num === "number" && num == 1) {
-        res.send({
+        await deleteCache(`review:${id}`);
+        return res.status(200).send({
           message: "review was updated successfully.",
         });
       } else {
@@ -214,6 +231,7 @@ export async function submit(req: Request, res: Response) {
     );
 
     if (num === 1) {
+      await deleteCache(`review:${id}`);
       res.send({
         message: "Review was updated successfully.",
       });

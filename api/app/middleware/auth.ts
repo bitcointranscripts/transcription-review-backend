@@ -1,7 +1,6 @@
 import { NextFunction, Request, Response } from "express";
 import jwt from "jsonwebtoken";
 
-import { User } from "../db/models";
 import { USER_PERMISSIONS } from "../types/user";
 
 export const auth = async (req: Request, res: Response, next: NextFunction) => {
@@ -25,13 +24,12 @@ export const auth = async (req: Request, res: Response, next: NextFunction) => {
           return res.status(401).json({ error: "Invalid token payload" });
         }
 
-        const user = await User.findByPk(payload.userId);
-        if (!user || user.jwt !== token) {
+        if (!payload.userId || !payload.githubAuthToken) {
           return res.status(401).json({ error: "User not found" });
         }
 
-        req.body.userId = user.id;
-        req.body.userPermissions = user.permissions;
+        req.body.userId = payload.userId;
+        req.body.userPermissions = payload.permissions;
         next();
       });
     } catch (error) {
