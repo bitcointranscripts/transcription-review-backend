@@ -56,7 +56,7 @@ async function synchronizeModels() {
     console.log("Connected to Redis");
   });
 
-  redis.on("error", (err) => {
+  redis.on("error", (err: any) => {
     console.log("Redis error: ", err);
   });
   try {
