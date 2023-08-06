@@ -33,6 +33,7 @@
   "dependencies": {
     "@node-lightning/invoice": "^0.28.0",
     "axios": "^1.4.0",
+    "bull": "^4.10.4",
     "cors": "^2.8.5",
     "cron": "^2.3.0",
     "diff": "^5.1.0",
