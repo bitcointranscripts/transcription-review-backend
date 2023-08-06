@@ -3,7 +3,7 @@ import { Op } from "sequelize";
 
 import { Review, Transcript, User } from "../db/models";
 import { TranscriptStatus } from "../types/transcript";
-import { setupExpiryTimeCron } from "../utils/cron";
+import { addToExpiryQueue } from "../utils/cron";
 import {
   buildIsActiveCondition,
   buildIsPendingCondition,
@@ -367,7 +367,9 @@ export async function claim(req: Request, res: Response) {
     await Review.create(review)
       .then((data) => {
         res.send(data);
-        return setupExpiryTimeCron(data);
+        console.log("add cron start")
+        addToExpiryQueue(data.id)
+        return;
       })
       .catch((err) => {
         res.status(500).send({
