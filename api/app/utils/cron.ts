@@ -3,12 +3,26 @@ import Queue from "bull";
 import { Review } from "../db/models/review";
 import { Transcript } from "../db/models/transcript";
 import { TranscriptStatus } from "../types/transcript";
-import { getUnixTimeFromHours } from "../utils/review.inference";
+import { buildIsExpiredAndNotArchivedCondition, getUnixTimeFromHours } from "../utils/review.inference";
 import { EXPIRYTIMEINHOURS } from "./constants";
 import { deleteCache } from "../db/helpers/redis";
-import { redis } from "../db";
+import { REDIS_HOST, REDIS_PASSWORD, REDIS_PORT, redis } from "../db";
+
+const resetRedisCachedPages = async () => {
+  const totalItems = await Transcript.count();
+    const limit = 5;
+    const totalPages = Math.ceil(totalItems / limit);
+    for (let page = 1; page <= totalPages; page++) {
+      await deleteCache(`transcripts:page:${page}`);
+    }
+}
 
 const expiryQueue = new Queue<{reviewId: number}>("cron-for-review-expiry", {
+  redis: {
+    port: REDIS_PORT,
+    host: REDIS_HOST,
+    password: REDIS_PASSWORD,
+  },
   defaultJobOptions: { delay: getUnixTimeFromHours(EXPIRYTIMEINHOURS) }
 })
 
@@ -37,12 +51,7 @@ expiryQueue.process(async (job, done) => {
       }
     );
     console.log("updated transcript and review")
-    const totalItems = await Transcript.count();
-    const limit = 5;
-    const totalPages = Math.ceil(totalItems / limit);
-    for (let page = 1; page <= totalPages; page++) {
-      await deleteCache(`transcripts:page:${page}`);
-    }
+    await resetRedisCachedPages();
     await deleteCache(`transcript:${thisReview.transcriptId}`);
     await redis.srem("cachedTranscripts", thisReview.transcriptId);
 
@@ -51,3 +60,51 @@ expiryQueue.process(async (job, done) => {
   }
   done()
 })
+
+
+// run CRON once daily to archive expired review that could have slipped by
+
+const dailyCheckForMissedExpiredReviews = new Queue("daily-cron-expired", {
+  redis: {
+    port: REDIS_PORT,
+    host: REDIS_HOST,
+    password: REDIS_PASSWORD,
+  },
+  defaultJobOptions: { repeat: { cron: "0 0 * * *" } },
+})
+
+export const startDailyExpiredReviewsCheck = async () => await dailyCheckForMissedExpiredReviews.add({})
+
+dailyCheckForMissedExpiredReviews.process(async (job, done) => {
+  try {
+    const now = new Date()
+    const currentTime = now.getTime()
+    const condition = buildIsExpiredAndNotArchivedCondition(currentTime)
+    const expiredAndUnarchived = await Review.findAll({where: condition })
+    
+    if (expiredAndUnarchived.length) {
+      const promiseArray = expiredAndUnarchived.map(review => {
+        return review.update({ archivedAt: now }).then((res) => {
+          return Transcript.update(
+            { status: TranscriptStatus.queued, claimedBy: null },
+            {
+              where: { id: res.transcriptId },
+            }
+          ).then(async (res) => {
+            if (res[0] === 1) {
+              await deleteCache(`transcript:${review.transcriptId}`);
+              await redis.srem("cachedTranscripts", review.transcriptId);
+            }
+          })
+        }).catch((err) => {
+          throw err
+        })
+      })
+      await Promise.allSettled(promiseArray)
+      await resetRedisCachedPages();
+    }
+  } catch (err) {
+    console.error(err)
+  }
+  done()
+});
