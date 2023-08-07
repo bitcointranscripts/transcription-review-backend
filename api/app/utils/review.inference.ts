@@ -43,6 +43,20 @@ const buildIsInActiveCondition = (currentTime: number) => {
   };
 };
 
+const buildIsExpiredAndNotArchivedCondition = (currentTime: number) => {
+  const timeStringAt24HoursPrior = new Date(
+    currentTime - unixEpochTimeInMilliseconds
+  ).toISOString();
+  return {
+    [Op.and]: {
+      mergedAt: { [Op.eq]: null }, // has not been merged
+      archivedAt: { [Op.eq]: null }, // has not been archived
+      submittedAt: { [Op.eq]: null }, // has not been submitted
+      createdAt: { [Op.lt]: timeStringAt24HoursPrior }, // expired
+    },
+  };
+};
+
 function getUnixTimeFromHours(hours: number) {
   const millisecondsInHour = 60 * 60 * 1000;
   const unixTimeInMilliseconds = hours * millisecondsInHour;
@@ -131,5 +145,6 @@ export {
   buildIsActiveCondition,
   buildIsPendingCondition,
   buildIsInActiveCondition,
+  buildIsExpiredAndNotArchivedCondition,
   calculateWordDiff,
 };
