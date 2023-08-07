@@ -367,7 +367,6 @@ export async function claim(req: Request, res: Response) {
     await Review.create(review)
       .then((data) => {
         res.send(data);
-        console.log("add cron start")
         addToExpiryQueue(data.id)
         return;
       })
