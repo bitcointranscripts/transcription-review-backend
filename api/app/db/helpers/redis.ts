@@ -1,4 +1,5 @@
 import { redis } from "..";
+import { Transcript } from "../models";
 
 export const CACHE_EXPIRATION = 60 * 60 * 48; // 48 hours
 
@@ -21,4 +22,13 @@ export async function deleteCache(key: string) {
   } catch (error: any) {
     console.error(`Redis error: ${error.message as string}`);
   }
+}
+
+export async function resetRedisCachedPages() {
+  const totalItems = await Transcript.count();
+    const limit = 5;
+    const totalPages = Math.ceil(totalItems / limit);
+    for (let page = 1; page <= totalPages; page++) {
+      await deleteCache(`transcripts:page:${page}`);
+    }
 }
