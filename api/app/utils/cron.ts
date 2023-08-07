@@ -29,8 +29,8 @@ expiryQueue.process(async (job, done) => {
 
     if (!thisReview) return;
 
-    // don't requeue transcripts whose review has been merged or submitted
-    if (thisReview?.mergedAt || thisReview?.submittedAt) return;
+    // don't archive review or requeue transcripts whose review has been merged, submitted or already archived
+    if (thisReview?.mergedAt || thisReview?.submittedAt || thisReview?.archivedAt) return;
 
     const now = new Date()
     thisReview.update({ archivedAt: now })
@@ -41,7 +41,7 @@ expiryQueue.process(async (job, done) => {
         where: { id: thisReview.transcriptId },
       }
     );
-    console.log("updated transcript and review")
+
     await resetRedisCachedPages();
     await deleteCache(`transcript:${thisReview.transcriptId}`);
     await redis.srem("cachedTranscripts", thisReview.transcriptId);
