@@ -15,9 +15,9 @@ config();
 
 const DB_URL =
   process.env.DB_URL || "postgres://postgres:postgres@localhost:5432/postgress";
-const REDIS_HOST = process.env.REDIS_HOST || "localhost";
-const REDIS_PORT = Number(process.env.REDIS_PORT) || 6379;
-const REDIS_PASSWORD = process.env.REDIS_PASSWORD || "";
+export const REDIS_HOST = process.env.REDIS_HOST || "localhost";
+export const REDIS_PORT = Number(process.env.REDIS_PORT) || 6379;
+export const REDIS_PASSWORD = process.env.REDIS_PASSWORD || "";
 
 export const sequelize = new Sequelize(DB_URL, {
   dialect: "postgres",
