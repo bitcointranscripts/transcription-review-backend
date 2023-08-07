@@ -5,17 +5,8 @@ import { Transcript } from "../db/models/transcript";
 import { TranscriptStatus } from "../types/transcript";
 import { buildIsExpiredAndNotArchivedCondition, getUnixTimeFromHours } from "../utils/review.inference";
 import { EXPIRYTIMEINHOURS } from "./constants";
-import { deleteCache } from "../db/helpers/redis";
+import { deleteCache, resetRedisCachedPages } from "../db/helpers/redis";
 import { REDIS_HOST, REDIS_PASSWORD, REDIS_PORT, redis } from "../db";
-
-const resetRedisCachedPages = async () => {
-  const totalItems = await Transcript.count();
-    const limit = 5;
-    const totalPages = Math.ceil(totalItems / limit);
-    for (let page = 1; page <= totalPages; page++) {
-      await deleteCache(`transcripts:page:${page}`);
-    }
-}
 
 const expiryQueue = new Queue<{reviewId: number}>("cron-for-review-expiry", {
   redis: {
@@ -108,3 +99,5 @@ dailyCheckForMissedExpiredReviews.process(async (job, done) => {
   }
   done()
 });
+
+startDailyExpiredReviewsCheck()
