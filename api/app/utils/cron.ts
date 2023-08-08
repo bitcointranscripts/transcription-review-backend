@@ -61,7 +61,7 @@ const dailyCheckForMissedExpiredReviews = new Queue("daily-cron-expired", {
     host: REDIS_HOST,
     password: REDIS_PASSWORD,
   },
-  defaultJobOptions: { repeat: { cron: "0 0 * * *" } },
+  defaultJobOptions: { repeat: { cron: "0 0 * * *", key: "dailyExpiredCheck" } },
 })
 
 export const startDailyExpiredReviewsCheck = async () => await dailyCheckForMissedExpiredReviews.add({})
