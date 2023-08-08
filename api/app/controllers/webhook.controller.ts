@@ -9,6 +9,7 @@ import {
   calculateCreditAmount,
   generateTransactionId,
 } from "../utils/transaction";
+import { verify_signature } from "../utils/validate-webhook-signature";
 
 // create a new credit transaction when a review is merged
 async function createCreditTransaction(review: Review, amount: number) {
@@ -58,9 +59,12 @@ async function createCreditTransaction(review: Review, amount: number) {
 }
 
 export async function create(req: Request, res: Response) {
+  if (!verify_signature(req)) {
+    res.status(401).send("Unauthorized");
+    return;
+  }
+  
   const pull_request = req.body;
-
-  //check if req.body return anything
   if (!pull_request) {
     return res.status(500).send({
       message: "No pull request data found in the request body.",
