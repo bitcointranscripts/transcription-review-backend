@@ -23,5 +23,5 @@ export const verify_signature = (req: Request) => {
   ) {
     return true;
   }
-  return signature === req.headers["x-hub-signature-256"];
+  return `sha256=${signature}` === req.headers["x-hub-signature-256"];
 };
