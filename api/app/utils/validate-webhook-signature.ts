@@ -13,15 +13,15 @@ export const verify_signature = (req: Request) => {
   if (!req.headers) {
     return false;
   }
-  const signature = crypto
-    .createHmac("sha256", GITHUB_WEBHOOK_TOKEN)
-    .update(JSON.stringify(req.body))
-    .digest("hex");
   if (
     process.env.NODE_ENV === "development" ||
     process.env.NODE_ENV === "staging"
   ) {
     return true;
   }
+  const signature = crypto
+    .createHmac("sha256", GITHUB_WEBHOOK_TOKEN)
+    .update(JSON.stringify(req.body))
+    .digest("hex");
   return `sha256=${signature}` === req.headers["x-hub-signature-256"];
 };
