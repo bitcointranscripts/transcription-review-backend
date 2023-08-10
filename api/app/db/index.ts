@@ -24,7 +24,10 @@ export const sequelize = new Sequelize(DB_URL, {
   logging: process.env.NODE_ENV === "production",
   models: [Review, User, Transcript, Transaction, Wallet, Settings],
   pool: {
-    max: 100,
+    max: 10,
+    min: 0,
+    idle: 10000,
+    acquire: 30000, 
   },
   dialectOptions: {
     ssl: {
