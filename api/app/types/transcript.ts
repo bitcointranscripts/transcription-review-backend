@@ -17,4 +17,5 @@ export interface TranscriptAttributes {
   claimedBy?: number | null;
   archivedBy?: number | null;
   archivedAt?: Date | null;
+  contentTotalWords: number;
 }

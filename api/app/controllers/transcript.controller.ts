@@ -2,17 +2,21 @@ import { Request, Response } from "express";
 import { Op } from "sequelize";
 
 import { Review, Transcript, User } from "../db/models";
-import { TranscriptStatus } from "../types/transcript";
+import { TranscriptAttributes, TranscriptStatus } from "../types/transcript";
 import { addToExpiryQueue } from "../utils/cron";
 import {
   buildIsActiveCondition,
   buildIsPendingCondition,
-  calculateWordDiff,
+  getTotalWords,
 } from "../utils/review.inference";
 import { MAXPENDINGREVIEWS } from "../utils/constants";
 import { generateUniqueHash } from "../helpers/transcript";
 import { redis } from "../db";
-import { CACHE_EXPIRATION, deleteCache, setCache } from "../db/helpers/redis";
+import {
+  CACHE_EXPIRATION,
+  deleteCache,
+  resetRedisCachedPages,
+} from "../db/helpers/redis";
 
 // Create and Save a new Transcript
 export async function create(req: Request, res: Response) {
@@ -27,11 +31,13 @@ export async function create(req: Request, res: Response) {
 
   // Create a Transcript
   const transcriptHash = generateUniqueHash(content);
-  const transcript = {
+  const totalWords = getTotalWords(content.body);
+  const transcript: TranscriptAttributes = {
     originalContent: content,
     content: content,
     transcriptHash,
     status: TranscriptStatus.queued,
+    contentTotalWords: totalWords,
   };
 
   // Save Transcript in the database
@@ -72,10 +78,9 @@ export async function findAll(req: Request, res: Response) {
       0,
       -1
     );
+    let cachedTranscripts: Transcript[] = [];
 
     if (cachedTranscriptIds.length > 0) {
-      console.log("Using cached transcripts");
-      let cachedTranscripts: Transcript[] = [];
       for (let transcriptId of cachedTranscriptIds) {
         let cachedTranscript = await redis.get(`transcript:${transcriptId}`);
         if (cachedTranscript) {
@@ -85,6 +90,7 @@ export async function findAll(req: Request, res: Response) {
       }
 
       if (cachedTranscripts.length > 0) {
+        console.log("Using cached transcripts");
         const responseWithCachedResult = {
           totalItems,
           itemsPerPage: limit,
@@ -94,6 +100,8 @@ export async function findAll(req: Request, res: Response) {
           data: cachedTranscripts,
         };
         return res.status(200).send(responseWithCachedResult);
+      } else {
+        await redis.del(`transcripts:page:${page}`);
       }
     }
 
@@ -104,48 +112,43 @@ export async function findAll(req: Request, res: Response) {
       order: [["id", "ASC"]],
     });
 
-    const transcripts: Transcript[] = [];
-    const appendTotalWords = data.map(async (transcript) => {
+    for (let transcript of data) {
       const transcriptData = transcript.dataValues;
-      const { totalWords } = await calculateWordDiff(transcriptData);
       delete transcriptData.content.body;
       delete transcriptData.originalContent;
-      Object.assign(transcriptData, { contentTotalWords: totalWords });
-      transcripts.push(transcript);
-    });
-    await Promise.all(appendTotalWords);
-
-    for (let transcript of transcripts) {
-      const transcriptData = transcript.dataValues;
       const stringifiedData = JSON.stringify(transcriptData);
       const transcriptId = transcriptData.id;
       if (!transcriptId) {
         continue;
       }
 
-      redis.sismember("cachedTranscripts", transcriptId, (err, isCached) => {
-        if (err) {
-          console.log(err);
-        } else if (isCached === 0) {
-          const transaction = redis.multi();
-          transaction
-            .sadd("cachedTranscripts", transcriptId)
-            .set(
-              `transcript:${transcript.id}`,
-              stringifiedData,
-              "EX",
-              CACHE_EXPIRATION
-            )
-            .rpush(`transcripts:page:${page}`, transcriptId);
-          transaction.exec((err, _results) => {
-            if (err) {
-              console.log(err);
-            } else {
-              console.log(transcriptId, "Transcript cached successfully");
-            }
-          });
+      await redis.sismember(
+        "cachedTranscripts",
+        transcriptId,
+        async (err, isCached) => {
+          if (err) {
+            console.log(err);
+          } else if (isCached === 0 || cachedTranscripts.length === 0) {
+            const transaction = redis.multi();
+            transaction
+              .sadd("cachedTranscripts", transcriptId)
+              .set(
+                `transcript:${transcript.id}`,
+                stringifiedData,
+                "EX",
+                CACHE_EXPIRATION
+              )
+              .rpush(`transcripts:page:${page}`, transcriptId);
+            await transaction.exec((err, _results) => {
+              if (err) {
+                console.log(err);
+              } else {
+                console.log(transcriptId, "Transcript cached successfully");
+              }
+            });
+          }
         }
-      });
+      );
     }
     const response = {
       totalItems: totalItems,
@@ -154,7 +157,7 @@ export async function findAll(req: Request, res: Response) {
       currentPage: page,
       hasNextPage,
       hasPreviousPage,
-      data: transcripts,
+      data,
     };
 
     res.status(200).send(response);
@@ -183,10 +186,6 @@ export async function findOne(req: Request, res: Response) {
   await Transcript.findByPk(id)
     .then(async (data) => {
       if (data) {
-        const { totalWords } = await calculateWordDiff(data);
-        Object.assign(data.dataValues, {
-          contentTotalWords: totalWords,
-        });
         res.send(data);
       }
     })
@@ -215,12 +214,7 @@ export async function update(req: Request, res: Response) {
       where: { id: id },
     }).then(async (response) => {
       if (response[0] === 1) {
-        const totalItems = await Transcript.count();
-        const limit = 5;
-        const totalPages = Math.ceil(totalItems / limit);
-        for (let page = 1; page <= totalPages; page++) {
-          await redis.del(`transcripts:page:${page}`);
-        }
+        await resetRedisCachedPages();
         await deleteCache(`transcript:${id}`);
         await redis.srem("cachedTranscripts", id);
         return res.status(200).send({
@@ -367,7 +361,7 @@ export async function claim(req: Request, res: Response) {
     await Review.create(review)
       .then((data) => {
         res.send(data);
-        addToExpiryQueue(data.id)
+        addToExpiryQueue(data.id);
         return;
       })
       .catch((err) => {

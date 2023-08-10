@@ -10,7 +10,10 @@ import {
 import { User } from "./user";
 import { TranscriptStatus, TranscriptAttributes } from "../../types/transcript";
 
-@Table({ tableName: "transcripts" })
+@Table({
+  tableName: "transcripts",
+  indexes: [{ fields: ["archivedAt", "archivedBy", "status"] }],
+})
 export class Transcript extends Model<TranscriptAttributes> {
   @Column({
     type: DataType.INTEGER,
@@ -28,6 +31,9 @@ export class Transcript extends Model<TranscriptAttributes> {
 
   @Column(DataType.STRING)
   transcriptHash!: string;
+
+  @Column(DataType.INTEGER)
+  contentTotalWords!: number;
 
   @Column({
     type: DataType.DATE,

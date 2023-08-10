@@ -79,6 +79,12 @@ function removeArrayBrackets(text: string) {
   return newText;
 }
 
+const getTotalWords = (text: string) => {
+  const textWithoutMarkdown = removeMarkdownElements(text);
+  const totalWords = textWithoutMarkdown.split(/\s+/).length;
+  return totalWords;
+};
+
 async function calculateWordDiff(data: TranscriptAttributes) {
   const fieldsToConsider = [
     "title",
@@ -92,10 +98,7 @@ async function calculateWordDiff(data: TranscriptAttributes) {
   let addedWords = 0;
   let removedWords = 0;
 
-  const originalTextWithoutMarkdown = removeMarkdownElements(
-    data.originalContent.body
-  );
-  const totalWords = originalTextWithoutMarkdown.split(/\s+/).length;
+  const totalWords = getTotalWords(data.content.body);
 
   fieldsToConsider.forEach((field) => {
     let originalText = data.originalContent[field] || "";
@@ -147,4 +150,5 @@ export {
   buildIsInActiveCondition,
   buildIsExpiredAndNotArchivedCondition,
   calculateWordDiff,
+  getTotalWords,
 };
