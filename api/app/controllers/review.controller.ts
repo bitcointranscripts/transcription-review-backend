@@ -7,9 +7,7 @@ import {
   buildIsActiveCondition,
   buildIsInActiveCondition,
   buildIsPendingCondition,
-  calculateWordDiff,
 } from "../utils/review.inference";
-import { ReviewAttributes } from "../types/review";
 import { redis } from "../db";
 import { deleteCache, setCache } from "../db/helpers/redis";
 
@@ -113,17 +111,7 @@ export async function findAll(req: Request, res: Response) {
       order: [["createdAt", "DESC"]],
       include: { model: Transcript },
     });
-    const reviews: ReviewAttributes[] = [];
-    const appendReviewData = data.map(async (review) => {
-      const { transcript } = review;
-      const transcriptData = transcript.dataValues;
-      const { totalWords } = await calculateWordDiff(transcriptData);
-      Object.assign(transcriptData, { contentTotalWords: totalWords });
-      review.transcript = transcript;
-      reviews.push(review);
-    });
 
-    await Promise.all(appendReviewData);
     const response = {
       totalItems: totalItems,
       itemsPerPage: limit,
@@ -131,7 +119,7 @@ export async function findAll(req: Request, res: Response) {
       currentPage: page,
       hasNextPage,
       hasPreviousPage,
-      data: reviews,
+      data,
     };
     res.status(200).send(response);
   } catch (error) {
@@ -169,14 +157,8 @@ export async function findOne(req: Request, res: Response) {
           message: `Review with id=${id} does not exist`,
         });
       }
-      const { transcript, ...review } = data;
-      const transcriptData = transcript.dataValues;
-      const { totalWords } = await calculateWordDiff(transcriptData);
-      Object.assign(transcriptData, { contentTotalWords: totalWords });
-      Promise.all([transcriptData, review]).then(async () => {
-        await setCache(`review:${id}`, JSON.stringify(review.dataValues));
-        res.send(review.dataValues);
-      });
+      await setCache(`review:${id}`, JSON.stringify(data));
+      res.status(200).send(data);
     })
     .catch((_err) => {
       res.status(500).send({
