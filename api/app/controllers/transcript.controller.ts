@@ -72,7 +72,6 @@ export async function findAll(req: Request, res: Response) {
     const hasNextPage = page < totalPages;
     const hasPreviousPage = page > 1;
 
-    // const cachedTranscriptIds = await redis.lrange("transcript", 0, -1);
     const cachedTranscriptIds = await redis.lrange(
       `transcripts:page:${page}`,
       0,
@@ -144,8 +143,6 @@ export async function findAll(req: Request, res: Response) {
             await transaction.exec((err, _results) => {
               if (err) {
                 console.log(err);
-              } else {
-                console.log(transcriptId, "Transcript cached successfully");
               }
             });
           }
