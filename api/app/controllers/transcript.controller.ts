@@ -110,12 +110,14 @@ export async function findAll(req: Request, res: Response) {
       offset: offset,
       limit: limit,
       order: [["id", "ASC"]],
+      attributes: {
+        exclude: ["originalContent"],
+      },
     });
 
     for (let transcript of data) {
       const transcriptData = transcript.dataValues;
       delete transcriptData.content.body;
-      delete transcriptData.originalContent;
       const stringifiedData = JSON.stringify(transcriptData);
       const transcriptId = transcriptData.id;
       if (!transcriptId) {
