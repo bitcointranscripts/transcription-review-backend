@@ -26,9 +26,9 @@ export async function deleteCache(key: string) {
 
 export async function resetRedisCachedPages() {
   const totalItems = await Transcript.count();
-    const limit = 5;
-    const totalPages = Math.ceil(totalItems / limit);
-    for (let page = 1; page <= totalPages; page++) {
-      await deleteCache(`transcripts:page:${page}`);
-    }
+  const limit = 5;
+  const totalPages = Math.ceil(totalItems / limit);
+  for (let page = 1; page <= totalPages; page++) {
+    await deleteCache(`transcripts:page:${page}`);
+  }
 }
