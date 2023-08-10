@@ -10,10 +10,8 @@ import {
   User,
   Wallet,
 } from "../db/models";
-import { ReviewAttributes } from "../types/review";
 import { USER_PERMISSIONS } from "../types/user";
 import { generateJwtToken } from "../utils/auth";
-import { calculateWordDiff } from "../utils/review.inference";
 import { deleteCache, setCache } from "../db/helpers/redis";
 
 export const signIn = async (req: Request, res: Response) => {
@@ -213,18 +211,7 @@ export async function getUserReviews(req: Request, res: Response) {
 
   await Review.findAll({ where: condition, include: { model: Transcript } })
     .then(async (data) => {
-      const reviews: ReviewAttributes[] = [];
-      const appendReviewData = data.map(async (review) => {
-        const { transcript } = review;
-        const transcriptData = transcript.dataValues;
-        const { totalWords } = await calculateWordDiff(transcriptData);
-        Object.assign(transcriptData, { contentTotalWords: totalWords });
-        review.transcript = transcript;
-        reviews.push(review);
-      });
-      Promise.all(appendReviewData).then(() => {
-        res.send(reviews);
-      });
+      res.send(data);
     })
     .catch((err) => {
       return res.status(500).send({
