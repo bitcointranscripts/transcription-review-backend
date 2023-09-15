@@ -56,7 +56,7 @@ export async function create(req: Request, res: Response) {
 // Retrieve all unarchived and queued transcripts from the database.
 export async function findAll(req: Request, res: Response) {
   const page: number = Number(req.query.page) || 1;
-  const limit: number = Number(req.query.limit) || 5;
+  const limit: number = Number(req.query.limit) || 10;
   const offset: number = (page - 1) * limit;
   let condition = {
     [Op.and]: [
@@ -349,7 +349,7 @@ export async function claim(req: Request, res: Response) {
       });
     }
     const totalItems = await Transcript.count();
-    const limit = 5;
+    const limit = 10;
     const totalPages = Math.ceil(totalItems / limit);
     for (let page = 1; page <= totalPages; page++) {
       await redis.del(`transcripts:page:${page}`);
