@@ -25,12 +25,12 @@ async function createCreditTransaction(review: Review, amount: number) {
   if (!userWallet)
     throw new Error(`Could not get wallet for user with id=${user.id}`);
 
-  const newWalletBalance = userWallet.balance + +amount;
+  const newWalletBalance = userWallet.balance + Math.round(+amount);
   const creditTransaction = {
     id: generateTransactionId(),
     reviewId: review.id,
     walletId: userWallet.id,
-    amount: +amount,
+    amount: Math.round(+amount),
     transactionType: TRANSACTION_TYPE.CREDIT,
     transactionStatus: TRANSACTION_STATUS.SUCCESS,
     timestamp: currentTime,
