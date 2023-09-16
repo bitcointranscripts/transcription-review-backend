@@ -8,11 +8,9 @@ import {
   buildIsInActiveCondition,
   buildIsPendingCondition,
 } from "../utils/review.inference";
-import { redis } from "../db";
-import { deleteCache, setCache } from "../db/helpers/redis";
 
 // Create and Save a new review
-export function create(req: Request, res: Response) {
+export async function create(req: Request, res: Response) {
   const { userId, transcriptId } = req.body;
   // Validate request
   if (!userId) {
@@ -35,7 +33,7 @@ export function create(req: Request, res: Response) {
   };
 
   // Save review in the database
-  Review.create(review)
+  await Review.create(review)
     .then((data) => {
       res.send(data);
     })
@@ -144,12 +142,6 @@ export async function findOne(req: Request, res: Response) {
     return;
   }
 
-  const cachedResult = await redis.get(`review:${id}`);
-  if (cachedResult) {
-    res.status(200).send(JSON.parse(cachedResult));
-    return;
-  }
-
   await Review.findByPk(id, { include: { model: Transcript } })
     .then(async (data) => {
       if (!data) {
@@ -157,7 +149,6 @@ export async function findOne(req: Request, res: Response) {
           message: `Review with id=${id} does not exist`,
         });
       }
-      await setCache(`review:${id}`, JSON.stringify(data));
       res.status(200).send(data);
     })
     .catch((_err) => {
@@ -176,7 +167,6 @@ export async function update(req: Request, res: Response) {
   })
     .then(async (num) => {
       if (typeof num === "number" && num == 1) {
-        await deleteCache(`review:${id}`);
         return res.status(200).send({
           message: "review was updated successfully.",
         });
@@ -213,7 +203,6 @@ export async function submit(req: Request, res: Response) {
     );
 
     if (num === 1) {
-      await deleteCache(`review:${id}`);
       res.send({
         message: "Review was updated successfully.",
       });
