@@ -9,7 +9,7 @@ import {
   buildIsPendingCondition,
   getTotalWords,
 } from "../utils/review.inference";
-import { MAXPENDINGREVIEWS } from "../utils/constants";
+import { DB_QUERY_LIMIT, MAXPENDINGREVIEWS } from "../utils/constants";
 import { generateUniqueHash } from "../helpers/transcript";
 import { redis } from "../db";
 import {
@@ -56,7 +56,7 @@ export async function create(req: Request, res: Response) {
 // Retrieve all unarchived and queued transcripts from the database.
 export async function findAll(req: Request, res: Response) {
   const page: number = Number(req.query.page) || 1;
-  const limit: number = Number(req.query.limit) || 10;
+  const limit: number = Number(req.query.limit) || DB_QUERY_LIMIT;
   const offset: number = (page - 1) * limit;
   let condition = {
     [Op.and]: [
@@ -213,9 +213,13 @@ export async function update(req: Request, res: Response) {
       where: { id: id },
     }).then(async (response) => {
       if (response[0] === 1) {
-        await resetRedisCachedPages();
-        await deleteCache(`transcript:${id}`);
-        await redis.srem("cachedTranscripts", id);
+        try {
+          await resetRedisCachedPages();
+          await deleteCache(`transcript:${id}`);
+          await redis.srem("cachedTranscripts", id);
+        } catch (cacheError: any) {
+          throw new Error(cacheError);
+        }
         return res.status(200).send({
           message: "Transcript was updated successfully.",
         });
@@ -277,8 +281,7 @@ export async function archive(req: Request, res: Response) {
       });
     }
     const totalItems = await Transcript.count();
-    const limit = 5;
-    const totalPages = Math.ceil(totalItems / limit);
+    const totalPages = Math.ceil(totalItems / DB_QUERY_LIMIT);
     for (let page = 1; page <= totalPages; page++) {
       await redis.del(`transcripts:page:${page}`);
     }
@@ -349,8 +352,7 @@ export async function claim(req: Request, res: Response) {
       });
     }
     const totalItems = await Transcript.count();
-    const limit = 10;
-    const totalPages = Math.ceil(totalItems / limit);
+    const totalPages = Math.ceil(totalItems / DB_QUERY_LIMIT);
     for (let page = 1; page <= totalPages; page++) {
       await redis.del(`transcripts:page:${page}`);
     }
