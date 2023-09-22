@@ -167,7 +167,7 @@ export function transcriptRoutes(app: Express) {
    */
 
   // Create a new transcript
-  router.post("/", auth, transcripts.create);
+  router.post("/", auth, admin, transcripts.create);
 
   // Retrieve all transcripts
   router.get("/", transcripts.findAll);
