@@ -20,7 +20,7 @@ const validateGitHubToken = async (
   }
 
   if (!email) {
-    return res.status(404).json({ error: "Unauthorized. No email provided!" });
+    return res.status(400).json({ error: "Bad Input. No email provided!" });
   }
 
   try {
