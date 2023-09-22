@@ -96,7 +96,9 @@ export function findAll(req: Request, res: Response) {
 export function findOne(req: Request, res: Response) {
   const id = Number(req.params.id);
 
-  User.findByPk(id)
+  User.findByPk(id, {
+    attributes: { exclude: ["jwt", "albyToken", "email", "updatedAt"] },
+  })
     .then((data) => {
       return res.send(data);
     })
