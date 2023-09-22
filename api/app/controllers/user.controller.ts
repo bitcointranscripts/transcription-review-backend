@@ -78,12 +78,11 @@ export function findAll(req: Request, res: Response) {
     ? { username: { [Op.iLike]: `%${username.toString()}%` } }
     : {};
 
-  User.findAll({ where: condition })
+  User.findAll({
+    where: condition,
+    attributes: { exclude: ["jwt", "albyToken", "email", "updatedAt"] },
+  })
     .then((data) => {
-      data.forEach((user) => {
-        user.jwt = undefined;
-        user.albyToken = undefined;
-      });
       return res.send(data);
     })
     .catch((err) => {
