@@ -1,7 +1,7 @@
 import type { Express } from "express";
 import express from "express";
 import * as users from "../controllers/user.controller";
-import { auth } from "../middleware/auth";
+import { admin, auth } from "../middleware/auth";
 import validateGitHubToken from "../middleware/validate-github-token";
 
 export function userRoutes(app: Express) {
@@ -86,7 +86,7 @@ export function userRoutes(app: Express) {
    *                         description: Date when a user record is updated.
    *                         example: 2023-03-08T13:42:08.699Z
    */
-  router.get("/", auth, users.findAll);
+  router.get("/", auth, admin, users.findAll);
 
   // Retrieve a single User with id
   /**
