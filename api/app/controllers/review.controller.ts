@@ -166,7 +166,7 @@ export async function update(req: Request, res: Response) {
     where: { id: id },
   })
     .then(async (num) => {
-      if (typeof num === "number" && num == 1) {
+      if (Array.isArray(num) && num[0] == 1) {
         return res.status(200).send({
           message: "review was updated successfully.",
         });
