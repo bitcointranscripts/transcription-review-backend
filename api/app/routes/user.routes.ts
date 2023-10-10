@@ -9,7 +9,7 @@ export function userRoutes(app: Express) {
 
   // Sign in a user
 
-   /**
+  /**
    * @swagger
    * /api/users:
    *   post:
@@ -87,6 +87,54 @@ export function userRoutes(app: Express) {
    *                         example: 2023-03-08T13:42:08.699Z
    */
   router.get("/", auth, admin, users.findAll);
+
+  // Retrieve a single User by their public profile (Github username)
+  /**
+   * @swagger
+   * /api/users/public:
+   *   get:
+   *     summary: Retrieve a single JSONPlaceholder user.
+   *     description: Retrieve a single JSONPlaceholder user.
+   *     parameters:
+   *       - in: query
+   *         name: username
+   *         required: true
+   *         schema:
+   *            type: string
+   *         description: The user's github username.
+   *     responses:
+   *       200:
+   *         description: A single user.
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 data:
+   *                   type: object
+   *                   properties:
+   *                     id:
+   *                       type: integer
+   *                       description: The user ID only if the request is made by an admin.
+   *                       example: 1
+   *                     githubUsername:
+   *                       type: string
+   *                       description: The user's Github username.
+   *                       example: ryanofsky
+   *                     permissions:
+   *                       type: string
+   *                       description: The user's permissions.
+   *                       enum: [admin, reviewer]
+   *                     archivedAt:
+   *                       type: datetime
+   *                       description: Date when a user is marked as inactive.
+   *                       example: 2023-03-08T13:42:08.699Z
+   *                     createdAt:
+   *                       type: datetime
+   *                       description: Date when a user is created
+   *                       example: 2023-03-08T13:42:08.699Z
+   */
+  router.get("/public", auth, users.findByPublicProfile);
 
   // Retrieve a single User with id
   /**

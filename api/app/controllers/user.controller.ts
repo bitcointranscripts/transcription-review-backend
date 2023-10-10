@@ -13,6 +13,7 @@ import {
 import { USER_PERMISSIONS } from "../types/user";
 import { generateJwtToken } from "../utils/auth";
 import { deleteCache, setCache } from "../db/helpers/redis";
+import { PUBLIC_PROFILE_REVIEW_LIMIT } from "../utils/constants";
 
 export const signIn = async (req: Request, res: Response) => {
   try {
@@ -107,6 +108,58 @@ export function findOne(req: Request, res: Response) {
         message: "Error retrieving User with id=" + id,
       });
     });
+}
+// Find a public user with github username
+export async function findByPublicProfile(req: Request, res: Response) {
+  const username = req.body.username;
+
+  if (!username) throw new Error("Username is required")
+
+  const baseExclusion = [
+    "jwt",
+    "albyToken",
+    "email",
+    "updatedAt",
+    "wallet",
+    "settings",
+  ];
+
+  try {
+    const user = await User.findOne({
+      where: { githubUsername: { [Op.eq]: username } },
+      attributes: { exclude: baseExclusion },
+    });
+    if (!user) {
+      return res.status(500).send({
+        message: "No User with username=" + username,
+      });
+    }
+    const data = await Review.findAll({
+      where: { userId: { [Op.eq]: user.id } },
+      limit: PUBLIC_PROFILE_REVIEW_LIMIT,
+      order: [["createdAt", "DESC"]],
+      include: { model: Transcript },
+    });
+
+    const isAdmin = user.permissions === "admin"
+
+    const response = {
+      user: {
+        ...user.dataValues,
+        id: isAdmin ? user.id : undefined,
+      },
+      latestReviews: data,
+    };
+    res.status(200).send(response);
+  } catch (error) {
+    console.log(error);
+    return res.status(500).send({
+      message:
+        error instanceof Error
+          ? error.message
+          : "Error retrieving User with username=" + username,
+    });
+  }
 }
 
 // Update a User by the id in the request
