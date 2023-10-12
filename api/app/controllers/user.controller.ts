@@ -12,7 +12,6 @@ import {
 } from "../db/models";
 import { USER_PERMISSIONS } from "../types/user";
 import { generateJwtToken } from "../utils/auth";
-import { deleteCache, setCache } from "../db/helpers/redis";
 import { PUBLIC_PROFILE_REVIEW_LIMIT } from "../utils/constants";
 
 export const signIn = async (req: Request, res: Response) => {
@@ -59,7 +58,6 @@ export const signIn = async (req: Request, res: Response) => {
       return res.status(500).json({ error: "Failed to update user token" });
     }
 
-    await setCache(`user:${email}`, JSON.stringify(token));
     return res.status(200).send({ jwt: token });
   } catch (error) {
     const message =
@@ -172,7 +170,6 @@ export function update(req: Request, res: Response) {
   })
     .then(async (num) => {
       if (Array.isArray(num) && num[0] == 1) {
-        await deleteCache(`user:${email}`);
         return res.status(200).send({
           message: "User was updated successfully.",
         });
