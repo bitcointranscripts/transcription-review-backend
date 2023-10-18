@@ -13,11 +13,22 @@ export async function payInvoiceController(req: Request, res: Response) {
   if (!invoice) {
     return res.status(400).json({ error: "Invoice is required" });
   }
+  if (!invoice.startsWith("lntb" || "lnbc" || "lnbcrt")) {
+    if (invoice.includes("@")) {
+      return res.status(400).send({
+        error: "Invalid invoice. We do not support lightning addresses!",
+      });
+    }
+    return res.status(400).json({ error: "Invalid invoice" });
+  }
   if (!userId) {
     return res.status(400).send({ message: "userId field is required" });
   }
 
   const decodedInvoice = decode(invoice);
+  if (!decodedInvoice || decodedInvoice instanceof Error) {
+    return res.status(400).json({ error: "Invalid invoice" });
+  }
   const amount = Number(decodedInvoice._value);
 
   const userWallet = await Wallet.findOne({
