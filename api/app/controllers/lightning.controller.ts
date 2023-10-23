@@ -13,7 +13,9 @@ export async function payInvoiceController(req: Request, res: Response) {
   if (!invoice) {
     return res.status(400).json({ error: "Invoice is required" });
   }
-  if (!invoice.startsWith("lntb" || "lnbc" || "lnbcrt")) {
+
+  const prefix = process.env.NODE_ENV === "production" ? "lnbc" : "lntb";
+  if (!invoice.startsWith(prefix)) {
     if (invoice.includes("@")) {
       return res.status(400).send({
         error: "Invalid invoice. We do not support lightning addresses!",
@@ -67,10 +69,12 @@ export async function payInvoiceController(req: Request, res: Response) {
     if (!result) {
       throw new Error("Transaction failed");
     }
+
     const response = await payInvoice(invoice);
-    if (!response) {
+    if (response?.error) {
       throw new Error("Payment failed");
     }
+
     await Transaction.update(
       { transactionStatus: TRANSACTION_STATUS.SUCCESS },
       { where: { id: transactionId } }
