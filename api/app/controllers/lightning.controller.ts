@@ -56,7 +56,7 @@ export async function payInvoiceController(req: Request, res: Response) {
   const transactionId = generateTransactionId();
   const transaction = {
     id: transactionId,
-    reviewId: 1, //FIXME: reviewId is not nullable
+    reviewId: 10, //FIXME: reviewId is not nullable
     amount: newAmount,
     transactionType: TRANSACTION_TYPE.DEBIT,
     transactionStatus: TRANSACTION_STATUS.PENDING,
