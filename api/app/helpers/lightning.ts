@@ -29,10 +29,11 @@ const payInvoice = async (invoice: string) => {
       fee_limit_sat: FEE_LIMIT_SAT,
     });
     if (res.status === 200) {
-      return res.data;
+      return { success: true, data: res.data };
     }
   } catch (err) {
     console.error(err);
+    return { error: err, data: null };
   }
 };
 
