@@ -134,6 +134,7 @@ export async function findAll(req: Request, res: Response) {
 // Find a single review with an id
 export async function findOne(req: Request, res: Response) {
   const id = parseInt(req.params.id);
+  const userId = req.body.userId;
 
   if (!id) {
     res.status(400).send({
@@ -142,7 +143,10 @@ export async function findOne(req: Request, res: Response) {
     return;
   }
 
-  await Review.findByPk(id, { include: { model: Transcript } })
+  await Review.findOne({
+    where: { id: id, userId: userId },
+    include: { model: Transcript },
+  })
     .then(async (data) => {
       if (!data) {
         return res.status(404).send({
@@ -161,9 +165,10 @@ export async function findOne(req: Request, res: Response) {
 // Update a review by the id in the request
 export async function update(req: Request, res: Response) {
   const id = req.params.id;
+  const userId = req.body.userId;
 
   await Review.update(req.body, {
-    where: { id: id },
+    where: { id: id, userId: userId },
   })
     .then(async (num) => {
       if (Array.isArray(num) && num[0] == 1) {
