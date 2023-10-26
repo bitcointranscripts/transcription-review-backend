@@ -32,6 +32,7 @@ export async function create(req: Request, res: Response) {
   // Create a Transcript
   const transcriptHash = generateUniqueHash(content);
   const totalWords = getTotalWords(content.body);
+
   const transcript: TranscriptAttributes = {
     originalContent: content,
     content: content,
@@ -41,16 +42,23 @@ export async function create(req: Request, res: Response) {
   };
 
   // Save Transcript in the database
-  await Transcript.create(transcript)
-    .then((data) => {
-      res.send(data);
-    })
-    .catch((err) => {
-      res.status(500).send({
-        message:
-          err.message || "Some error occurred while creating the Transcript.",
+  try {
+    const transcriptData = await Transcript.create(transcript);
+    return res.status(200).send(transcriptData);
+  } catch (error) {
+    console.log(error);
+    if (
+      error instanceof Error &&
+      error.name === "SequelizeUniqueConstraintError"
+    ) {
+      return res.status(400).send({
+        message: "Transcript already exists!",
       });
+    }
+    res.status(500).send({
+      message: "Some error occurred while creating the Transcript.",
     });
+  }
 }
 
 // Retrieve all unarchived and queued transcripts from the database.
