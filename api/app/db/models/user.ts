@@ -31,7 +31,7 @@ export class User extends Model<UserAttributes> {
   @Column(DataType.STRING)
   email!: string;
 
-  @Column(DataType.STRING)
+  @Column(DataType.TEXT)
   jwt?: string;
 
   @Column(DataType.STRING)
