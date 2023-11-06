@@ -1,7 +1,7 @@
 import type { Express } from "express";
 import express from "express";
 import * as transactions from "../controllers/transaction.controller";
-import { auth } from "../middleware/auth";
+import { admin, auth } from "../middleware/auth";
 
 export function transactionRoutes(app: Express) {
   const router = express.Router();
@@ -86,6 +86,9 @@ export function transactionRoutes(app: Express) {
 
   // Create a new Transaction
   router.post("/", transactions.create);
+
+  // Get all Transactions for Admin
+  router.get("/all", admin, transactions.getAllTransactions);
 
   app.use("/api/transactions", auth, router);
 }
