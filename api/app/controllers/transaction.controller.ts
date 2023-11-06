@@ -3,6 +3,7 @@ import { Request, Response } from "express";
 import { Review, Transaction, User, Wallet } from "../db/models";
 import { TRANSACTION_STATUS, TRANSACTION_TYPE } from "../types/transaction";
 import { generateTransactionId } from "../utils/transaction";
+import { DB_START_PAGE, DB_TXN_QUERY_LIMIT } from "../utils/constants";
 
 // Create and Save a new Transaction
 export async function create(req: Request, res: Response) {
@@ -168,8 +169,8 @@ export async function findAll(req: Request, res: Response) {
 }
 
 export const getAllTransactions = async (req: Request, res: Response) => {
-  const page: number = Number(req.query.page) || 1;
-  const limit: number = Number(req.query.limit) || 20;
+  const page: number = Number(req.query.page) || DB_START_PAGE;
+  const limit: number = Number(req.query.limit) || DB_TXN_QUERY_LIMIT;
   const offset: number = (page - 1) * limit;
 
   try {
