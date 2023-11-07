@@ -169,9 +169,45 @@ export async function findAll(req: Request, res: Response) {
 }
 
 export const getAllTransactions = async (req: Request, res: Response) => {
+  const status = req.query.status as TRANSACTION_STATUS;
+  const type = req.query.type as TRANSACTION_TYPE;
+  const email = req.query.email as string;
+  const githubUsername = req.query.username as string;
   const page: number = Number(req.query.page) || DB_START_PAGE;
   const limit: number = Number(req.query.limit) || DB_TXN_QUERY_LIMIT;
   const offset: number = (page - 1) * limit;
+
+  const txnCondition: {
+    transactionStatus?: TRANSACTION_STATUS;
+    transactionType?: TRANSACTION_TYPE;
+  } = {};
+
+  const userCondition: {
+    email?: string;
+    githubUsername?: string;
+  } = {};
+
+  if (
+    status &&
+    Object.keys(TRANSACTION_STATUS).includes(status.toUpperCase())
+  ) {
+    txnCondition.transactionStatus = status.toString() as TRANSACTION_STATUS;
+  } else if (status) {
+    return res.status(400).send({ message: `Invalid status: ${status}` });
+  }
+
+  if (type && Object.keys(TRANSACTION_TYPE).includes(type.toUpperCase())) {
+    txnCondition.transactionType = type.toString() as TRANSACTION_TYPE;
+  } else if (type) {
+    return res.status(400).send({ message: `Invalid type: ${type}` });
+  }
+
+  if (email) {
+    userCondition.email = email.toString().toLowerCase();
+  }
+  if (githubUsername) {
+    userCondition.githubUsername = githubUsername.toString().toLowerCase();
+  }
 
   try {
     const transactions = await Transaction.findAll({
@@ -183,17 +219,38 @@ export const getAllTransactions = async (req: Request, res: Response) => {
       include: [
         {
           model: Wallet,
+          required: true,
           attributes: ["id", "balance", "updatedAt"],
           include: [
             {
               model: User,
               attributes: ["id", "githubUsername", "email", "permissions"],
+              where: userCondition,
+              required: Object.keys(userCondition).length > 0,
+            },
+          ],
+        },
+      ],
+      where: txnCondition,
+    });
+
+    const transactionCount = await Transaction.count({
+      distinct: true,
+      where: txnCondition,
+      include: [
+        {
+          model: Wallet,
+          required: true,
+          include: [
+            {
+              model: User,
+              where: userCondition,
+              required: Object.keys(userCondition).length > 0,
             },
           ],
         },
       ],
     });
-    const transactionCount = await Transaction.count();
     const totalPages = Math.ceil(transactionCount / limit);
     const hasNextPage = page < totalPages;
     const hasPreviousPage = page > 1;
