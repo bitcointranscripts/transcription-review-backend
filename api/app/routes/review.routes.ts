@@ -28,6 +28,8 @@ export function reviewRoutes(app: Express) {
    *   description: The reviews API routes
    * /api/reviews:
    *   get:
+   *     security:
+   *       - bearerAuth: []
    *     summary: Lists all the reviews
    *     tags: [Reviews]
    *     parameters:
@@ -61,6 +63,8 @@ export function reviewRoutes(app: Express) {
    *       500:
    *         description: Some error occurred while retrieving reviews
    *   post:
+   *     security:
+   *       - bearerAuth: []
    *     summary: Create a new review
    *     tags: [Reviews]
    *     requestBody:
@@ -80,6 +84,8 @@ export function reviewRoutes(app: Express) {
    *         description: Some server error
    * /api/reviews/{id}:
    *   get:
+   *     security:
+   *       - bearerAuth: []
    *     summary: Get the review by id
    *     tags: [Reviews]
    *     parameters:
@@ -99,6 +105,8 @@ export function reviewRoutes(app: Express) {
    *       404:
    *         description: The review was not found
    *   put:
+   *    security:
+   *      - bearerAuth: []
    *    summary: Update the review by the id
    *    tags: [Reviews]
    *    parameters:
@@ -128,6 +136,8 @@ export function reviewRoutes(app: Express) {
    *
    * /api/reviews/{id}/submit:
    *   put:
+   *     security:
+   *       - bearerAuth: []
    *    summary: Submit the review by the id
    *    tags: [Reviews]
    *    parameters:
