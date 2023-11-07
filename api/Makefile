@@ -1,7 +1,7 @@
 start:
 	yarn start
 
-dev:
+init:
 	yarn run migrate
 	yarn run seed
 	yarn dev
@@ -19,6 +19,7 @@ start-pg-shell:
 
 stop-deps:
 	docker stop transcription
+	docker stop redis
 
 reset-deps:
 	make stop-deps & make start-deps

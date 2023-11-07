@@ -37,9 +37,9 @@
 
 (e.g. `const secret = require('crypto').randomBytes(64).toString('hex')`)
 
-- Run `make start` to start the api service. This will run migrations, seed the database and start the server.
+- Run `make init` to initialize and start the api service. This will run migrations, seed the database and start the server.
 
-- You only need run `make start` the first time. Subsequent run only requires `make run` or `yarn dev`
+- You only need run `make init` the first time. Subsequent run only requires `make run` or `yarn dev`
 
 ## API docs endpoints to check out
 

@@ -17,6 +17,7 @@ import {
   deleteCache,
   resetRedisCachedPages,
 } from "../db/helpers/redis";
+import { validateTranscriptTitle } from "../utils/functions";
 
 // Create and Save a new Transcript
 export async function create(req: Request, res: Response) {
@@ -33,8 +34,18 @@ export async function create(req: Request, res: Response) {
   const transcriptHash = generateUniqueHash(content);
   const totalWords = getTotalWords(content.body);
 
+  const isValidTranscriptTitle = validateTranscriptTitle(content.title.trim());
+  if (!isValidTranscriptTitle) {
+    return res.status(400).send({
+      message: "Transcript title is invalid!",
+    });
+  }
+
   const transcript: TranscriptAttributes = {
-    originalContent: content,
+    originalContent: {
+      ...content,
+      title: content.title.trim(),
+    },
     content: content,
     transcriptHash,
     status: TranscriptStatus.queued,
