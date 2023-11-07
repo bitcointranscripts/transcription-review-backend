@@ -23,3 +23,12 @@ export function wordCount(data: string) {
   }
   return count;
 }
+
+export const validateTranscriptTitle = (title: string) => {
+  // check if title includes, hyphen, paranthesis, slashes and brackets
+  const regex = /[-()\\\/\[\]]/;
+  if (regex.test(title)) {
+    return false;
+  }
+  return true;
+};

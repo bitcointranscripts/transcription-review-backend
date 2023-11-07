@@ -1,8 +1,9 @@
 import { Request, Response } from "express";
 
-import { Review, Transaction, Wallet } from "../db/models";
+import { Review, Transaction, User, Wallet } from "../db/models";
 import { TRANSACTION_STATUS, TRANSACTION_TYPE } from "../types/transaction";
 import { generateTransactionId } from "../utils/transaction";
+import { DB_START_PAGE, DB_TXN_QUERY_LIMIT } from "../utils/constants";
 
 // Create and Save a new Transaction
 export async function create(req: Request, res: Response) {
@@ -166,3 +167,48 @@ export async function findAll(req: Request, res: Response) {
       });
     });
 }
+
+export const getAllTransactions = async (req: Request, res: Response) => {
+  const page: number = Number(req.query.page) || DB_START_PAGE;
+  const limit: number = Number(req.query.limit) || DB_TXN_QUERY_LIMIT;
+  const offset: number = (page - 1) * limit;
+
+  try {
+    const transactions = await Transaction.findAll({
+      limit,
+      offset,
+      attributes: {
+        exclude: ["walletId"],
+      },
+      include: [
+        {
+          model: Wallet,
+          attributes: ["id", "balance", "updatedAt"],
+          include: [
+            {
+              model: User,
+              attributes: ["id", "githubUsername", "email", "permissions"],
+            },
+          ],
+        },
+      ],
+    });
+    const transactionCount = await Transaction.count();
+    const totalPages = Math.ceil(transactionCount / limit);
+    const hasNextPage = page < totalPages;
+    const hasPreviousPage = page > 1;
+    const response = {
+      totalTransactions: transactionCount,
+      totalPages,
+      page,
+      itemsPerPage: limit,
+      hasNextPage,
+      hasPreviousPage,
+      data: transactions,
+    };
+    res.status(200).json(response);
+  } catch (error) {
+    console.log(error);
+    res.status(500).json({ message: "Internal server error" });
+  }
+};
