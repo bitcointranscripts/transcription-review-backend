@@ -23,7 +23,7 @@ export const signIn = async (req: Request, res: Response) => {
     if (email) {
       condition = { email };
     } else {
-      condition = { githubUsername: username };
+      condition = { githubUsername: username.toLowerCase() };
     }
 
     let user: User | null = null;
@@ -33,9 +33,9 @@ export const signIn = async (req: Request, res: Response) => {
 
     if (!user) {
       user = await User.create({
-        email: email || null,
+        email: email.toLowerCase() || null,
         permissions: USER_PERMISSIONS.REVIEWER,
-        githubUsername: username,
+        githubUsername: username.toLowerCase(),
       });
 
       const walletId = uuidv4();
@@ -74,7 +74,7 @@ export const signIn = async (req: Request, res: Response) => {
 export function findAll(req: Request, res: Response) {
   const username = req.query.username;
   const condition = username
-    ? { username: { [Op.iLike]: `%${username.toString()}%` } }
+    ? { username: { [Op.iLike]: `%${username.toString().toLowerCase()}%` } }
     : {};
 
   User.findAll({
@@ -111,7 +111,7 @@ export function findOne(req: Request, res: Response) {
 export async function findByPublicProfile(req: Request, res: Response) {
   const username = req.body.username;
 
-  if (!username) throw new Error("Username is required")
+  if (!username) throw new Error("Username is required");
 
   const baseExclusion = [
     "jwt",
@@ -124,7 +124,7 @@ export async function findByPublicProfile(req: Request, res: Response) {
 
   try {
     const user = await User.findOne({
-      where: { githubUsername: { [Op.eq]: username } },
+      where: { githubUsername: { [Op.eq]: username.toLowerCase() } },
       attributes: { exclude: baseExclusion },
     });
     if (!user) {
@@ -139,7 +139,7 @@ export async function findByPublicProfile(req: Request, res: Response) {
       include: { model: Transcript },
     });
 
-    const isAdmin = user.permissions === "admin"
+    const isAdmin = user.permissions === "admin";
 
     const response = {
       user: {
@@ -162,7 +162,6 @@ export async function findByPublicProfile(req: Request, res: Response) {
 
 // Update a User by the id in the request
 export function update(req: Request, res: Response) {
-  const email = req.body.email;
   const id = Number(req.params.id);
 
   User.update(req.body, {
