@@ -1,9 +1,10 @@
 import { Request, Response } from "express";
+import { Op } from "sequelize";
 
 import { Review, Transaction, User, Wallet } from "../db/models";
 import { TRANSACTION_STATUS, TRANSACTION_TYPE } from "../types/transaction";
-import { generateTransactionId } from "../utils/transaction";
 import { DB_START_PAGE, DB_TXN_QUERY_LIMIT } from "../utils/constants";
+import { generateTransactionId } from "../utils/transaction";
 
 // Create and Save a new Transaction
 export async function create(req: Request, res: Response) {
@@ -171,8 +172,7 @@ export async function findAll(req: Request, res: Response) {
 export const getAllTransactions = async (req: Request, res: Response) => {
   const status = req.query.status as TRANSACTION_STATUS;
   const type = req.query.type as TRANSACTION_TYPE;
-  const email = req.query.email as string;
-  const githubUsername = req.query.username as string;
+  const userSearch = req.query.user as string;
   const page: number = Number(req.query.page) || DB_START_PAGE;
   const limit: number = Number(req.query.limit) || DB_TXN_QUERY_LIMIT;
   const offset: number = (page - 1) * limit;
@@ -183,8 +183,10 @@ export const getAllTransactions = async (req: Request, res: Response) => {
   } = {};
 
   const userCondition: {
-    email?: string;
-    githubUsername?: string;
+    [Op.or]?: {
+      email?: { [Op.iLike]: string };
+      githubUsername?: { [Op.iLike]: string };
+    }[];
   } = {};
 
   if (
@@ -202,11 +204,12 @@ export const getAllTransactions = async (req: Request, res: Response) => {
     return res.status(400).send({ message: `Invalid type: ${type}` });
   }
 
-  if (email) {
-    userCondition.email = email.toString().toLowerCase();
-  }
-  if (githubUsername) {
-    userCondition.githubUsername = githubUsername.toString().toLowerCase();
+  if (userSearch) {
+    const searchCondition = { [Op.iLike]: `%${userSearch.toLowerCase()}%` };
+    userCondition[Op.or] = [
+      { email: searchCondition },
+      { githubUsername: searchCondition },
+    ];
   }
 
   try {
@@ -226,7 +229,7 @@ export const getAllTransactions = async (req: Request, res: Response) => {
               model: User,
               attributes: ["id", "githubUsername", "email", "permissions"],
               where: userCondition,
-              required: Object.keys(userCondition).length > 0,
+              required: true,
             },
           ],
         },
@@ -245,7 +248,7 @@ export const getAllTransactions = async (req: Request, res: Response) => {
             {
               model: User,
               where: userCondition,
-              required: Object.keys(userCondition).length > 0,
+              required: true,
             },
           ],
         },
