@@ -1,9 +1,10 @@
 import { Request, Response } from "express";
+import { Op } from "sequelize";
 
 import { Review, Transaction, User, Wallet } from "../db/models";
 import { TRANSACTION_STATUS, TRANSACTION_TYPE } from "../types/transaction";
-import { generateTransactionId } from "../utils/transaction";
 import { DB_START_PAGE, DB_TXN_QUERY_LIMIT } from "../utils/constants";
+import { generateTransactionId } from "../utils/transaction";
 
 // Create and Save a new Transaction
 export async function create(req: Request, res: Response) {
@@ -169,9 +170,47 @@ export async function findAll(req: Request, res: Response) {
 }
 
 export const getAllTransactions = async (req: Request, res: Response) => {
+  const status = req.query.status as TRANSACTION_STATUS;
+  const type = req.query.type as TRANSACTION_TYPE;
+  const userSearch = req.query.user as string;
   const page: number = Number(req.query.page) || DB_START_PAGE;
   const limit: number = Number(req.query.limit) || DB_TXN_QUERY_LIMIT;
   const offset: number = (page - 1) * limit;
+
+  const txnCondition: {
+    transactionStatus?: TRANSACTION_STATUS;
+    transactionType?: TRANSACTION_TYPE;
+  } = {};
+
+  const userCondition: {
+    [Op.or]?: {
+      email?: { [Op.iLike]: string };
+      githubUsername?: { [Op.iLike]: string };
+    }[];
+  } = {};
+
+  if (
+    status &&
+    Object.keys(TRANSACTION_STATUS).includes(status.toUpperCase())
+  ) {
+    txnCondition.transactionStatus = status.toString() as TRANSACTION_STATUS;
+  } else if (status) {
+    return res.status(400).send({ message: `Invalid status: ${status}` });
+  }
+
+  if (type && Object.keys(TRANSACTION_TYPE).includes(type.toUpperCase())) {
+    txnCondition.transactionType = type.toString() as TRANSACTION_TYPE;
+  } else if (type) {
+    return res.status(400).send({ message: `Invalid type: ${type}` });
+  }
+
+  if (userSearch) {
+    const searchCondition = { [Op.iLike]: `%${userSearch.toLowerCase()}%` };
+    userCondition[Op.or] = [
+      { email: searchCondition },
+      { githubUsername: searchCondition },
+    ];
+  }
 
   try {
     const transactions = await Transaction.findAll({
@@ -183,17 +222,38 @@ export const getAllTransactions = async (req: Request, res: Response) => {
       include: [
         {
           model: Wallet,
+          required: true,
           attributes: ["id", "balance", "updatedAt"],
           include: [
             {
               model: User,
               attributes: ["id", "githubUsername", "email", "permissions"],
+              where: userCondition,
+              required: true,
+            },
+          ],
+        },
+      ],
+      where: txnCondition,
+    });
+
+    const transactionCount = await Transaction.count({
+      distinct: true,
+      where: txnCondition,
+      include: [
+        {
+          model: Wallet,
+          required: true,
+          include: [
+            {
+              model: User,
+              where: userCondition,
+              required: true,
             },
           ],
         },
       ],
     });
-    const transactionCount = await Transaction.count();
     const totalPages = Math.ceil(transactionCount / limit);
     const hasNextPage = page < totalPages;
     const hasPreviousPage = page > 1;

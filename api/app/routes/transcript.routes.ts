@@ -9,6 +9,10 @@ export function transcriptRoutes(app: Express) {
   /**
    * @swagger
    * components:
+   *   securitySchemes:
+   *    bearerAuth:
+   *      type: http
+   *      scheme: bearer  
    *   schemas:
    *     Archive:
    *       type: object
@@ -25,6 +29,8 @@ export function transcriptRoutes(app: Express) {
    *         originalContent:
    *           type: object
    *           description: Original content that should not be changed
+   * security:
+   *  - bearerAuth: []
    */
 
   /**
@@ -46,6 +52,8 @@ export function transcriptRoutes(app: Express) {
    *               items:
    *                 $ref: '#/components/schemas/Transcript'
    *   post:
+   *     security:
+   *       - bearerAuth: []
    *     summary: Create a new transcript
    *     tags: [Transcripts]
    *     requestBody:
@@ -65,6 +73,8 @@ export function transcriptRoutes(app: Express) {
    *         description: Some server error
    * /api/transcripts/{id}:
    *   get:
+   *     security:
+   *       - bearerAuth: []
    *     summary: Get the transcript by id
    *     tags: [Transcripts]
    *     parameters:
@@ -77,13 +87,15 @@ export function transcriptRoutes(app: Express) {
    *     responses:
    *       200:
    *         description: The transcript response by id
-   *         contens:
+   *         content:
    *           application/json:
    *             schema:
    *               $ref: '#/components/schemas/Transcript'
    *       404:
    *         description: The transcript was not found
    *   put:
+   *    security:
+   *      - bearerAuth: []
    *    summary: Update the transcript by the id
    *    tags: [Transcripts]
    *    parameters:
@@ -112,6 +124,8 @@ export function transcriptRoutes(app: Express) {
    *        description: Some error happened
    * /api/transcripts/{id}/archive:
    *   put:
+   *    security:
+   *      - bearerAuth: []
    *    summary: Archive the transcript by the id
    *    tags: [Transcripts]
    *    parameters:
@@ -140,6 +154,8 @@ export function transcriptRoutes(app: Express) {
    *        description: Some error happened
    * /api/transcripts/{id}/claim:
    *   put:
+   *    security:
+   *      - bearerAuth: []
    *    summary: Claim the transcript by the id
    *    tags: [Transcripts]
    *    parameters:

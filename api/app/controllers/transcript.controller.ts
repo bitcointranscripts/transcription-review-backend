@@ -203,14 +203,17 @@ export async function findOne(req: Request, res: Response) {
 
   await Transcript.findByPk(id)
     .then(async (data) => {
-      if (data) {
-        res.send(data);
+      if (!data) {
+        return res.status(404).send({
+          message: `Transcript with id=${id} does not exist`,
+        });
       }
+      res.status(200).send(data);
     })
     .catch((err) => {
       console.log(err);
-      res.status(404).send({
-        message: "Could not find Transcript with id=" + id,
+      res.status(500).send({
+        message: `Error retrieving Transcript with id=${id}`,
       });
     });
 }
