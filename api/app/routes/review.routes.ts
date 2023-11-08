@@ -136,7 +136,7 @@ export function reviewRoutes(app: Express) {
    *
    * /api/reviews/{id}/submit:
    *   put:
-   *     security:
+   *    security:
    *       - bearerAuth: []
    *    summary: Submit the review by the id
    *    tags: [Reviews]
