@@ -172,6 +172,7 @@ export async function findAll(req: Request, res: Response) {
 export const getAllTransactions = async (req: Request, res: Response) => {
   const status = req.query.status as TRANSACTION_STATUS;
   const type = req.query.type as TRANSACTION_TYPE;
+  const txid = req.query.id as string;
   const userSearch = req.query.user as string;
   const page: number = Number(req.query.page) || DB_START_PAGE;
   const limit: number = Number(req.query.limit) || DB_TXN_QUERY_LIMIT;
@@ -180,6 +181,7 @@ export const getAllTransactions = async (req: Request, res: Response) => {
   const txnCondition: {
     transactionStatus?: TRANSACTION_STATUS;
     transactionType?: TRANSACTION_TYPE;
+    id?: string;
   } = {};
 
   const userCondition: {
@@ -188,6 +190,10 @@ export const getAllTransactions = async (req: Request, res: Response) => {
       githubUsername?: { [Op.iLike]: string };
     }[];
   } = {};
+
+  if (txid) {
+    txnCondition.id = txid;
+  }
 
   if (
     status &&
