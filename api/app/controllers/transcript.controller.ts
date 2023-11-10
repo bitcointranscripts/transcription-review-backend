@@ -17,12 +17,12 @@ import {
   deleteCache,
   resetRedisCachedPages,
 } from "../db/helpers/redis";
-import { validateTranscriptTitle } from "../utils/functions";
+import { validateTranscriptMetadata } from "../utils/functions";
+import { Logger } from "../helpers/logger";
 
 // Create and Save a new Transcript
 export async function create(req: Request, res: Response) {
   const { content } = req.body;
-  // Validate request
   if (!content) {
     res.status(400).send({
       message: "Content cannot be empty!",
@@ -30,14 +30,13 @@ export async function create(req: Request, res: Response) {
     return;
   }
 
-  // Create a Transcript
   const transcriptHash = generateUniqueHash(content);
   const totalWords = getTotalWords(content.body);
 
-  const isValidTranscriptTitle = validateTranscriptTitle(content.title.trim());
-  if (!isValidTranscriptTitle) {
+  const isValidTranscript = validateTranscriptMetadata(content);
+  if (!isValidTranscript) {
     return res.status(400).send({
-      message: "Transcript title is invalid!",
+      message: "Transcript metadata is invalid!",
     });
   }
 
@@ -52,12 +51,33 @@ export async function create(req: Request, res: Response) {
     contentTotalWords: totalWords,
   };
 
-  // Save Transcript in the database
   try {
     const transcriptData = await Transcript.create(transcript);
+    const redisTransaction = redis.multi();
+
+    redisTransaction.sadd("cachedTranscripts", transcriptData.id);
+    redisTransaction.set(
+      `transcript:${transcriptData.id}`,
+      JSON.stringify(transcriptData),
+      "EX",
+      CACHE_EXPIRATION
+    );
+    const totalItems = await Transcript.count();
+    const totalPages = Math.ceil(totalItems / DB_QUERY_LIMIT);
+    for (let page = 1; page <= totalPages; page++) {
+      redisTransaction.del(`transcripts:page:${page}`);
+    }
+    await redisTransaction.exec((err, _results) => {
+      if (err) {
+        Transcript.destroy({ where: { id: transcriptData.id } });
+        Logger.error(`Error saving transcript to redis: ${err}`);
+        throw new Error(err.message || "Error saving transcript to redis");
+      }
+    });
+
     return res.status(200).send(transcriptData);
   } catch (error) {
-    console.log(error);
+    Logger.error(`Error saving transcript to database: ${error}`);
     if (
       error instanceof Error &&
       error.name === "SequelizeUniqueConstraintError"
