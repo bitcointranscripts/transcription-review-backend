@@ -19,6 +19,7 @@ import {
   lightningRoutes,
 } from "./app/routes";
 import { redis, sequelize } from "./app/db";
+import { Logger } from "./app/helpers/logger";
 
 dotenv.config();
 
@@ -53,25 +54,25 @@ app.use(
 
 async function synchronizeModels() {
   redis.on("connect", () => {
-    console.log("Connected to Redis");
+    Logger.info("Redis connected successfully.");
   });
 
   redis.on("error", (err: any) => {
-    console.log("Redis error: ", err);
+    Logger.error("Redis connection error:", err);
   });
   try {
     await sequelize.sync();
-    console.log("Database initialized successfully.");
+    Logger.info("All models were synchronized successfully.");
   } catch (error) {
     switch (error) {
       case UniqueConstraintError:
-        console.log("A unique constraint error occurred:", error);
+        Logger.error("A unique constraint error occurred:", error);
         break;
       case ForeignKeyConstraintError:
-        console.log("A foreign key constraint error occurred:", error);
+        Logger.error("A foreign key constraint error occurred:", error);
         break;
       case DatabaseError:
-        console.log("A general database error occurred:", error);
+        Logger.error("A database error occurred:", error);
         break;
       default:
         break;
@@ -96,8 +97,8 @@ lightningRoutes(app);
 const PORT = process.env.PORT;
 app
   .listen(PORT, () => {
-    console.log(`Server is running on port ${PORT}.`);
+    Logger.info(`Server is running on port ${PORT}.`);
   })
   .on("error", (err) => {
-    console.log("Error starting server:", err);
+    Logger.error(err);
   });
