@@ -24,11 +24,48 @@ export function wordCount(data: string) {
   return count;
 }
 
-export const validateTranscriptTitle = (title: string) => {
+const validateTranscriptTitle = (title: string) => {
   // check if title includes, hyphen, paranthesis, slashes and brackets
   const regex = /[-()\\\/\[\]]/;
   if (regex.test(title)) {
     return false;
   }
+  return true;
+};
+
+export const validateTranscriptMetadata = (content: Record<string, any>) => {
+  const keys = ["title", "tags", "speakers", "categories", "loc"];
+  const contentKeys = Object.keys(content);
+  const isValid = keys.every((key) => contentKeys.includes(key));
+
+  if (!isValid) {
+    return false;
+  }
+
+  if (!validateTranscriptTitle(content.title)) {
+    return false;
+  }
+
+  if (typeof content.loc !== "string") {
+    return false;
+  }
+
+  if (
+    !Array.isArray(content.tags) ||
+    !Array.isArray(content.speakers) ||
+    !Array.isArray(content.categories)
+  ) {
+    return false;
+  } else if (
+    (content.tags.length > 0 &&
+      content.tags.some((tag) => typeof tag !== "string")) ||
+    (content.speakers.length > 0 &&
+      content.speakers.some((speaker) => typeof speaker !== "string")) ||
+    (content.categories.length > 0 &&
+      content.categories.some((category) => typeof category !== "string"))
+  ) {
+    return false;
+  }
+
   return true;
 };
