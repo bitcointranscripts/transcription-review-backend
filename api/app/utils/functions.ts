@@ -33,39 +33,60 @@ const validateTranscriptTitle = (title: string) => {
   return true;
 };
 
-export const validateTranscriptMetadata = (content: Record<string, any>) => {
-  const keys = ["title", "tags", "speakers", "categories", "loc"];
-  const contentKeys = Object.keys(content);
-  const isValid = keys.every((key) => contentKeys.includes(key));
+interface Content {
+  title: string;
+  tags: string[];
+  speakers: string[];
+  categories: string[];
+  loc: string;
+}
 
-  if (!isValid) {
-    return false;
+export const validateTranscriptMetadata = (
+  content: Partial<Content>
+): { isValid: boolean; keys: string | null } => {
+  const keys = ["title", "tags", "speakers", "categories", "loc"];
+  const missingKeys = keys.filter((key) => !(key in content));
+
+  if (missingKeys.length > 0) {
+    return {
+      isValid: false,
+      keys: missingKeys.join(", "),
+    };
   }
 
-  if (!validateTranscriptTitle(content.title)) {
-    return false;
+  const invalidKey: (keyof Content)[] = [];
+
+  if (!validateTranscriptTitle(content.title as string)) {
+    invalidKey.push("title");
   }
 
   if (typeof content.loc !== "string") {
-    return false;
+    invalidKey.push("loc");
   }
 
-  if (
-    !Array.isArray(content.tags) ||
-    !Array.isArray(content.speakers) ||
-    !Array.isArray(content.categories)
-  ) {
-    return false;
-  } else if (
-    (content.tags.length > 0 &&
-      content.tags.some((tag) => typeof tag !== "string")) ||
-    (content.speakers.length > 0 &&
-      content.speakers.some((speaker) => typeof speaker !== "string")) ||
-    (content.categories.length > 0 &&
-      content.categories.some((category) => typeof category !== "string"))
-  ) {
-    return false;
+  (["tags", "speakers", "categories"] as Array<keyof Content>).forEach(
+    (key) => {
+      const value = content[key];
+      if (value !== undefined) {
+        if (!Array.isArray(value)) {
+          invalidKey.push(key);
+        }
+        if (
+          Array.isArray(value) &&
+          value.some((item) => typeof item !== "string")
+        ) {
+          invalidKey.push(key);
+        }
+      }
+    }
+  );
+
+  if (invalidKey.length > 0) {
+    return {
+      isValid: false,
+      keys: invalidKey.join(", "),
+    };
   }
 
-  return true;
+  return { isValid: true, keys: null };
 };
