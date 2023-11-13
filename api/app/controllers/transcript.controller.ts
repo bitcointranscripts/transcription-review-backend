@@ -33,10 +33,10 @@ export async function create(req: Request, res: Response) {
   const transcriptHash = generateUniqueHash(content);
   const totalWords = getTotalWords(content.body);
 
-  const isValidTranscript = validateTranscriptMetadata(content);
-  if (!isValidTranscript) {
+  const { isValid, keys } = validateTranscriptMetadata(content);
+  if (!isValid) {
     return res.status(400).send({
-      message: "Transcript metadata is invalid!",
+      message: `Transcript metadata is invalid. Missing or invalid keys: ${keys}`,
     });
   }
 
@@ -53,10 +53,10 @@ export async function create(req: Request, res: Response) {
 
   try {
     const transcriptData = await Transcript.create(transcript);
-    const redisTransaction = redis.multi();
+    const redisNewTranscriptTransaction = redis.multi();
 
-    redisTransaction.sadd("cachedTranscripts", transcriptData.id);
-    redisTransaction.set(
+    redisNewTranscriptTransaction.sadd("cachedTranscripts", transcriptData.id);
+    redisNewTranscriptTransaction.set(
       `transcript:${transcriptData.id}`,
       JSON.stringify(transcriptData),
       "EX",
@@ -65,9 +65,9 @@ export async function create(req: Request, res: Response) {
     const totalItems = await Transcript.count();
     const totalPages = Math.ceil(totalItems / DB_QUERY_LIMIT);
     for (let page = 1; page <= totalPages; page++) {
-      redisTransaction.del(`transcripts:page:${page}`);
+      redisNewTranscriptTransaction.del(`transcripts:page:${page}`);
     }
-    await redisTransaction.exec((err, _results) => {
+    await redisNewTranscriptTransaction.exec((err, _results) => {
       if (err) {
         Transcript.destroy({ where: { id: transcriptData.id } });
         Logger.error(`Error saving transcript to redis: ${err}`);
