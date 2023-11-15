@@ -2,7 +2,11 @@ import { Request, Response } from "express";
 import { Op } from "sequelize";
 
 import { Review, Transcript, User } from "../db/models";
-import { QUERY_REVIEW_STATUS } from "../utils/constants";
+import {
+  DB_QUERY_LIMIT,
+  DB_START_PAGE,
+  QUERY_REVIEW_STATUS,
+} from "../utils/constants";
 import {
   buildIsActiveCondition,
   buildIsInActiveCondition,
@@ -222,3 +226,76 @@ export async function submit(req: Request, res: Response) {
     });
   }
 }
+
+
+export const getAllReviewsForAdmin = async (req: Request, res: Response) => {
+  const id = Number(req.query.id);
+  const submitted_at = req.query.submitted_at as string | undefined;
+  const transcript_id = req.query.transcript_id as string | undefined;
+  const user_id = req.query.user_id as string | undefined;
+  const merged_at = req.query.merged_at as string | undefined;
+  const page: number = Number(req.query.page) || DB_START_PAGE;
+  const limit: number = Number(req.query.limit) || DB_QUERY_LIMIT;
+
+
+  const condition: {
+    [key: string | number]: any;
+  } = {};
+
+  // Add conditions if query parameters exist
+  if (Boolean(id)) {
+    condition.id = { [Op.eq]: id };
+  }
+  if (Boolean(submitted_at)) {
+    condition.submittedAt = {
+      [Op.gte]: submitted_at ? new Date(submitted_at) : null,
+      [Op.lte]: submitted_at ? new Date(submitted_at) : null,
+    };
+  }
+  if (Boolean(transcript_id)) {
+    condition.transcriptId = { [Op.eq]: transcript_id };
+  }
+  if (Boolean(user_id)) {
+    condition.userId = { [Op.eq]: user_id };
+  }
+  if (Boolean(merged_at)) {
+    condition.mergedAt = {
+      [Op.gte]: merged_at ? new Date(merged_at) : null,
+      [Op.lte]: merged_at ? new Date(merged_at) : null,
+    };
+  }
+
+  try {
+    const reviews = await Review.findAll({
+      where: condition,
+      order: [["createdAt", "DESC"]],
+      include: { model: Transcript },
+    });
+
+    const reviewCount = await Review.count({
+      where: condition,
+    });
+
+    const totalPages = Math.ceil(reviewCount / limit);
+    const hasNextPage = page < totalPages;
+    const hasPreviousPage = page > 1;
+
+    const response = {
+      totalReviews: reviewCount,
+      totalPages,
+      currentPage: page,
+      itemsPerPage: limit,
+      hasNextPage,
+      hasPreviousPage,
+      data: reviews,
+    };
+
+    res.status(200).json(response);
+  } catch (error) {
+    if (error instanceof Error) {
+      res.status(500).json({
+        message: error.message,
+      });
+    }
+  }
+};
