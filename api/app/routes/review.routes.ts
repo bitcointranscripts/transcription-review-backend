@@ -1,7 +1,7 @@
 import type { Express } from "express";
 import express from "express";
 import * as reviews from "../controllers/review.controller";
-import { auth } from "../middleware/auth";
+import { admin, auth } from "../middleware/auth";
 
 export function reviewRoutes(app: Express) {
   const router = express.Router();
@@ -26,6 +26,10 @@ export function reviewRoutes(app: Express) {
    * tags:
    *   name: Reviews
    *   description: The reviews API routes
+   */
+
+  /**
+   * @swagger
    * /api/reviews:
    *   get:
    *     security:
@@ -51,7 +55,7 @@ export function reviewRoutes(app: Express) {
    *         description: Filter reviews based on their status
    *     responses:
    *       200:
-   *         description: The list of the reviews
+   *         description: The list of reviews
    *         content:
    *           application/json:
    *             schema:
@@ -59,9 +63,14 @@ export function reviewRoutes(app: Express) {
    *               items:
    *                 $ref: '#/components/schemas/Review'
    *       404:
-   *         description: User with username=${username} does not exist
+   *         description: User with specified username does not exist
    *       500:
    *         description: Some error occurred while retrieving reviews
+   */
+
+  /**
+   * @swagger
+   * /api/reviews:
    *   post:
    *     security:
    *       - bearerAuth: []
@@ -82,6 +91,10 @@ export function reviewRoutes(app: Express) {
    *               $ref: '#/components/schemas/Review'
    *       500:
    *         description: Some server error
+   */
+
+  /**
+   * @swagger
    * /api/reviews/{id}:
    *   get:
    *     security:
@@ -98,72 +111,131 @@ export function reviewRoutes(app: Express) {
    *     responses:
    *       200:
    *         description: The review response by id
-   *         contens:
+   *         content:
    *           application/json:
    *             schema:
    *               $ref: '#/components/schemas/Review'
    *       404:
    *         description: The review was not found
+   *       500:
+   *         description: Some error happened
+   */
+
+  /**
+   * @swagger
+   * /api/reviews/{id}:
    *   put:
-   *    security:
-   *      - bearerAuth: []
-   *    summary: Update the review by the id
-   *    tags: [Reviews]
-   *    parameters:
-   *      - in: path
-   *        name: id
-   *        schema:
-   *          type: string
-   *        required: true
-   *        description: The review id
-   *    requestBody:
-   *      required: true
-   *      content:
-   *        application/json:
-   *          schema:
-   *            $ref: '#/components/schemas/Review'
-   *    responses:
-   *      200:
-   *        description: The review was updated successfully
-   *        content:
-   *          application/json:
-   *            schema:
-   *              $ref: '#/components/schemas/Review'
-   *      404:
-   *        description: The review was not found
-   *      500:
-   *        description: Some error happened
-   *
+   *     security:
+   *       - bearerAuth: []
+   *     summary: Update the review by the id
+   *     tags: [Reviews]
+   *     parameters:
+   *       - in: path
+   *         name: id
+   *         schema:
+   *           type: string
+   *         required: true
+   *         description: The review id
+   *     requestBody:
+   *       required: true
+   *       content:
+   *         application/json:
+   *           schema:
+   *             $ref: '#/components/schemas/Review'
+   *     responses:
+   *       200:
+   *         description: The review was updated successfully
+   *         content:
+   *           application/json:
+   *             schema:
+   *               $ref: '#/components/schemas/Review'
+   *       404:
+   *         description: The review was not found
+   *       500:
+   *         description: Some error happened
+   */
+
+  /**
+   * @swagger
    * /api/reviews/{id}/submit:
    *   put:
-   *    security:
+   *     security:
    *       - bearerAuth: []
-   *    summary: Submit the review by the id
-   *    tags: [Reviews]
-   *    parameters:
-   *      - in: path
-   *        name: id
-   *        schema:
-   *          type: string
-   *        required: true
-   *        description: The transcript id
-   *    requestBody:
-   *      content:
-   *        application/json:
-   *          schema:
-   *            type: object
-   *            properties:
-   *              pr_url:
-   *                type: string;
-   *    responses:
-   *      200:
-   *        description: The review was submitted successfully
-   *      400:
-   *        description: pr_url is missing.
-   *      404:
-   *        description: Review was not found.
-   *      500:
-   *        description: Some error happened
+   *     summary: Submit the review by the id
+   *     tags: [Reviews]
+   *     parameters:
+   *       - in: path
+   *         name: id
+   *         schema:
+   *           type: string
+   *         required: true
+   *         description: The transcript id
+   *     requestBody:
+   *       content:
+   *         application/json:
+   *           schema:
+   *             type: object
+   *             properties:
+   *               pr_url:
+   *                 type: string;
+   *     responses:
+   *       200:
+   *         description: The review was submitted successfully
+   *       400:
+   *         description: pr_url is missing.
+   *       404:
+   *         description: Review was not found.
+   *       500:
+   *         description: Some error happened
+   */
+
+  /**
+   * @swagger
+   * /api/reviews/all:
+   *   get:
+   *     security:
+   *       - bearerAuth: []
+   *     summary: Filter reviews for admins
+   *     tags: [Reviews]
+   *     parameters:
+   *       - in: query
+   *         name: id
+   *         schema:
+   *           type: string
+   *         description: Filter reviews based on id
+   *       - in: query
+   *         name: submitted_at
+   *         schema:
+   *           type: string
+   *         description: Filter reviews based on submitted_at
+   *       - in: query
+   *         name: transcript_id
+   *         schema:
+   *           type: string
+   *         description: Filter reviews based on transcript_id
+   *       - in: query
+   *         name: user_id
+   *         schema:
+   *           type: string
+   *         description: Filter reviews based on user_id
+   *       - in: query
+   *         name: merged_at
+   *         schema:
+   *           type: string
+   *         description: Filter reviews based on merged_at
+   *     responses:
+   *       200:
+   *         description: The list of reviews
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: array
+   *               items:
+   *                 $ref: '#/components/schemas/Review'
+   *       404:
+   *         description: Review was not found.
+   *       500:
+   *         description: Some error happened
    */
 
   // Create a new review
@@ -171,6 +243,9 @@ export function reviewRoutes(app: Express) {
 
   // Retrieve all reviews
   router.get("/", reviews.findAll);
+
+  // Retrieve reviews for admin
+  router.get("/all", admin, reviews.getAllReviewsForAdmin);
 
   // Retrieve a single review with id
   router.get("/:id", reviews.findOne);
@@ -183,5 +258,3 @@ export function reviewRoutes(app: Express) {
 
   app.use("/api/reviews", auth, router);
 }
-
-// export default reviewRoutes;
