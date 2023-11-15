@@ -14,7 +14,7 @@ import {
 config();
 
 const DB_URL =
-  process.env.DB_URL || "postgres://postgres:postgres@localhost:5432/postgress";
+  process.env.DB_URL || "postgres://postgres:postgres@localhost:5432/postgres?sslmode=disable";
 export const REDIS_HOST = process.env.REDIS_HOST || "localhost";
 export const REDIS_PORT = Number(process.env.REDIS_PORT) || 6379;
 export const REDIS_PASSWORD = process.env.REDIS_PASSWORD || "";
