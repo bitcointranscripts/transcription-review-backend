@@ -10,16 +10,15 @@ run:
 	yarn dev
 
 start-deps:
-	docker start transcription || docker run --name transcription -e POSTGRES_PASSWORD=postgres -p 5432:5432 postgres
-	docker start redis || docker run --name redis -p 6379:6379 -d redis
-	docker start -i transcription
+	docker start transcription-db || docker run --name transcription-db -e POSTGRES_PASSWORD=postgres -p 5432:5432 -d postgres
+	docker start transcription-redis || docker run --name transcription-redis -p 6379:6379 -d redis
 
 start-pg-shell:
-	docker exec -it transcription psql -U postgres
+	docker exec -it transcription-db psql -U postgres
 
 stop-deps:
-	docker stop transcription
-	docker stop redis
+	docker stop transcription-db
+	docker stop transcription-redis
 
 reset-deps:
 	make stop-deps & make start-deps
