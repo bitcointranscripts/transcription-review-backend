@@ -227,16 +227,14 @@ export async function submit(req: Request, res: Response) {
   }
 }
 
-
 export const getAllReviewsForAdmin = async (req: Request, res: Response) => {
   const id = Number(req.query.id);
   const submitted_at = req.query.submitted_at as string | undefined;
   const transcript_id = req.query.transcript_id as string | undefined;
-  const user_id = req.query.user_id as string | undefined;
+  const user_id = Number(req.query.user_id);
   const merged_at = req.query.merged_at as string | undefined;
   const page: number = Number(req.query.page) || DB_START_PAGE;
   const limit: number = Number(req.query.limit) || DB_QUERY_LIMIT;
-
 
   const condition: {
     [key: string | number]: any;
@@ -248,8 +246,8 @@ export const getAllReviewsForAdmin = async (req: Request, res: Response) => {
   }
   if (Boolean(submitted_at)) {
     condition.submittedAt = {
-      [Op.gte]: submitted_at ? new Date(submitted_at) : null,
-      [Op.lte]: submitted_at ? new Date(submitted_at) : null,
+      [Op.gte]: new Date(submitted_at as string),
+      [Op.lte]: new Date(submitted_at as string),
     };
   }
   if (Boolean(transcript_id)) {
@@ -260,8 +258,8 @@ export const getAllReviewsForAdmin = async (req: Request, res: Response) => {
   }
   if (Boolean(merged_at)) {
     condition.mergedAt = {
-      [Op.gte]: merged_at ? new Date(merged_at) : null,
-      [Op.lte]: merged_at ? new Date(merged_at) : null,
+      [Op.gte]: new Date(merged_at as string),
+      [Op.lte]: new Date(merged_at as string),
     };
   }
 
@@ -281,7 +279,7 @@ export const getAllReviewsForAdmin = async (req: Request, res: Response) => {
     const hasPreviousPage = page > 1;
 
     const response = {
-      totalReviews: reviewCount,
+      totalItems: reviewCount,
       totalPages,
       currentPage: page,
       itemsPerPage: limit,
