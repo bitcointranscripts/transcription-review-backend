@@ -3,6 +3,7 @@ import jwt from "jsonwebtoken";
 
 import { UserAttributes } from "../types/user";
 import { JWTEXPIRYTIMEINHOURS } from "./constants";
+import { Logger } from "../helpers/logger";
 
 export async function verifyGitHubToken(token: string | string[] | undefined) {
   const response = await axios.get("https://api.github.com/user", {
@@ -13,6 +14,7 @@ export async function verifyGitHubToken(token: string | string[] | undefined) {
   });
 
   if (response.status !== 200 || response.statusText !== "OK") {
+    Logger.error(`Failed to verify GitHub token: ${response.statusText}`);
     throw new Error("Failed to verify GitHub token");
   }
 
@@ -26,6 +28,7 @@ export function generateJwtToken(
   const secretKey = process.env.JWT_SECRET;
 
   if (!secretKey) {
+    Logger.error("JWT_SECRET environment variable is not defined");
     throw new Error("JWT_SECRET environment variable is not defined");
   }
   const isEmailPresent = user.email ? true : false;
@@ -39,5 +42,6 @@ export function generateJwtToken(
     secretKey,
     { expiresIn: JWTEXPIRYTIMEINHOURS }
   );
+  
   return token;
 }
