@@ -13,11 +13,11 @@ import {
 import { USER_PERMISSIONS } from "../types/user";
 import { generateJwtToken } from "../utils/auth";
 import { PUBLIC_PROFILE_REVIEW_LIMIT } from "../utils/constants";
+import { Logger } from "../helpers/logger";
 
 export const signIn = async (req: Request, res: Response) => {
   try {
-    const githubToken = req.headers["x-github-token"];
-    const { username, email } = req.body;
+    const { username, email, githubToken } = req.body;
 
     let condition = {};
     if (email) {
@@ -51,15 +51,28 @@ export const signIn = async (req: Request, res: Response) => {
       });
     }
 
-    const token = generateJwtToken(user, githubToken!.toString());
-    const response = await User.update({ jwt: token }, { where: condition });
+    const token = generateJwtToken(user, githubToken);
+    Logger.info(`User signed in: userId: ${user.id}, token: ${token}`);
+    const response = await User.update(
+      {
+        jwt: token,
+      },
+      {
+        where: {
+          id: user.id,
+        },
+      }
+    );
 
     if (response[0] !== 1) {
+      Logger.error(`error response from update user token: ${response}`);
+      Logger.error(`Failed to update user token for user: ${user.id}`);
       return res.status(500).json({ error: "Failed to update user token" });
     }
 
     return res.status(200).send({ jwt: token });
   } catch (error) {
+    Logger.error(`Error signing/creating user: ${error}`);
     const message =
       error instanceof Error
         ? error.message
