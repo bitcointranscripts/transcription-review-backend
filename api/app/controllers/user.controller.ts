@@ -55,7 +55,6 @@ export const signIn = async (req: Request, res: Response) => {
     }
 
     const token = generateJwtToken(user, githubToken);
-    Logger.info(`User signed in: userId: ${user.id}, token: ${token}`);
     const response = await User.update(
       {
         jwt: token,
