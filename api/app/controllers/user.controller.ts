@@ -19,11 +19,14 @@ export const signIn = async (req: Request, res: Response) => {
   try {
     const { username, email, githubToken } = req.body;
 
-    let condition = {};
+    let condition: {
+      email?: string;
+      githubUsername?: string;
+    } = {};
     if (email) {
-      condition = { email };
+      condition = { email: email.toLowerCase() as string };
     } else {
-      condition = { githubUsername: username.toLowerCase() };
+      condition = { githubUsername: username.toLowerCase() as string };
     }
 
     let user: User | null = null;
@@ -52,7 +55,6 @@ export const signIn = async (req: Request, res: Response) => {
     }
 
     const token = generateJwtToken(user, githubToken);
-    Logger.info(`User signed in: userId: ${user.id}, token: ${token}`);
     const response = await User.update(
       {
         jwt: token,
