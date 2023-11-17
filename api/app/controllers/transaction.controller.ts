@@ -176,7 +176,7 @@ export const getAllTransactions = async (req: Request, res: Response) => {
   const userSearch = req.query.user as string;
   const page: number = Number(req.query.page) || DB_START_PAGE;
   const limit: number = Number(req.query.limit) || DB_TXN_QUERY_LIMIT;
-  const offset: number = (page - 1) * limit;
+  const offset: number = page * limit;
 
   const txnCondition: {
     transactionStatus?: TRANSACTION_STATUS;
@@ -225,6 +225,7 @@ export const getAllTransactions = async (req: Request, res: Response) => {
       attributes: {
         exclude: ["walletId"],
       },
+      order: [["createdAt", "DESC"]],
       include: [
         {
           model: Wallet,
@@ -266,7 +267,7 @@ export const getAllTransactions = async (req: Request, res: Response) => {
     const response = {
       totalTransactions: transactionCount,
       totalPages,
-      page,
+      page: page + 1,
       itemsPerPage: limit,
       hasNextPage,
       hasPreviousPage,
