@@ -294,10 +294,9 @@ export const getAllReviewsForAdmin = async (req: Request, res: Response) => {
       distinct: true,
       where: condition,
       include: [
-        { model: Transcript, required: true, attributes: { exclude: ["id"] } },
+        { model: Transcript, required: true,},
         {
           model: User,
-          attributes: { exclude: ["id", "jwt", "albyToken"] },
           where: userCondition,
           required: true,
         },
