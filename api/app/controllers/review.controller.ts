@@ -228,10 +228,10 @@ export async function submit(req: Request, res: Response) {
 }
 
 export const getAllReviewsForAdmin = async (req: Request, res: Response) => {
-  const submittedAt = req.query.submittedAt as string | undefined;
-  const transcriptId = req.query.transcriptId as string | undefined;
+  const submittedAt = req.query.submittedAt as string;
+  const transcriptId = Number(req.query.transcriptId)
   const userId = Number(req.query.userId);
-  const mergedAt = req.query.mergedAt as string | undefined;
+  const mergedAt = req.query.mergedAt as string;
   const userSearch = req.query.user as string;
   const page: number = Number(req.query.page) || DB_START_PAGE;
   const limit: number = Number(req.query.limit) || DB_QUERY_LIMIT;
