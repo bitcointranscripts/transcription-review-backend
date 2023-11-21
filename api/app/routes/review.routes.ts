@@ -214,7 +214,7 @@ export function reviewRoutes(app: Express) {
    *           type: integer
    *         description: Filter reviews based on userId
    *       - in: query
-   *         name: users
+   *         name: user
    *         schema:
    *           type: string
    *         description: Filter reviews based on email and username
