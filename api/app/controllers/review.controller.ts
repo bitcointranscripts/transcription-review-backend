@@ -6,6 +6,10 @@ import {
   DB_QUERY_LIMIT,
   DB_START_PAGE,
   QUERY_REVIEW_STATUS,
+  HOUR_END_OF_DAY,
+  MINUTE_END_OF_DAY,
+  SECOND_END_OF_DAY,
+  MILLISECOND_END_OF_DAY,
 } from "../utils/constants";
 import {
   buildIsActiveCondition,
@@ -259,10 +263,10 @@ export const getAllReviewsForAdmin = async (req: Request, res: Response) => {
       date.getFullYear(),
       date.getMonth(),
       date.getDate(),
-      23,
-      59,
-      59,
-      999
+      HOUR_END_OF_DAY,
+      MINUTE_END_OF_DAY,
+      SECOND_END_OF_DAY,
+      MILLISECOND_END_OF_DAY
     );
 
     condition.submittedAt = {
@@ -287,10 +291,10 @@ export const getAllReviewsForAdmin = async (req: Request, res: Response) => {
       date.getFullYear(),
       date.getMonth(),
       date.getDate(),
-      23,
-      59,
-      59,
-      999
+      HOUR_END_OF_DAY,
+      MINUTE_END_OF_DAY,
+      SECOND_END_OF_DAY,
+      MILLISECOND_END_OF_DAY
     );
 
     condition.mergedAt = {
