@@ -199,30 +199,30 @@ export function reviewRoutes(app: Express) {
    *     tags: [Reviews]
    *     parameters:
    *       - in: query
-   *         name: id
+   *         name: submittedAt
    *         schema:
    *           type: string
-   *         description: Filter reviews based on id
+   *         description: Filter reviews based on submittedAt
    *       - in: query
-   *         name: submitted_at
+   *         name: transcriptId
    *         schema:
-   *           type: string
-   *         description: Filter reviews based on submitted_at
+   *           type: integer
+   *         description: Filter reviews based on transcriptId
    *       - in: query
-   *         name: transcript_id
+   *         name: userId
    *         schema:
-   *           type: string
-   *         description: Filter reviews based on transcript_id
+   *           type: integer
+   *         description: Filter reviews based on userId
    *       - in: query
-   *         name: user_id
+   *         name: users
    *         schema:
    *           type: string
-   *         description: Filter reviews based on user_id
+   *         description: Filter reviews based on email and username
    *       - in: query
-   *         name: merged_at
+   *         name: mergedAt
    *         schema:
    *           type: string
-   *         description: Filter reviews based on merged_at
+   *         description: Filter reviews based on mergedAt
    *     responses:
    *       200:
    *         description: The list of reviews
