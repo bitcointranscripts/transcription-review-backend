@@ -291,7 +291,17 @@ export const getAllReviewsForAdmin = async (req: Request, res: Response) => {
     });
 
     const reviewCount = await Review.count({
+      distinct: true,
       where: condition,
+      include: [
+        { model: Transcript, required: true, attributes: { exclude: ["id"] } },
+        {
+          model: User,
+          attributes: { exclude: ["id", "jwt", "albyToken"] },
+          where: userCondition,
+          required: true,
+        },
+      ],
     });
 
     const totalPages = Math.ceil(reviewCount / limit);
