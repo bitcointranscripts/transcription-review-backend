@@ -228,11 +228,11 @@ export async function submit(req: Request, res: Response) {
 }
 
 export const getAllReviewsForAdmin = async (req: Request, res: Response) => {
-  const id = Number(req.query.id);
-  const submitted_at = req.query.submitted_at as string | undefined;
-  const transcript_id = req.query.transcript_id as string | undefined;
-  const user_id = Number(req.query.user_id);
-  const merged_at = req.query.merged_at as string | undefined;
+  const submittedAt = req.query.submittedAt as string | undefined;
+  const transcriptId = req.query.transcriptId as string | undefined;
+  const userId = Number(req.query.userId);
+  const mergedAt = req.query.mergedAt as string | undefined;
+  const userSearch = req.query.user as string;
   const page: number = Number(req.query.page) || DB_START_PAGE;
   const limit: number = Number(req.query.limit) || DB_QUERY_LIMIT;
 
@@ -240,34 +240,54 @@ export const getAllReviewsForAdmin = async (req: Request, res: Response) => {
     [key: string | number]: any;
   } = {};
 
+  const userCondition: {
+    [Op.or]?: {
+      email?: { [Op.iLike]: string };
+      githubUsername?: { [Op.iLike]: string };
+    }[];
+  } = {};
+
   // Add conditions if query parameters exist
-  if (Boolean(id)) {
-    condition.id = { [Op.eq]: id };
-  }
-  if (Boolean(submitted_at)) {
+  if (Boolean(submittedAt)) {
     condition.submittedAt = {
-      [Op.gte]: new Date(submitted_at as string),
-      [Op.lte]: new Date(submitted_at as string),
+      [Op.gte]: new Date(submittedAt as string),
+      [Op.lte]: new Date(submittedAt as string),
     };
   }
-  if (Boolean(transcript_id)) {
-    condition.transcriptId = { [Op.eq]: transcript_id };
+  if (Boolean(transcriptId)) {
+    condition.transcriptId = { [Op.eq]: transcriptId };
   }
-  if (Boolean(user_id)) {
-    condition.userId = { [Op.eq]: user_id };
+  if (Boolean(userId)) {
+    condition.userId = { [Op.eq]: userId };
   }
-  if (Boolean(merged_at)) {
+  if (Boolean(mergedAt)) {
     condition.mergedAt = {
-      [Op.gte]: new Date(merged_at as string),
-      [Op.lte]: new Date(merged_at as string),
+      [Op.gte]: new Date(mergedAt as string),
+      [Op.lte]: new Date(mergedAt as string),
     };
+  }
+
+  if (userSearch) {
+    const searchCondition = { [Op.iLike]: `%${userSearch.toLowerCase()}%` };
+    userCondition[Op.or] = [
+      { email: searchCondition },
+      { githubUsername: searchCondition },
+    ];
   }
 
   try {
     const reviews = await Review.findAll({
       where: condition,
       order: [["createdAt", "DESC"]],
-      include: { model: Transcript },
+      include: [
+        { model: Transcript, required: true, attributes: { exclude: ["id"] } },
+        {
+          model: User,
+          attributes: { exclude: ["id", "jwt", "albyToken"] },
+          where: userCondition,
+          required: true,
+        },
+      ],
     });
 
     const reviewCount = await Review.count({
