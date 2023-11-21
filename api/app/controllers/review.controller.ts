@@ -251,14 +251,19 @@ export const getAllReviewsForAdmin = async (req: Request, res: Response) => {
     }[];
   } = {};
 
-  // Add conditions if query parameters exist
-  if (Boolean(submittedAt)) {
-    const date = new Date(submittedAt as string);
+  // Check if the mergedAt parameter is provided in the query
+  if (Boolean(mergedAt)) {
+    // Convert the mergedAt string to a Date object
+    const date = new Date(mergedAt as string);
+
+    // Calculate the start of the day (00:00:00.000) for the mergedAt date
     const startOfDay = new Date(
       date.getFullYear(),
       date.getMonth(),
       date.getDate()
     );
+
+    // Calculate the end of the day (23:59:59.999) for the mergedAt date
     const endOfDay = new Date(
       date.getFullYear(),
       date.getMonth(),
@@ -269,24 +274,33 @@ export const getAllReviewsForAdmin = async (req: Request, res: Response) => {
       MILLISECOND_END_OF_DAY
     );
 
-    condition.submittedAt = {
+    // Set the condition for mergedAt to filter records within the specified day
+    condition.mergedAt = {
       [Op.gte]: startOfDay,
       [Op.lte]: endOfDay,
     };
   }
+
   if (Boolean(transcriptId)) {
     condition.transcriptId = { [Op.eq]: transcriptId };
   }
   if (Boolean(userId)) {
     condition.userId = { [Op.eq]: userId };
   }
+
+  // Check if the mergedAt parameter is provided in the query for all time zone support
   if (Boolean(mergedAt)) {
+    // Convert the mergedAt string to a Date object
     const date = new Date(mergedAt as string);
+
+    // Calculate the start of the day (00:00:00.000) for the mergedAt date
     const startOfDay = new Date(
       date.getFullYear(),
       date.getMonth(),
       date.getDate()
     );
+
+    // Calculate the end of the day (23:59:59.999) for the mergedAt date
     const endOfDay = new Date(
       date.getFullYear(),
       date.getMonth(),
@@ -297,6 +311,7 @@ export const getAllReviewsForAdmin = async (req: Request, res: Response) => {
       MILLISECOND_END_OF_DAY
     );
 
+    // Set the condition for mergedAt to filter records within the specified day
     condition.mergedAt = {
       [Op.gte]: startOfDay,
       [Op.lte]: endOfDay,
