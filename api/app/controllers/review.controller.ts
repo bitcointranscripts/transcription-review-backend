@@ -228,10 +228,10 @@ export async function submit(req: Request, res: Response) {
 }
 
 export const getAllReviewsForAdmin = async (req: Request, res: Response) => {
-  const submittedAt = req.query.submittedAt as string;
-  const transcriptId = Number(req.query.transcriptId)
+  const transcriptId = Number(req.query.transcriptId);
   const userId = Number(req.query.userId);
   const mergedAt = req.query.mergedAt as string;
+  const submittedAt = req.query.submittedAt as string;
   const userSearch = req.query.user as string;
   const page: number = Number(req.query.page) || DB_START_PAGE;
   const limit: number = Number(req.query.limit) || DB_QUERY_LIMIT;
@@ -249,9 +249,25 @@ export const getAllReviewsForAdmin = async (req: Request, res: Response) => {
 
   // Add conditions if query parameters exist
   if (Boolean(submittedAt)) {
+    const date = new Date(submittedAt as string);
+    const startOfDay = new Date(
+      date.getFullYear(),
+      date.getMonth(),
+      date.getDate()
+    );
+    const endOfDay = new Date(
+      date.getFullYear(),
+      date.getMonth(),
+      date.getDate(),
+      23,
+      59,
+      59,
+      999
+    );
+
     condition.submittedAt = {
-      [Op.gte]: new Date(submittedAt as string),
-      [Op.lte]: new Date(submittedAt as string),
+      [Op.gte]: startOfDay,
+      [Op.lte]: endOfDay,
     };
   }
   if (Boolean(transcriptId)) {
@@ -261,9 +277,25 @@ export const getAllReviewsForAdmin = async (req: Request, res: Response) => {
     condition.userId = { [Op.eq]: userId };
   }
   if (Boolean(mergedAt)) {
+    const date = new Date(mergedAt as string);
+    const startOfDay = new Date(
+      date.getFullYear(),
+      date.getMonth(),
+      date.getDate()
+    );
+    const endOfDay = new Date(
+      date.getFullYear(),
+      date.getMonth(),
+      date.getDate(),
+      23,
+      59,
+      59,
+      999
+    );
+
     condition.mergedAt = {
-      [Op.gte]: new Date(mergedAt as string),
-      [Op.lte]: new Date(mergedAt as string),
+      [Op.gte]: startOfDay,
+      [Op.lte]: endOfDay,
     };
   }
 
@@ -294,7 +326,7 @@ export const getAllReviewsForAdmin = async (req: Request, res: Response) => {
       distinct: true,
       where: condition,
       include: [
-        { model: Transcript, required: true,},
+        { model: Transcript, required: true },
         {
           model: User,
           where: userCondition,
