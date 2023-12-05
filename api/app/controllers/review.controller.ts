@@ -235,7 +235,7 @@ export const getAllReviewsForAdmin = async (req: Request, res: Response) => {
   const transcriptId = Number(req.query.transcriptId);
   const userId = Number(req.query.userId);
   const mergedAt = req.query.mergedAt as string;
-  const submittedAt = req.query.submittedAt as string;
+  const status = req.query.status as string;
   const userSearch = req.query.user as string;
   const page: number = Number(req.query.page) || DB_START_PAGE;
   const limit: number = Number(req.query.limit) || DB_QUERY_LIMIT;
@@ -250,6 +250,29 @@ export const getAllReviewsForAdmin = async (req: Request, res: Response) => {
       githubUsername?: { [Op.iLike]: string };
     }[];
   } = {};
+
+  if (status) {
+    const currentTime = new Date().getTime();
+    switch (status) {
+      case QUERY_REVIEW_STATUS.ACTIVE:
+        const activeCondition = buildIsActiveCondition(currentTime);
+        condition[Op.and as unknown as keyof typeof Op] = activeCondition;
+        break;
+
+      case "expired":
+        const expiredCondition = buildIsInActiveCondition(currentTime);
+        condition[Op.and as unknown as keyof typeof Op] = expiredCondition;
+        break;
+
+      case QUERY_REVIEW_STATUS.PENDING:
+        const pendingCondition = buildIsPendingCondition();
+        condition[Op.and as unknown as keyof typeof Op] = pendingCondition;
+        break;
+
+      default:
+        break;
+    }
+  }
 
   // Check if the mergedAt parameter is provided in the query
   if (Boolean(mergedAt)) {
