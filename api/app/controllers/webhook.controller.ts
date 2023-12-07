@@ -251,13 +251,14 @@ async function handleError(error: any, res: Response) {
 // Handle push events from GitHub
 export async function handlePushEvent(req: Request, res: Response) {
   if (!verify_signature(req)) {
-    return res.status(401).json("Unauthorized");
+    res.status(401).send("Unauthorized");
+    return;
   }
 
-  const { body: pushEvent } = req;
+  const pushEvent = req.body;
   if (!pushEvent) {
-    return res.status(500).json({
-      message: "No push event found in the request body.",
+    return res.status(500).send({
+      message: "No push event data found in the request body.",
     });
   }
 
