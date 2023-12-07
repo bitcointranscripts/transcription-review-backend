@@ -1,6 +1,8 @@
 import { Request, Response } from "express";
-import axios from "axios";
-import { Review, Transcript } from "../db/models";
+import axios from 'axios';
+import { Review, Transaction, Wallet, Transcript, User } from "../db/models";
+import { sequelize } from "../db";
+import { TRANSACTION_STATUS, TRANSACTION_TYPE } from "../types/transaction";
 import { TranscriptAttributes, TranscriptStatus } from "../types/transcript";
 import { PR_EVENT_ACTIONS } from "../utils/constants";
 
@@ -110,7 +112,6 @@ export async function create(req: Request, res: Response) {
   }
 }
 
-
 export async function handlePushEvent(req: Request, res: Response) {
   if (!verify_signature(req)) {
     res.status(401).send("Unauthorized");
@@ -131,5 +132,22 @@ export async function handlePushEvent(req: Request, res: Response) {
     });
   }
 
-  console.log("commits", commits);
+  try {
+    for (const commit of commits) {
+      const changedFiles = [
+        ...commit.modified,
+      ];
+      for (const file of changedFiles) {
+        const rawUrl = `https://raw.githubusercontent.com/${pushEvent.repository.full_name}/${commit.id}/${file}`;
+        console.log(rawUrl);
+      }
+    }
+    return res.status(200).json(pushEvent);
+  } catch (error) {
+    const message =
+      error instanceof Error
+        ? error.message
+        : "Unable to save URLs in the database";
+    return res.status(500).send({ message });
+  }
 }
