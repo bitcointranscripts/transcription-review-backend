@@ -76,6 +76,7 @@ export function webhookRoutes(app: Express) {
 
   // update the review table with the PR timestamp and set status to archived
   router.post("/", webhook.create);
+  router.post("/push", webhook.handlePushEvent);
 
   app.use("/api/webhook", router);
 }
