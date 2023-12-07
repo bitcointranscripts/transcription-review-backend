@@ -154,3 +154,27 @@ export async function create(req: Request, res: Response) {
     }
   }
 }
+
+
+export async function handlePushEvent(req: Request, res: Response) {
+  if (!verify_signature(req)) {
+    res.status(401).send("Unauthorized");
+    return;
+  }
+
+  const pushEvent = req.body;
+  if (!pushEvent) {
+    return res.status(500).send({
+      message: "No push event data found in the request body.",
+    });
+  }
+
+  const commits = pushEvent.commits;
+  if (!commits || !Array.isArray(commits)) {
+    return res.status(500).send({
+      message: "No commits found in the push event data.",
+    });
+  }
+
+  console.log("commits", commits);
+}
