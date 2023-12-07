@@ -35,6 +35,9 @@ export class Transcript extends Model<TranscriptAttributes> {
   @Column(DataType.INTEGER)
   contentTotalWords!: number;
 
+  @Column(DataType.TEXT)
+  transcriptUrl!: string;
+
   @Column({
     type: DataType.DATE,
   })
