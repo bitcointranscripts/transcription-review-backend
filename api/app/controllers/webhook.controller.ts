@@ -1,5 +1,5 @@
 import { Request, Response } from "express";
-import axios from 'axios';
+import axios from "axios";
 import { Review, Transaction, Wallet, Transcript, User } from "../db/models";
 import { sequelize } from "../db";
 import { TRANSACTION_STATUS, TRANSACTION_TYPE } from "../types/transaction";
@@ -125,7 +125,14 @@ export async function handlePushEvent(req: Request, res: Response) {
     });
   }
 
-  const commits = pushEvent.commits;
+ const payload = JSON.parse(pushEvent.payload);
+  if (!payload) {
+    return res.status(500).send({
+      message: "No payload found in the request body.",
+    });
+  }
+
+  const commits = payload.commits;
   if (!commits || !Array.isArray(commits)) {
     return res.status(500).send({
       message: "No commits found in the push event data.",
@@ -135,11 +142,15 @@ export async function handlePushEvent(req: Request, res: Response) {
   try {
     for (const commit of commits) {
       const changedFiles = [
+        ...commit.added,
         ...commit.modified,
       ];
       for (const file of changedFiles) {
-        const rawUrl = `https://raw.githubusercontent.com/${pushEvent.repository.full_name}/${commit.id}/${file}`;
-        console.log(rawUrl);
+        const rawUrl = `https://raw.githubusercontent.com/${payload.repository.full_name}/${commit.id}/${file}`;
+        //read the file with axios
+        const response = await axios.get(rawUrl);
+        //check if the file contains the string "transcript"
+        
       }
     }
     return res.status(200).json(pushEvent);
