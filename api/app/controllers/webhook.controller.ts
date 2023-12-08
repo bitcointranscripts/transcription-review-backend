@@ -1,5 +1,5 @@
 import { Request, Response } from "express";
-import axios from 'axios';
+import axios from "axios";
 import { Review, Transaction, Wallet, Transcript, User } from "../db/models";
 import { sequelize } from "../db";
 import { TRANSACTION_STATUS, TRANSACTION_TYPE } from "../types/transaction";
@@ -125,12 +125,40 @@ export async function handlePushEvent(req: Request, res: Response) {
     });
   }
 
-  const commits = pushEvent.commits;
+ const payload = JSON.parse(pushEvent.payload);
+  if (!payload) {
+    return res.status(500).send({
+      message: "No payload found in the request body.",
+    });
+  }
+
+  const commits = payload.commits;
   if (!commits || !Array.isArray(commits)) {
     return res.status(500).send({
       message: "No commits found in the push event data.",
     });
   }
 
-  console.log("commits", commits);
+  try {
+    for (const commit of commits) {
+      const changedFiles = [
+        ...commit.added,
+        ...commit.modified,
+      ];
+      for (const file of changedFiles) {
+        const rawUrl = `https://raw.githubusercontent.com/${payload.repository.full_name}/${commit.id}/${file}`;
+        //read the file with axios
+        const response = await axios.get(rawUrl);
+        //check if the file contains the string "transcript"
+        
+      }
+    }
+    return res.status(200).json(pushEvent);
+  } catch (error) {
+    const message =
+      error instanceof Error
+        ? error.message
+        : "Unable to save URLs in the database";
+    return res.status(500).send({ message });
+  }
 }
