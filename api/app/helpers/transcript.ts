@@ -1,5 +1,6 @@
 import crypto from "crypto";
 import  marked, {Tokens}  from "marked";
+import { JsonToken } from "../types/transcript";
 
 const getFirstFiveWords = (paragraph: string) => {
   const words = paragraph.trim().split(/\s+/);
@@ -22,12 +23,6 @@ function generateUniqueHash(content: any) {
   return buffer.toString("base64");
 }
 
-interface JsonToken {
-  type: string;
-  raw: string;
-  text?: string;
-  tokens: JsonToken[];
-}
 
 function convertTokensToJson(tokens: Tokens.ListItem[]): JsonToken[] {
   const json: JsonToken[] = [];
