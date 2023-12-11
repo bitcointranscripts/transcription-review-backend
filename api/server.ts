@@ -53,6 +53,12 @@ const options = {
       {
         url: serverUrl,
       },
+      {
+        url: "https://transcription-review-backend-staging.up.railway.app"
+      },
+      {
+        url: "https://queue.btctranscripts.com"
+      }
     ],
   },
   apis: ["./app/routes/*.ts"],
