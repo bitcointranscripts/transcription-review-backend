@@ -13,9 +13,23 @@ export interface TranscriptAttributes {
   content: any;
   originalContent: any;
   transcriptHash: string;
+  transcriptUrl: string;
   status: string;
   claimedBy?: number | null;
   archivedBy?: number | null;
   archivedAt?: Date | null;
   contentTotalWords: number;
+}
+
+
+export interface TSTBTCAttributes {
+  title: string;
+  transcript_by: string;
+  categories: string[];
+  tags: string[];
+  speakers: string[];
+  date: null | string;
+  loc: string;
+  media: string;
+  body: string;
 }
