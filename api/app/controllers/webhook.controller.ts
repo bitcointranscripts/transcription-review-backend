@@ -185,6 +185,9 @@ export async function handlePushEvent(req: Request, res: Response) {
 
         const transcriptHash = generateUniqueHash(response.data);
         const totalWords = getTotalWords(response.data.body);
+        const content = response.data;
+        const originalContent = response.data;
+
 
         const existingTranscript = await Transcript.findOne({
           where: { transcriptHash: transcriptHash },
@@ -201,6 +204,8 @@ export async function handlePushEvent(req: Request, res: Response) {
             transcriptUrl: rawUrl,
             transcriptHash: transcriptHash,
             contentTotalWords: totalWords,
+            content: content,
+            originalContent: originalContent,
             status: TranscriptStatus.queued,
           });
           break;
@@ -221,3 +226,4 @@ export async function handlePushEvent(req: Request, res: Response) {
 
   return res.status(responseStatus).json({ message: responseMessage });
 }
+ 
