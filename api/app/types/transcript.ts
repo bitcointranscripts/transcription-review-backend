@@ -33,3 +33,10 @@ export interface TSTBTCAttributes {
   media: string;
   body: string;
 }
+
+export interface JsonToken {
+  type: string;
+  raw: string;
+  text?: string;
+  tokens: JsonToken[];
+}
