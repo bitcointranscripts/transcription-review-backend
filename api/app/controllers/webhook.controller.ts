@@ -1,19 +1,61 @@
 import { Request, Response } from "express";
-import axios from "axios";
+import axios, { AxiosResponse } from "axios";
 import { Review, Transaction, Wallet, Transcript, User } from "../db/models";
 import { sequelize } from "../db";
 import { TRANSACTION_STATUS, TRANSACTION_TYPE } from "../types/transaction";
-import { TranscriptAttributes, TranscriptStatus } from "../types/transcript";
+import { TSTBTCAttributes, TranscriptStatus } from "../types/transcript";
 import { PR_EVENT_ACTIONS } from "../utils/constants";
 
 import { verify_signature } from "../utils/validate-webhook-signature";
-import { parseMdToJSON } from "../helpers/transcript";
+import { convertMdToJSON, generateUniqueHash } from "../helpers/transcript";
 import { getTotalWords } from "../utils/review.inference";
-import { sendAlert } from "../helpers/sendAlert";
-import { cacheTranscript } from "../db/helpers/redis";
-import { BaseParsedMdContent } from "../types/transcript";
-import { isTranscriptValid } from "../utils/functions";
-import { addCreditTransactionQueue } from "../utils/cron";
+
+// create a new credit transaction when a review is merged
+async function createCreditTransaction(review: Review, amount: number) {
+  const dbTransaction = await sequelize.transaction();
+  const currentTime = new Date();
+
+  const user = await User.findByPk(review.userId);
+  if (!user) throw new Error(`Could not find user with id=${review.userId}`);
+
+  const userWallet = await Wallet.findOne({
+    where: { userId: user.id },
+  });
+  if (!userWallet)
+    throw new Error(`Could not get wallet for user with id=${user.id}`);
+
+  const newWalletBalance = userWallet.balance + Math.round(+amount);
+  const creditTransaction = {
+    id: generateTransactionId(),
+    reviewId: review.id,
+    walletId: userWallet.id,
+    amount: Math.round(+amount),
+    transactionType: TRANSACTION_TYPE.CREDIT,
+    transactionStatus: TRANSACTION_STATUS.SUCCESS,
+    timestamp: currentTime,
+  };
+  try {
+    await Transaction.create(creditTransaction, {
+      transaction: dbTransaction,
+    });
+    await userWallet.update(
+      {
+        balance: newWalletBalance,
+      },
+      { transaction: dbTransaction }
+    );
+    await dbTransaction.commit();
+  } catch (error) {
+    await dbTransaction.rollback();
+    const failedTransaction = {
+      ...creditTransaction,
+      transactionStatus: TRANSACTION_STATUS.FAILED,
+    };
+    await Transaction.create(failedTransaction);
+
+    throw error;
+  }
+}
 
 export async function create(req: Request, res: Response) {
   if (!verify_signature(req)) {
@@ -253,14 +295,13 @@ async function handleError(error: any, res: Response) {
 // Handle push events from GitHub
 export async function handlePushEvent(req: Request, res: Response) {
   if (!verify_signature(req)) {
-    res.status(401).send("Unauthorized");
-    return;
+    return res.status(401).json("Unauthorized");
   }
 
   const pushEvent = req.body;
   if (!pushEvent) {
-    return res.status(500).send({
-      message: "No push event data found in the request body.",
+    return res.status(500).json({
+      message: "No push event found in the request body.",
     });
   }
 
