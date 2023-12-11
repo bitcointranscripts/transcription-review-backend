@@ -1818,6 +1818,11 @@ make-fetch-happen@^9.1.0:
     socks-proxy-agent "^6.0.0"
     ssri "^8.0.0"
 
+marked@^11.0.1:
+  version "11.0.1"
+  resolved "https://registry.yarnpkg.com/marked/-/marked-11.0.1.tgz#f8010ec2e358c0f4efedbac1ed3dbac2c7f46cdc"
+  integrity sha512-P4kDhFEMlvLePBPRwOcMOv6+lYUbhfbSxJFs3Jb4Qx7v6K7l+k8Dxh9CEGfRvK71tL+qIFz5y7Pe4uzt4+/A3A==
+
 md5.js@^1.3.4:
   version "1.3.5"
   resolved "https://registry.yarnpkg.com/md5.js/-/md5.js-1.3.5.tgz#b5d07b8e3216e3e27cd728d72f70d1e6a342005f"
