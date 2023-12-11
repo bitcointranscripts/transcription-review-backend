@@ -19,6 +19,11 @@ export function reviewRoutes(app: Express) {
    *         transcriptId:
    *           type: integer
    *           description: Id of the transcript that gets reviewed
+   * 
+   *     Pagination:
+   *       type: integer
+   *       minimum: 1
+   *       default: 1
    */
 
   /**
@@ -199,10 +204,11 @@ export function reviewRoutes(app: Express) {
    *     tags: [Reviews]
    *     parameters:
    *       - in: query
-   *         name: submittedAt
+   *         name: status
    *         schema:
    *           type: string
-   *         description: Filter reviews based on submittedAt
+   *           enum: [expired, pending, active]
+   *         description: Filter reviews based on status
    *       - in: query
    *         name: transcriptId
    *         schema:
@@ -223,6 +229,10 @@ export function reviewRoutes(app: Express) {
    *         schema:
    *           type: string
    *         description: Filter reviews based on mergedAt
+   *       - in: query
+   *         name: page
+   *         schema:
+   *           $ref: '#/components/schemas/Pagination'
    *     responses:
    *       200:
    *         description: The list of reviews
