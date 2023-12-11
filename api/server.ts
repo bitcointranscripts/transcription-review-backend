@@ -36,6 +36,12 @@ const options = {
       {
         url: "http://localhost:8080",
       },
+      {
+        url: "https://transcription-review-backend-staging.up.railway.app"
+      },
+      {
+        url: "https://queue.btctranscripts.com"
+      }
     ],
   },
   apis: ["./app/routes/*.ts"],
