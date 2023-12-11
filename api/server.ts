@@ -8,7 +8,6 @@ import {
 } from "sequelize";
 import swaggerJsdoc from "swagger-jsdoc";
 import swaggerUi from "swagger-ui-express";
-
 import {
   logout,
   reviewRoutes,
@@ -23,6 +22,24 @@ import { Logger } from "./app/helpers/logger";
 
 dotenv.config();
 
+const environment = process.env.NODE_ENV;
+
+let serverUrl;
+switch (environment) {
+  case 'development':
+    serverUrl = "http://localhost:8080";
+    break;
+  case 'staging':
+    serverUrl = "https://transcription-review-backend-staging.up.railway.app";
+    break;
+  case 'production':
+    serverUrl = "https://queue.btctranscripts.com";
+    break;
+  default:
+    serverUrl = "http://localhost:8080";
+    break;
+}
+
 const options = {
   definition: {
     openapi: "3.0.0",
@@ -34,14 +51,8 @@ const options = {
     },
     servers: [
       {
-        url: "http://localhost:8080",
+        url: serverUrl,
       },
-      {
-        url: "https://transcription-review-backend-staging.up.railway.app"
-      },
-      {
-        url: "https://queue.btctranscripts.com"
-      }
     ],
   },
   apis: ["./app/routes/*.ts"],
