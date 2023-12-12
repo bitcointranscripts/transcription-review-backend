@@ -3,7 +3,7 @@ import axios, { AxiosResponse } from "axios";
 import { Review, Transaction, Wallet, Transcript, User } from "../db/models";
 import { sequelize } from "../db";
 import { TRANSACTION_STATUS, TRANSACTION_TYPE } from "../types/transaction";
-import { TSTBTCAttributes, TranscriptStatus } from "../types/transcript";
+import { TSTBTCAttributes, TranscriptAttributes, TranscriptStatus } from "../types/transcript";
 import { PR_EVENT_ACTIONS } from "../utils/constants";
 
 import {
@@ -11,7 +11,7 @@ import {
   generateTransactionId,
 } from "../utils/transaction";
 import { verify_signature } from "../utils/validate-webhook-signature";
-import { convertMdToJSON, generateUniqueHash } from "../helpers/transcript";
+import { generateUniqueHash, parseMdToJSON } from "../helpers/transcript";
 import { getTotalWords } from "../utils/review.inference";
 
 // create a new credit transaction when a review is merged
@@ -186,12 +186,13 @@ export async function handlePushEvent(req: Request, res: Response) {
       for (const file of changedFiles) {
         const rawUrl = `https://raw.githubusercontent.com/${pushEvent.repository.full_name}/master/${file}`;
         const response: AxiosResponse<TSTBTCAttributes> = await axios.get(rawUrl);
+        const mdContent = response.data;
+        const jsonContent = parseMdToJSON(mdContent);
 
-        const transcriptHash = generateUniqueHash(response.data);
-        const totalWords = getTotalWords(response.data.body);
-        const content = response.data;
-        const originalContent = response.data;
-
+        const transcriptHash = generateUniqueHash(jsonContent);
+        const totalWords = getTotalWords(jsonContent.body);
+        const content = jsonContent;
+        const originalContent = jsonContent;
 
         const existingTranscript = await Transcript.findOne({
           where: { transcriptHash: transcriptHash },
@@ -203,7 +204,7 @@ export async function handlePushEvent(req: Request, res: Response) {
           break;
         }
 
-        if (response.data.transcript_by.includes("TSTBTC")) {
+        if (jsonContent.transcript_by.includes("TSTBTC")) {
           await Transcript.create({
             transcriptUrl: rawUrl,
             transcriptHash: transcriptHash,
@@ -215,7 +216,8 @@ export async function handlePushEvent(req: Request, res: Response) {
           break;
         } else {
           responseStatus = 404;
-          responseMessage = "Transcript not from TSTBTC - did not queue transcript";
+          responseMessage =
+            "Transcript not from TSTBTC - did not queue transcript";
         }
       }
 
@@ -225,9 +227,11 @@ export async function handlePushEvent(req: Request, res: Response) {
     }
   } catch (error) {
     responseStatus = 500;
-    responseMessage = error instanceof Error ? error.message : "Unable to save URLs in the database";
+    responseMessage =
+      error instanceof Error
+        ? error.message
+        : "Unable to save URLs in the database";
   }
 
   return res.status(responseStatus).json({ message: responseMessage });
 }
- 
