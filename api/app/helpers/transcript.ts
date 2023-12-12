@@ -1,5 +1,4 @@
 import crypto from "crypto";
-import  marked, {Tokens}  from "marked";
 
 const getFirstFiveWords = (paragraph: string) => {
   const words = paragraph.trim().split(/\s+/);
@@ -22,33 +21,41 @@ function generateUniqueHash(content: any) {
   return buffer.toString("base64");
 }
 
-interface JsonToken {
-  type: string;
-  raw: string;
-  text?: string;
-  tokens: JsonToken[];
-}
+function parseMdToJSON(mdContent: any) {
+  const regex = /^---\s*([\s\S]*?)\s*---\s*([\s\S]*)$/;
+  const match = mdContent.match(regex);
 
-function convertTokensToJson(tokens: Tokens.ListItem[]): JsonToken[] {
-  const json: JsonToken[] = [];
-  for (const token of tokens) {
-    const jsonObject: JsonToken = {
-      type: token.type,
-      raw: token.raw,
-      text: token.text,
-      tokens: convertTokensToJson(token.tokens as Tokens.ListItem[] || []),
-    };
-    json.push(jsonObject);
+  if (!match) {
+    throw new Error("Invalid Markdown format");
   }
+
+  const header = match[1];
+  const body = match[2].replace(/\n/g, " ");
+
+  const json: any = {};
+  const lines = header.split("\n");
+  for (const line of lines) {
+    const [key, ...valueParts] = line.split(":");
+    if (valueParts.length > 0) {
+      const value = valueParts.join(":").trim();
+      if (key.trim() !== "") {
+        if (value.startsWith("'") && value.endsWith("'")) {
+          json[key] = value.slice(1, -1);
+        } else if (value.startsWith("'") && value.endsWith("',")) {
+          if (!json[key]) {
+            json[key] = [];
+          }
+          json[key].push(value.slice(1, -2));
+        } else {
+          json[key] = value;
+        }
+      }
+    }
+  }
+
+  json.body = body;
+
   return json;
 }
 
-function convertMdToJSON(md: string): JsonToken[] {
-  const tokens = marked.lexer(md);
-  return convertTokensToJson(tokens as Tokens.ListItem[]);
-}
-
-
-
-
-export { generateUniqueStr, generateUniqueHash, convertMdToJSON };
+export { generateUniqueStr, generateUniqueHash, parseMdToJSON };
