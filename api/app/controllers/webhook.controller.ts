@@ -3,7 +3,7 @@ import axios, { AxiosResponse } from "axios";
 import { Review, Transaction, Wallet, Transcript, User } from "../db/models";
 import { sequelize } from "../db";
 import { TRANSACTION_STATUS, TRANSACTION_TYPE } from "../types/transaction";
-import { TSTBTCAttributes, TranscriptAttributes, TranscriptStatus } from "../types/transcript";
+import { TSTBTCAttributes, TranscriptStatus } from "../types/transcript";
 import { PR_EVENT_ACTIONS } from "../utils/constants";
 
 import {
