@@ -34,9 +34,3 @@ export interface TSTBTCAttributes {
   body: string;
 }
 
-export interface JsonToken {
-  type: string;
-  raw: string;
-  text?: string;
-  tokens: JsonToken[];
-}
