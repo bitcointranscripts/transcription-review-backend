@@ -13,7 +13,6 @@ import { verify_signature } from "../utils/validate-webhook-signature";
 import { generateUniqueHash, parseMdToJSON } from "../helpers/transcript";
 import { getTotalWords } from "../utils/review.inference";
 
-
 // create a new credit transaction when a review is merged
 async function createCreditTransaction(review: Review, amount: number) {
   const dbTransaction = await sequelize.transaction();
@@ -182,17 +181,33 @@ export async function handlePushEvent(req: Request, res: Response) {
 
   try {
     for (const commit of commits) {
-      const changedFiles = [...commit.added, ...commit.modified];
+      const changedFiles = [...commit.added];
       for (const file of changedFiles) {
         const rawUrl = `https://raw.githubusercontent.com/${pushEvent.repository.full_name}/master/${file}`;
-        const response: AxiosResponse<TSTBTCAttributes> = await axios.get(rawUrl);
+        const response: AxiosResponse<TSTBTCAttributes> = await axios.get(
+          rawUrl
+        );
         const mdContent = response.data;
         const jsonContent = parseMdToJSON(mdContent);
-
+        // Validate jsonContent
+        if (!jsonContent) {
+          responseStatus = 400;
+          responseMessage =
+            "Malformed data: transcript content might not be in the correct format";
+          break;
+        }
         const transcriptHash = generateUniqueHash(jsonContent);
         const totalWords = getTotalWords(jsonContent.body);
         const content = jsonContent;
         const originalContent = jsonContent;
+
+        // Validate other values
+        if (!transcriptHash || !totalWords) {
+          responseStatus = 400;
+          responseMessage =
+            "Malformed data: transcript content might not be in the correct format";
+          break;
+        }
 
         const existingTranscript = await Transcript.findOne({
           where: { transcriptHash: transcriptHash },
@@ -204,7 +219,10 @@ export async function handlePushEvent(req: Request, res: Response) {
           break;
         }
 
-        if (jsonContent.transcript_by.includes("TSTBTC") && jsonContent.transcript_by.includes("--needs-review")) {
+        if (
+          jsonContent.transcript_by.includes("TSTBTC") &&
+          jsonContent.transcript_by.includes("--needs-review")
+        ) {
           await Transcript.create({
             transcriptUrl: rawUrl,
             transcriptHash: transcriptHash,
