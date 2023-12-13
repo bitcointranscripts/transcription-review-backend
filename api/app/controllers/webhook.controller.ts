@@ -14,6 +14,7 @@ import { verify_signature } from "../utils/validate-webhook-signature";
 import { generateUniqueHash, parseMdToJSON } from "../helpers/transcript";
 import { getTotalWords } from "../utils/review.inference";
 
+
 // create a new credit transaction when a review is merged
 async function createCreditTransaction(review: Review, amount: number) {
   const dbTransaction = await sequelize.transaction();
@@ -204,7 +205,7 @@ export async function handlePushEvent(req: Request, res: Response) {
           break;
         }
 
-        if (jsonContent.transcript_by.includes("TSTBTC")) {
+        if (jsonContent.transcript_by.includes("TSTBTC") && jsonContent.transcript_by.includes("--needs-review")) {
           await Transcript.create({
             transcriptUrl: rawUrl,
             transcriptHash: transcriptHash,
@@ -217,7 +218,7 @@ export async function handlePushEvent(req: Request, res: Response) {
         } else {
           responseStatus = 404;
           responseMessage =
-            "Transcript not from TSTBTC - did not queue transcript";
+            "Transcript not from TSTBTC or does not need review - did not queue transcript";
         }
       }
 
