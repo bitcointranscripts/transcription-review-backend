@@ -22,6 +22,7 @@ function generateUniqueHash(content: any) {
 }
 
 function parseMdToJSON(mdContent: any) {
+  // This regex is used to match and capture the content between two '---' separators in tstbtc markdown file, typically forfront matter, and the rest of the content after the second '---'.
   const regex = /^---\s*([\s\S]*?)\s*---\s*([\s\S]*)$/;
   const match = mdContent.match(regex);
 
