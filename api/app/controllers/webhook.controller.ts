@@ -9,6 +9,7 @@ import { PR_EVENT_ACTIONS } from "../utils/constants";
 import { verify_signature } from "../utils/validate-webhook-signature";
 import { generateUniqueHash, parseMdToJSON } from "../helpers/transcript";
 import { getTotalWords } from "../utils/review.inference";
+import { sendEmail } from "../helpers/email";
 
 // create a new credit transaction when a review is merged
 async function createCreditTransaction(review: Review, amount: number) {
@@ -154,6 +155,60 @@ export async function create(req: Request, res: Response) {
   }
 }
 
+async function processCommit(commit: any, pushEvent: any) {
+  const changedFiles = [...commit.added];
+  for (const file of changedFiles) {
+    const rawUrl = `https://raw.githubusercontent.com/${pushEvent.repository.full_name}/master/${file}`;
+    const response: AxiosResponse<TSTBTCAttributes> = await axios.get(rawUrl);
+    const mdContent = response.data;
+    const jsonContent = parseMdToJSON(mdContent);
+    const transcript_by = jsonContent.transcript_by.toLowerCase();
+
+    function isTranscriptValid(jsonContent: any): boolean {
+      return transcript_by.includes("tstbtc") && transcript_by.includes("--needs-review");
+    }
+
+    // Validate jsonContent
+    if (!jsonContent) {
+      throw new Error("Malformed data: transcript content might not be in the correct format");
+    }
+
+    const transcriptHash = generateUniqueHash(jsonContent);
+    const totalWords = getTotalWords(jsonContent.body);
+    const content = jsonContent;
+    const originalContent = jsonContent;
+
+    // Validate other values
+    if (!transcriptHash || !totalWords) {
+      throw new Error("Malformed data: transcript content might not be in the correct format");
+    }
+
+    const existingTranscript = await Transcript.findOne({
+      where: { transcriptHash: transcriptHash },
+    });
+
+    if (existingTranscript) {
+      throw new Error("transcript already exists");
+    }
+
+    if (!isTranscriptValid(jsonContent)) {
+      throw new Error("Transcript not from TSTBTC or does not need review - did not queue transcript");
+    }
+
+    await Transcript.create({
+      transcriptUrl: rawUrl,
+      transcriptHash: transcriptHash,
+      contentTotalWords: totalWords,
+      content: content,
+      originalContent: originalContent,
+      status: TranscriptStatus.queued,
+    });
+
+    // Send success email
+    await sendEmail("Transcript queued successfully", jsonContent.title);
+  }
+}
+
 export async function handlePushEvent(req: Request, res: Response) {
   if (!verify_signature(req)) {
     return res.status(401).json("Unauthorized");
@@ -173,80 +228,16 @@ export async function handlePushEvent(req: Request, res: Response) {
     });
   }
 
-  let responseStatus = 200;
-  let responseMessage = "success";
-
   try {
     for (const commit of commits) {
-      const changedFiles = [...commit.added];
-      for (const file of changedFiles) {
-        const rawUrl = `https://raw.githubusercontent.com/${pushEvent.repository.full_name}/master/${file}`;
-        const response: AxiosResponse<TSTBTCAttributes> = await axios.get(
-          rawUrl
-        );
-        const mdContent = response.data;
-        const jsonContent = parseMdToJSON(mdContent);
-        // Validate jsonContent
-        if (!jsonContent) {
-          responseStatus = 400;
-          responseMessage =
-            "Malformed data: transcript content might not be in the correct format";
-          break;
-        }
-        const transcriptHash = generateUniqueHash(jsonContent);
-        const totalWords = getTotalWords(jsonContent.body);
-        const content = jsonContent;
-        const originalContent = jsonContent;
-
-        // Validate other values
-        if (!transcriptHash || !totalWords) {
-          responseStatus = 400;
-          responseMessage =
-            "Malformed data: transcript content might not be in the correct format";
-          break;
-        }
-
-        const existingTranscript = await Transcript.findOne({
-          where: { transcriptHash: transcriptHash },
-        });
-
-        if (existingTranscript) {
-          responseStatus = 409;
-          responseMessage = "transcript already exists";
-          break;
-        }
-
-        if (
-          jsonContent.transcript_by.includes("TSTBTC") &&
-          jsonContent.transcript_by.includes("--needs-review")
-        ) {
-          await Transcript.create({
-            transcriptUrl: rawUrl,
-            transcriptHash: transcriptHash,
-            contentTotalWords: totalWords,
-            content: content,
-            originalContent: originalContent,
-            status: TranscriptStatus.queued,
-          });
-          break;
-        } else {
-          responseStatus = 404;
-          responseMessage =
-            "Transcript not from TSTBTC or does not need review - did not queue transcript";
-        }
-      }
-
-      if (responseStatus !== 200) {
-        break;
-      }
+      await processCommit(commit, pushEvent);
     }
   } catch (error) {
-    responseStatus = 500;
-    responseMessage =
-      error instanceof Error
-        ? error.message
-        : "Unable to save URLs in the database";
+    // Send error email
+    const message = error instanceof Error ? error.message : "Unknown error";
+    await sendEmail(message);
+    return res.status(500).json({ message:message });
   }
 
-  return res.status(responseStatus).json({ message: responseMessage });
+  return res.status(200).json({ message: "Transcript queued Successfully" });
 }
