@@ -3,8 +3,9 @@ import axios, { AxiosResponse } from "axios";
 import { Review, Transaction, Wallet, Transcript, User } from "../db/models";
 import { sequelize } from "../db";
 import { TRANSACTION_STATUS, TRANSACTION_TYPE } from "../types/transaction";
-import { TranscriptAttributes, TranscriptStatus } from "../types/transcript";
-import { PR_EVENT_ACTIONS } from "../utils/constants";
+import { TranscriptAttributes, TranscriptAttributes, TranscriptStatus } from "../types/transcript";
+import { PAGE_COUNT, PR_EVENT_ACTIONS } from "../utils/constants";
+import { redis } from "../db";
 
 import {
   calculateCreditAmount,
@@ -183,7 +184,6 @@ async function processCommit(commit: any, pushEvent: any) {
     const transcriptHash = generateUniqueHash(jsonContent);
     const totalWords = getTotalWords(jsonContent.body);
     const content = jsonContent;
-    const originalContent = jsonContent;
 
     // Validate other values
     if (!transcriptHash || !totalWords) {
@@ -202,17 +202,42 @@ async function processCommit(commit: any, pushEvent: any) {
       throw new Error("Transcript not from TSTBTC or does not need review - did not queue transcript");
     }
 
-    await Transcript.create({
-      transcriptUrl: rawUrl,
-      transcriptHash: transcriptHash,
-      contentTotalWords: totalWords,
+    const transcript: TranscriptAttributes = {
+      originalContent: {
+        ...content,
+        title: content.title.trim(),
+      },
       content: content,
-      originalContent: originalContent,
+      transcriptHash,
+      transcriptUrl: rawUrl,
       status: TranscriptStatus.queued,
+      contentTotalWords: totalWords,
+    };
+    
+    const transcriptData = await Transcript.create(transcript);
+
+   const redisNewTranscriptTransaction = redis.multi();
+
+    // Add the new transcript's ID to the "cachedTranscripts" set
+    redisNewTranscriptTransaction.sadd("cachedTranscripts", transcriptData.id);
+
+    // Cache the new transcript
+    redisNewTranscriptTransaction.set(`transcript:${transcriptData.id}`, JSON.stringify(transcriptData), 'EX', CACHE_EXPIRATION);
+
+    // Delete cached pages of transcripts
+    for (let i = 0; i < PAGE_COUNT; i++) {
+      redisNewTranscriptTransaction.del(`transcriptsPage:${i}`);
+    }
+
+    // Execute the Redis transaction
+    await redisNewTranscriptTransaction.exec((err, _results) => {
+      if (err) {
+        // If an error occurred during the transaction, delete the new transcript from the database
+        Transcript.destroy({ where: { id: transcriptData.id } });
+        throw err;
+      }
     });
 
-    // Send success email
-    await sendEmail("Transcript queued successfully", jsonContent.title);
   }
 }
 
