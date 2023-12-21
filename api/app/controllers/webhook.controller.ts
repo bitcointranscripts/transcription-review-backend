@@ -4,11 +4,21 @@ import { Review, Transaction, Wallet, Transcript, User } from "../db/models";
 import { sequelize } from "../db";
 import { TRANSACTION_STATUS, TRANSACTION_TYPE } from "../types/transaction";
 import { TSTBTCAttributes, TranscriptAttributes, TranscriptStatus } from "../types/transcript";
-import { PR_EVENT_ACTIONS } from "../utils/constants";
-
+import { PAGE_COUNT, PR_EVENT_ACTIONS } from "../utils/constants";
+import { redis } from "../db";
+import {
+  calculateCreditAmount,
+  generateTransactionId,
+} from "../utils/transaction";
 import { verify_signature } from "../utils/validate-webhook-signature";
 import { generateUniqueHash, parseMdToJSON } from "../helpers/transcript";
 import { getTotalWords } from "../utils/review.inference";
+import { sendEmail } from "../helpers/email";
+import {
+  CACHE_EXPIRATION,
+  deleteCache,
+  resetRedisCachedPages,
+} from "../db/helpers/redis";
 
 // create a new credit transaction when a review is merged
 async function createCreditTransaction(review: Review, amount: number) {
@@ -154,6 +164,83 @@ export async function create(req: Request, res: Response) {
   }
 }
 
+async function processCommit(commit: any, pushEvent: any) {
+  const changedFiles = [...commit.added];
+  for (const file of changedFiles) {
+    const rawUrl = `https://raw.githubusercontent.com/${pushEvent.repository.full_name}/master/${file}`;
+    const response: AxiosResponse<TSTBTCAttributes> = await axios.get(rawUrl);
+    const mdContent = response.data;
+    const jsonContent = parseMdToJSON(mdContent);
+    const transcript_by = jsonContent.transcript_by.toLowerCase();
+
+    function isTranscriptValid(jsonContent: any): boolean {
+      return transcript_by.includes("tstbtc") && transcript_by.includes("--needs-review");
+    }
+
+    // Validate jsonContent
+    if (!jsonContent) {
+      throw new Error("Malformed data: transcript content might not be in the correct format");
+    }
+
+    const transcriptHash = generateUniqueHash(jsonContent);
+    const totalWords = getTotalWords(jsonContent.body);
+    const content = jsonContent;
+
+    // Validate other values
+    if (!transcriptHash || !totalWords) {
+      throw new Error("Malformed data: transcript content might not be in the correct format");
+    }
+
+    const existingTranscript = await Transcript.findOne({
+      where: { transcriptHash: transcriptHash },
+    });
+
+    if (existingTranscript) {
+      throw new Error("transcript already exists");
+    }
+
+    if (!isTranscriptValid(jsonContent)) {
+      throw new Error("Transcript not from TSTBTC or does not need review - did not queue transcript");
+    }
+
+    const transcript: TranscriptAttributes = {
+      originalContent: {
+        ...content,
+        title: content.title.trim(),
+      },
+      content: content,
+      transcriptHash,
+      transcriptUrl: rawUrl,
+      status: TranscriptStatus.queued,
+      contentTotalWords: totalWords,
+    };
+    
+    const transcriptData = await Transcript.create(transcript);
+
+   const redisNewTranscriptTransaction = redis.multi();
+
+    // Add the new transcript's ID to the "cachedTranscripts" set
+    redisNewTranscriptTransaction.sadd("cachedTranscripts", transcriptData.id);
+
+    // Cache the new transcript
+    redisNewTranscriptTransaction.set(`transcript:${transcriptData.id}`, JSON.stringify(transcriptData), 'EX', CACHE_EXPIRATION);
+
+    // Delete cached pages of transcripts
+    for (let i = 0; i < PAGE_COUNT; i++) {
+      redisNewTranscriptTransaction.del(`transcriptsPage:${i}`);
+    }
+
+    // Execute the Redis transaction
+    await redisNewTranscriptTransaction.exec((err, _results) => {
+      if (err) {
+        // If an error occurred during the transaction, delete the new transcript from the database
+        Transcript.destroy({ where: { id: transcriptData.id } });
+        throw err;
+      }
+    });
+
+  }
+}
 
 export async function handlePushEvent(req: Request, res: Response) {
   if (!verify_signature(req)) {
