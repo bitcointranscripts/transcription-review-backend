@@ -179,42 +179,7 @@ export async function findAll(req: Request, res: Response) {
 }
 
 // Find a single review with an id
-export async function findOne(req: Request, res: Response) {
-  const id = parseInt(req.params.id);
-  const userId = req.body.userId;
-
-  if (!id) {
-    res.status(400).send({
-      message: "Review id cannot be empty!",
-    });
-    return;
-  }
-
-  try {
-    const data = await Review.findOne({
-      where: { id: id, userId: userId },
-      include: { model: Transcript },
-    });
-
-    if (!data) {
-      return res.status(404).send({
-        message: `Review with id=${id} does not exist`,
-      });
-    }
-
-    const branchUrl = data.branchUrl;
-    const transcriptData = data.transcript.dataValues;
-    const transcript = await transcriptWrapper(transcriptData, branchUrl);
-    return res.status(200).send({ ...data.dataValues, transcript });
-  } catch (err) {
-    res.status(500).send({
-      message: "Error retrieving review with id=" + id,
-    });
-  }
-}
-
-// Update a review by the id in the request
-export async function update(req: Request, res: Response) {
+async function update(req: Request, res: Response) {
   const id = req.params.id;
   const userId = req.body.userId;
 
