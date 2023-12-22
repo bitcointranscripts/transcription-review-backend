@@ -18,13 +18,13 @@ import {
 } from "../utils/review.inference";
 import { parseMdToJSON } from "../helpers/transcript";
 import axios from "axios";
-import { TranscriptAttributes } from "../types/transcript";
+import { BaseParsedMdContent, TranscriptAttributes } from "../types/transcript";
 
 const transcriptWrapper = async (transcript: TranscriptAttributes) => {
   if (!transcript.transcriptUrl) return transcript;
   try {
     const response = await axios.get(transcript.transcriptUrl);
-    const transcriptData = parseMdToJSON(response.data);
+    const transcriptData:BaseParsedMdContent = parseMdToJSON<BaseParsedMdContent>(response.data);
     const newTranscript = {
       ...transcriptData, content: transcriptData.content.body
     };
