@@ -21,16 +21,8 @@ export interface TranscriptAttributes {
   contentTotalWords: number;
 }
 
-
-export interface TSTBTCAttributes {
-  title: string;
-  transcript_by: string;
-  categories: string[];
-  tags: string[];
-  speakers: string[];
-  date: null | string;
-  loc: string;
-  media: string;
+export interface BaseParsedMdContent extends TranscriptAttributes {
   body: string;
+  [key: string]: string | string[] | any;
 }
 
