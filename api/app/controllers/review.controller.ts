@@ -16,6 +16,28 @@ import {
   buildIsInActiveCondition,
   buildIsPendingCondition,
 } from "../utils/review.inference";
+import { parseMdToJSON } from "../helpers/transcript";
+import axios from "axios";
+import { TranscriptAttributes } from "../types/transcript";
+
+const transcriptWrapper = async (transcript: TranscriptAttributes) => {
+  if (!transcript.transcriptUrl) return transcript;
+  try {
+    const response = await axios.get(transcript.transcriptUrl);
+    const transcriptData = parseMdToJSON(response.data);
+    const newTranscript = {
+      ...transcriptData, content: transcriptData.content.body
+    };
+    return newTranscript;
+  } catch (error: unknown) {
+    if (error instanceof Error) {
+      const message = error.message;
+      throw new Error(message);
+    } else {
+      throw new Error("Error parsing transcript");
+    }
+  }
+}
 
 // Create and Save a new review
 export async function create(req: Request, res: Response) {
@@ -161,7 +183,7 @@ export async function findOne(req: Request, res: Response) {
           message: `Review with id=${id} does not exist`,
         });
       }
-      res.status(200).send(data);
+      return transcriptWrapper(data.transcript);
     })
     .catch((_err) => {
       res.status(500).send({
