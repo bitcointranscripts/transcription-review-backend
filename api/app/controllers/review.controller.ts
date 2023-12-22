@@ -37,25 +37,21 @@ const transcriptWrapper = async (
   let newTranscript = { ...transcript };
 
   try {
-    const response = await axios.get(branchUrl, {
-      headers: { Accept: "application/vnd.github.v3.raw" },
-    });
-    const branchData = parseMdToJSON<BaseParsedMdContent>(response.data);
-    // If the branchData doesn't have a body, return the transcript as is
-    if (!branchData || !branchData.body) {
-      return transcript;
-    }
-    newTranscript.content = branchData;
+    const response = await axios.get(transcript.transcriptUrl);
+    const transcriptData = parseMdToJSON(response.data);
+    const newTranscript = {
+      ...transcriptData, content: transcriptData.content.body
+    };
+    return newTranscript;
   } catch (error: unknown) {
     if (error instanceof Error) {
-      throw error;
+      const message = error.message;
+      throw new Error(message);
     } else {
-      throw new Error("Error fetching or parsing branch data");
+      throw new Error("Error parsing transcript");
     }
   }
-
-  return newTranscript;
-};
+}
 
 // Create and Save a new review
 export async function create(req: Request, res: Response) {
@@ -191,27 +187,23 @@ export async function findOne(req: Request, res: Response) {
     return;
   }
 
-  try {
-    const data = await Review.findOne({
-      where: { id: id, userId: userId },
-      include: { model: Transcript },
-    });
-
-    if (!data) {
-      return res.status(404).send({
-        message: `Review with id=${id} does not exist`,
+  await Review.findOne({
+    where: { id: id, userId: userId },
+    include: { model: Transcript },
+  })
+    .then(async (data) => {
+      if (!data) {
+        return res.status(404).send({
+          message: `Review with id=${id} does not exist`,
+        });
+      }
+      return transcriptWrapper(data.transcript);
+    })
+    .catch((_err) => {
+      res.status(500).send({
+        message: "Error retrieving review with id=" + id,
       });
-    }
-
-    const branchUrl = data.branchUrl;
-    const transcriptData = data.transcript.dataValues;
-    const transcript = await transcriptWrapper(transcriptData, branchUrl);
-    return res.status(200).send({ ...data.dataValues, transcript });
-  } catch (err) {
-    res.status(500).send({
-      message: "Error retrieving review with id=" + id,
     });
-  }
 }
 
 // Update a review by the id in the request
