@@ -4,7 +4,6 @@ import { Review, Transaction, Wallet, Transcript, User } from "../db/models";
 import { sequelize } from "../db";
 import { TRANSACTION_STATUS, TRANSACTION_TYPE } from "../types/transaction";
 import {
-  TSTBTCAttributes,
   TranscriptAttributes,
   TranscriptStatus,
 } from "../types/transcript";
@@ -23,6 +22,7 @@ import {
   deleteCache,
   resetRedisCachedPages,
 } from "../db/helpers/redis";
+import {BaseParsedMdContent} from "../types/transcript";
 
 // create a new credit transaction when a review is merged
 async function createCreditTransaction(review: Review, amount: number) {
@@ -174,10 +174,10 @@ async function processCommit(commit: any, pushEvent: any, type: 'added' | 'modif
     const rawUrl = `https://raw.githubusercontent.com/${pushEvent.repository.full_name}/master/${file}`;
     const response: any = await axios.get(rawUrl);
     const mdContent = response.data;
-    const jsonContent = parseMdToJSON(mdContent);
+    const jsonContent: BaseParsedMdContent = parseMdToJSON<BaseParsedMdContent>(mdContent);
     const transcript_by = jsonContent.transcript_by.toLowerCase();
 
-    function isTranscriptValid(jsonContent: any): boolean {
+    function isTranscriptValid(transcript_by: string): boolean {
       return (
         transcript_by.includes("tstbtc") &&
         transcript_by.includes("--needs-review")
@@ -208,7 +208,7 @@ async function processCommit(commit: any, pushEvent: any, type: 'added' | 'modif
       throw new Error("transcript already exists");
     }
 
-    if (!isTranscriptValid(jsonContent)) {
+    if (!isTranscriptValid(transcript_by)) {
       throw new Error(
         "Transcript not from TSTBTC or does not need review - did not queue transcript"
       );
@@ -217,7 +217,7 @@ async function processCommit(commit: any, pushEvent: any, type: 'added' | 'modif
     const transcript: TranscriptAttributes = {
       originalContent: {
         ...content,
-        title: content.title.trim(),
+        title: content.title.trim() as string,
       },
       content: content,
       transcriptHash,
@@ -246,6 +246,8 @@ async function processCommit(commit: any, pushEvent: any, type: 'added' | 'modif
       await redisTransaction.exec();
   
       transcriptData = existingTranscript;
+
+      console.log(transcriptData);
     }
 
     const redisNewTranscriptTransaction = redis.multi();
