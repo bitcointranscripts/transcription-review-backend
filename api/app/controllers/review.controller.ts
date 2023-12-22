@@ -18,43 +18,26 @@ import {
 } from "../utils/review.inference";
 import { parseMdToJSON } from "../helpers/transcript";
 import axios from "axios";
-import { BaseParsedMdContent, TranscriptAttributes } from "../types/transcript";
-import { redis } from "../db";
-import { Logger } from "../helpers/logger";
+import { TranscriptAttributes } from "../types/transcript";
 
-// THis function fetches and parses a transcript from a URL (already saved in the db which points to transcript on github), or returns the original transcript if no URL is provided. This is use to sync a transcript in review with the FE.
-const transcriptWrapper = async (
-  transcript: TranscriptAttributes,
-  branchUrl?: string | undefined
-) => {
-  // If there's no branchUrl, return the transcript as is
-  if (!branchUrl) {
-    return transcript;
-  }
-
-  // Create a copy of the transcript object to avoid modifying the original
-  let newTranscript = { ...transcript };
-
+const transcriptWrapper = async (transcript: TranscriptAttributes) => {
+  if (!transcript.transcriptUrl) return transcript;
   try {
-    const response = await axios.get(branchUrl, {
-      headers: { Accept: "application/vnd.github.v3.raw" },
-    });
-    const branchData = parseMdToJSON<BaseParsedMdContent>(response.data);
-    // If the branchData doesn't have a body, return the transcript as is
-    if (!branchData || !branchData.body) {
-      return transcript;
-    }
-    newTranscript.content = branchData;
+    const response = await axios.get(transcript.transcriptUrl);
+    const transcriptData = parseMdToJSON(response.data);
+    const newTranscript = {
+      ...transcriptData, content: transcriptData.content.body
+    };
+    return newTranscript;
   } catch (error: unknown) {
     if (error instanceof Error) {
-      throw error;
+      const message = error.message;
+      throw new Error(message);
     } else {
-      throw new Error("Error fetching or parsing branch data");
+      throw new Error("Error parsing transcript");
     }
   }
-
-  return newTranscript;
-};
+}
 
 // Create and Save a new review
 export async function create(req: Request, res: Response) {
@@ -190,27 +173,23 @@ export async function findOne(req: Request, res: Response) {
     return;
   }
 
-  try {
-    const data = await Review.findOne({
-      where: { id: id, userId: userId },
-      include: { model: Transcript },
-    });
-
-    if (!data) {
-      return res.status(404).send({
-        message: `Review with id=${id} does not exist`,
+  await Review.findOne({
+    where: { id: id, userId: userId },
+    include: { model: Transcript },
+  })
+    .then(async (data) => {
+      if (!data) {
+        return res.status(404).send({
+          message: `Review with id=${id} does not exist`,
+        });
+      }
+      return transcriptWrapper(data.transcript);
+    })
+    .catch((_err) => {
+      res.status(500).send({
+        message: "Error retrieving review with id=" + id,
       });
-    }
-
-    const branchUrl = data.branchUrl;
-    const transcriptData = data.transcript.dataValues;
-    const transcript = await transcriptWrapper(transcriptData, branchUrl);
-    return res.status(200).send({ ...data.dataValues, transcript });
-  } catch (err) {
-    res.status(500).send({
-      message: "Error retrieving review with id=" + id,
     });
-  }
 }
 
 // Update a review by the id in the request
