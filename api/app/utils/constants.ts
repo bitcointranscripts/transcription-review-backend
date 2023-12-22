@@ -19,6 +19,10 @@ const currentTime = Math.floor(Date.now() / 1000);
 const JWTEXPIRYTIMEINHOURS = currentTime + (expiresInHours * 60 * 60);
 
 
+// This is a random number that is used to note the numbers of pages to be cashed
+const PAGE_COUNT = 100;
+
+
 const EXPIRYTIMEINHOURS = 24;
 const MAXPENDINGREVIEWS = 3;
 const INVOICEEXPIRYTIME = 5 * 60 * 1000
@@ -59,6 +63,7 @@ export {
   MINUTE_END_OF_DAY,
   SECOND_END_OF_DAY,
   MILLISECOND_END_OF_DAY,
+  PAGE_COUNT,
 };
 
 
