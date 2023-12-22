@@ -1,4 +1,7 @@
 import crypto from "crypto";
+import { BaseParsedMdContent } from "../types/transcript";
+
+
 
 const getFirstFiveWords = (paragraph: string) => {
   const words = paragraph.trim().split(/\s+/);
@@ -21,8 +24,9 @@ function generateUniqueHash(content: any) {
   return buffer.toString("base64");
 }
 
-function parseMdToJSON(mdContent: any) {
-  // This regex is used to match and capture the content between two '---' separators in tstbtc markdown file, typically forfront matter, and the rest of the content after the second '---'.
+
+function parseMdToJSON<T extends BaseParsedMdContent>(mdContent: string): T {
+  // This regex is used to match and capture the content between two '---' separators in tstbtc markdown file, typically for front matter, and the rest of the content after the second '---'.
   const regex = /^---\s*([\s\S]*?)\s*---\s*([\s\S]*)$/;
   const match = mdContent.match(regex);
 
@@ -30,25 +34,25 @@ function parseMdToJSON(mdContent: any) {
     throw new Error("Invalid Markdown format");
   }
 
-  const header = match[1];
-  const body = match[2].replace(/\n/g, " ");
+  const [, header, body] = match;
 
-  const json: any = {};
+  const json: Partial<T> = {};
   const lines = header.split("\n");
+
   for (const line of lines) {
     const [key, ...valueParts] = line.split(":");
     if (valueParts.length > 0) {
       const value = valueParts.join(":").trim();
       if (key.trim() !== "") {
         if (value.startsWith("'") && value.endsWith("'")) {
-          json[key] = value.slice(1, -1);
+          (json as Record<string, string | string[] | undefined>)[key] = value.slice(1, -1);
         } else if (value.startsWith("'") && value.endsWith("',")) {
-          if (!json[key]) {
-            json[key] = [];
+          if (!(json as Record<string, string | string[] | undefined>)[key]) {
+            (json as Record<string, string | string[] | undefined>)[key] = [];
           }
-          json[key].push(value.slice(1, -2));
+          ((json as Record<string, string | string[] | undefined>)[key] as string[]).push(value.slice(1, -2));
         } else {
-          json[key] = value;
+          (json as Record<string, string | string[] | undefined>)[key] = value;
         }
       }
     }
@@ -56,7 +60,8 @@ function parseMdToJSON(mdContent: any) {
 
   json.body = body;
 
-  return json;
+  return json as T;
 }
 
-export { generateUniqueStr, generateUniqueHash, parseMdToJSON };
+
+export { generateUniqueStr, generateUniqueHash, parseMdToJSON, };
