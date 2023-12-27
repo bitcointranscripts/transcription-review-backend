@@ -256,7 +256,9 @@ async function processCommit(
     // Send alert to Discord
     await sendAlert(
       `Transcript Queued Successfully`,
-      transcriptData.originalContent.title
+      transcriptData.originalContent.title,
+      transcriptData.transcriptUrl,
+      transcriptData.transcriptHash
     );
 
     const redisNewTranscriptTransaction = redis.multi();
