@@ -3,7 +3,7 @@ import axios, { AxiosResponse } from "axios";
 import { Review, Transaction, Wallet, Transcript, User } from "../db/models";
 import { sequelize } from "../db";
 import { TRANSACTION_STATUS, TRANSACTION_TYPE } from "../types/transaction";
-import { TSTBTCAttributes, TranscriptAttributes, TranscriptStatus } from "../types/transcript";
+import { TranscriptAttributes, TranscriptStatus } from "../types/transcript";
 import { PAGE_COUNT, PR_EVENT_ACTIONS } from "../utils/constants";
 import { redis } from "../db";
 import {
@@ -13,12 +13,14 @@ import {
 import { verify_signature } from "../utils/validate-webhook-signature";
 import { generateUniqueHash, parseMdToJSON } from "../helpers/transcript";
 import { getTotalWords } from "../utils/review.inference";
-import { sendEmail } from "../helpers/email";
+import { sendAlert } from "../helpers/sendAlert";
 import {
   CACHE_EXPIRATION,
   deleteCache,
   resetRedisCachedPages,
 } from "../db/helpers/redis";
+import { BaseParsedMdContent } from "../types/transcript";
+import { json } from "sequelize";
 
 // create a new credit transaction when a review is merged
 async function createCreditTransaction(review: Review, amount: number) {
@@ -164,13 +166,18 @@ export async function create(req: Request, res: Response) {
   }
 }
 
-async function processCommit(commit: any, pushEvent: any) {
-  const changedFiles = [...commit.added];
+async function processCommit(
+  commit: any,
+  pushEvent: any,
+  type: "added" | "modified"
+) {
+  const changedFiles = [...commit[type]]; // get the files that were added or modified in the commit so we don't have to maintain two separate functions, this is also easily extendable when we want to take care of deleted commits.
   for (const file of changedFiles) {
     const rawUrl = `https://raw.githubusercontent.com/${pushEvent.repository.full_name}/master/${file}`;
     const response: AxiosResponse<TSTBTCAttributes> = await axios.get(rawUrl);
     const mdContent = response.data;
-    const jsonContent = parseMdToJSON(mdContent);
+    const jsonContent: BaseParsedMdContent =
+      parseMdToJSON<BaseParsedMdContent>(mdContent);
     const transcript_by = jsonContent.transcript_by.toLowerCase();
 
     function isTranscriptValid(jsonContent: any): boolean {
@@ -195,7 +202,7 @@ async function processCommit(commit: any, pushEvent: any) {
       where: { transcriptHash: transcriptHash },
     });
 
-    if (existingTranscript) {
+    if (existingTranscript && type === "added") {
       throw new Error("transcript already exists");
     }
 
@@ -214,8 +221,36 @@ async function processCommit(commit: any, pushEvent: any) {
       status: TranscriptStatus.queued,
       contentTotalWords: totalWords,
     };
-    
-    const transcriptData = await Transcript.create(transcript);
+
+    let transcriptData: any;
+    if (type === "added") {
+      transcriptData = await Transcript.create(transcript);
+    } else if (type === "modified") {
+      // Find the existing transcript in the database
+      const existingTranscript = await Transcript.findOne({
+        where: { transcriptUrl: rawUrl },
+      });
+
+      if (!existingTranscript) {
+        throw new Error("No transcript found to update");
+      }
+
+      // Update the transcript in the database
+      await existingTranscript.update(transcript);
+
+      // Invalidate the cache
+      const redisTransaction = redis.multi();
+      redisTransaction.del(`transcript:${existingTranscript.id}`);
+      await redisTransaction.exec();
+
+      transcriptData = existingTranscript;
+    }
+
+    // Send alert to Discord
+    await sendAlert(
+      `Transcript Queued Successfully`,
+      transcriptData.originalContent.title
+    );
 
    const redisNewTranscriptTransaction = redis.multi();
 
@@ -266,54 +301,14 @@ export async function handlePushEvent(req: Request, res: Response) {
 
   try {
     for (const commit of commits) {
-      const changedFiles = [...commit.added, ...commit.modified];
-      for (const file of changedFiles) {
-        const rawUrl = `https://raw.githubusercontent.com/${pushEvent.repository.full_name}/master/${file}`;
-        const response: AxiosResponse<TSTBTCAttributes> = await axios.get(rawUrl);
-        const mdContent = response.data;
-        const jsonContent = parseMdToJSON(mdContent);
-
-        const transcriptHash = generateUniqueHash(jsonContent);
-        const totalWords = getTotalWords(jsonContent.body);
-        const content = jsonContent;
-        const originalContent = jsonContent;
-
-        const existingTranscript = await Transcript.findOne({
-          where: { transcriptHash: transcriptHash },
-        });
-
-        if (existingTranscript) {
-          responseStatus = 409;
-          responseMessage = "transcript already exists";
-          break;
-        }
-
-        if (jsonContent.transcript_by.includes("TSTBTC")) {
-          await Transcript.create({
-            transcriptUrl: rawUrl,
-            transcriptHash: transcriptHash,
-            contentTotalWords: totalWords,
-            status: TranscriptStatus.queued,
-          });
-          break;
-        } else {
-          responseStatus = 404;
-          responseMessage =
-            "Transcript not from TSTBTC - did not queue transcript";
-        }
-      }
-
-      if (responseStatus !== 200) {
-        break;
-      }
+      await processCommit(commit, pushEvent, "added");
+      await processCommit(commit, pushEvent, "modified");
     }
   } catch (error) {
-    responseStatus = 500;
-    responseMessage =
-      error instanceof Error
-        ? error.message
-        : "Unable to save URLs in the database";
+    // Send error email
+    const message = error instanceof Error ? error.message : "Unknown error";
+    await sendAlert("Transcript Queue Error/fail", message);
+    return res.status(500).json({ message: message });
   }
-
-  return res.status(responseStatus).json({ message: responseMessage });
+  return res.status(200).json({ message: "Transcript queued Successfully" });
 }
