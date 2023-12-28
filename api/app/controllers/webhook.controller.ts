@@ -285,12 +285,25 @@ async function processCommit(
   }
 }
 
+function isValidEnvironmentAndBranch(branch: string, env: string): boolean {
+  const allowedBranches = ["master", "staging", "development"];
+  if (!allowedBranches.includes(branch)) {
+    return false;
+  }
+
+  return (
+    (branch === "master" && env === "production") ||
+    (branch === "staging" && env === "staging") ||
+    (branch === "development" && env === "development")
+  );
+}
+
 export async function handlePushEvent(req: Request, res: Response) {
   if (!verify_signature(req)) {
     return res.status(401).json("Unauthorized");
   }
 
-  const pushEvent = req.body;
+  const pushEvent: any = req.body;
   if (!pushEvent) {
     return res.status(500).json({
       message: "No push event found in the request body.",
@@ -306,28 +319,24 @@ export async function handlePushEvent(req: Request, res: Response) {
 
   const branch = pushEvent.ref.split("/").pop();
 
-  const allowedBranches = ["master", "staging", "development"];
+  const env = process.env.NODE_ENV as string;
 
-  const env = process.env.NODE_ENV;
-  
-  if (!allowedBranches.includes(branch)) {
-    return res.status(400).json({ message: "Not a valid branch" });
-  } 
-  
-  if ((branch === "master" && env === "production") || 
-      (branch === "staging" && env === "staging") || 
-      (branch === "development" && env === "development")) {
-    try {
-      for (const commit of commits) {
-        await processCommit(commit, pushEvent, "added");
-        await processCommit(commit, pushEvent, "modified");
-      }
-    } catch (error) {
-      // Send error email
-      const message = error instanceof Error ? error.message : "Unknown error";
-      await sendAlert(message);
-      return res.status(500).json({ message: message });
-    }
-    return res.status(200).json({ message: "Transcript queued Successfully" });
+  if (!isValidEnvironmentAndBranch(branch, env)) {
+    return res
+      .status(400)
+      .json({ message: "Invalid branch for the current environment" });
   }
+
+  try {
+    for (const commit of commits) {
+      await processCommit(commit, pushEvent, "added");
+      await processCommit(commit, pushEvent, "modified");
+    }
+  } catch (error) {
+    // Send error email
+    const message = error instanceof Error ? error.message : "Unknown error";
+    await sendAlert(message);
+    return res.status(500).json({ message: message });
+  }
+  return res.status(200).json({ message: "Transcript queued Successfully" });
 }
