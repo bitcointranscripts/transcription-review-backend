@@ -24,10 +24,9 @@ function generateUniqueHash(content: any) {
   return buffer.toString("base64");
 }
 
-
 function parseMdToJSON<T extends BaseParsedMdContent>(mdContent: string): T {
-  // This regex is used to match and capture the content between two '---' separators in tstbtc markdown file, typically for front matter, and the rest of the content after the second '---'.
-  const regex = /^---\s*([\s\S]*?)\s*---\s*([\s\S]*)$/;
+  // This regex is used to match and capture the content between two '---' separators followed by a newline in the markdown file, typically for front matter, and the rest of the content after the second '---'.
+  const regex = /^---\n([\s\S]*?)\n---\n([\s\S]*)$/;
   const match = mdContent.match(regex);
 
   if (!match) {
@@ -62,6 +61,5 @@ function parseMdToJSON<T extends BaseParsedMdContent>(mdContent: string): T {
 
   return json as T;
 }
-
 
 export { generateUniqueStr, generateUniqueHash, parseMdToJSON, };
