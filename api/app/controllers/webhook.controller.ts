@@ -220,7 +220,7 @@ async function processCommit(
     const transcript: TranscriptAttributes = {
       originalContent: {
         ...content,
-        title: content.title.trim() as string,
+        title: content.title.trim(),
       },
       content: content,
       transcriptHash,
@@ -304,16 +304,30 @@ export async function handlePushEvent(req: Request, res: Response) {
     });
   }
 
-  try {
-    for (const commit of commits) {
-      await processCommit(commit, pushEvent, "added");
-      await processCommit(commit, pushEvent, "modified");
+  const branch = pushEvent.ref.split("/").pop();
+
+  const allowedBranches = ["master", "staging", "development"];
+
+  const env = process.env.NODE_ENV;
+  
+  if (!allowedBranches.includes(branch)) {
+    return res.status(400).json({ message: "Not a valid branch" });
+  } 
+  
+  if ((branch === "master" && env === "production") || 
+      (branch === "staging" && env === "staging") || 
+      (branch === "development" && env === "development")) {
+    try {
+      for (const commit of commits) {
+        await processCommit(commit, pushEvent, "added");
+        await processCommit(commit, pushEvent, "modified");
+      }
+    } catch (error) {
+      // Send error email
+      const message = error instanceof Error ? error.message : "Unknown error";
+      await sendAlert(message);
+      return res.status(500).json({ message: message });
     }
-  } catch (error) {
-    // Send error email
-    const message = error instanceof Error ? error.message : "Unknown error";
-    await sendAlert("Transcript Queue Error/fail", message);
-    return res.status(500).json({ message: message });
+    return res.status(200).json({ message: "Transcript queued Successfully" });
   }
-  return res.status(200).json({ message: "Transcript queued Successfully" });
 }
