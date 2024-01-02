@@ -24,7 +24,7 @@ const transcriptWrapper = async (transcript: TranscriptAttributes) => {
   if (!transcript.transcriptUrl) return transcript;
   try {
     const response = await axios.get(transcript.transcriptUrl);
-    const transcriptData:BaseParsedMdContent = parseMdToJSON<BaseParsedMdContent>(response.data);
+    const transcriptData = parseMdToJSON<BaseParsedMdContent>(response.data);
     const newTranscript = {
       ...transcriptData, content: transcriptData.content.body
     };
