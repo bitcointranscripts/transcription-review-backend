@@ -31,7 +31,6 @@ const transcriptWrapper = async (transcript: TranscriptAttributes) => {
     return newTranscript;
   } catch (error: unknown) {
     if (error instanceof Error) {
-      const message = error.message;
       throw error
     } else {
       throw new Error("Error parsing transcript");
