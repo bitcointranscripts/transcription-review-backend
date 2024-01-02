@@ -174,7 +174,7 @@ async function processCommit(
 ) {
   const changedFiles = [...commit[type]]; // get the files that were added or modified in the commit so we don't have to maintain two separate functions, this is also easily extendable when we want to take care of deleted commits.
   for (const file of changedFiles) {
-    const rawUrl = `https://raw.githubusercontent.com/${pushEvent.repository.full_name}/${branch}/${file}`;
+    const rawUrl = `https://raw.githubusercontent.com/${pushEvent.repository?.full_name}/${branch}/${file}`;
     const response = await axios.get(rawUrl);
     const mdContent = response.data;
     const jsonContent: BaseParsedMdContent =
@@ -182,9 +182,10 @@ async function processCommit(
     const transcript_by = jsonContent.transcript_by.toLowerCase();
 
     function isTranscriptValid(transcript_by: string): boolean {
+      const lowerCaseTranscriptBy = transcript_by.toLowerCase();
       return (
-        transcript_by.includes("tstbtc") &&
-        transcript_by.includes("--needs-review")
+        lowerCaseTranscriptBy.includes("tstbtc") &&
+        lowerCaseTranscriptBy.includes("--needs-review")
       );
     }
 
