@@ -286,7 +286,7 @@ function isValidEnvironmentAndBranch(branch: string, env: string): boolean {
 
   return (
     (branch === "master" && env === "production") ||
-    (branch === "staging" && env === "development")
+    (branch === "staging" && env === "staging")
   );
 }
 
