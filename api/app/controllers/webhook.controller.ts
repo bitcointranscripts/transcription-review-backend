@@ -205,7 +205,7 @@ async function processCommit(
     }
 
     const existingTranscript = await Transcript.findOne({
-      where: { transcriptHash: transcriptHash },
+      where: { transcriptUrl: rawUrl },
     });
 
     if (existingTranscript && type === "added") {
