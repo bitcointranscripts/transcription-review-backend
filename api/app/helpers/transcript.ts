@@ -1,7 +1,6 @@
 import crypto from "crypto";
 import { BaseParsedMdContent } from "../types/transcript";
-
-
+import * as yaml from "js-yaml";
 
 const getFirstFiveWords = (paragraph: string) => {
   const words = paragraph.trim().split(/\s+/);
@@ -34,14 +33,17 @@ function parseMdToJSON<T extends BaseParsedMdContent>(mdContent: string): T {
 
   const [, header, body] = match;
 
-import yaml from "js-yaml"
-....
-const json: Record<string, string | string[] | undefined> = yaml.load(header) as Partial<T>
+  let json: Record<string, string | string[] | undefined>;
+  try {
+    // Use js-yaml's safeLoad function to parse the YAML header
+    json = yaml.load(header) as Partial<T>;
+  } catch (error) {
+    throw new Error("Invalid YAML header");
+  }
 
   json.body = body;
 
   return json as T;
 }
 
-
-export { generateUniqueStr, generateUniqueHash, parseMdToJSON, };
+export { generateUniqueStr, generateUniqueHash, parseMdToJSON };
