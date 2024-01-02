@@ -32,7 +32,7 @@ const transcriptWrapper = async (transcript: TranscriptAttributes) => {
   } catch (error: unknown) {
     if (error instanceof Error) {
       const message = error.message;
-      throw new Error(message);
+      throw error
     } else {
       throw new Error("Error parsing transcript");
     }
