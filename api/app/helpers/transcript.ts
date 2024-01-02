@@ -25,7 +25,6 @@ function generateUniqueHash(content: any) {
 }
 
 function parseMdToJSON<T extends BaseParsedMdContent>(mdContent: string): T {
-  // This regex is used to match and capture the content between two '---' separators followed by a newline in the markdown file, typically for front matter, and the rest of the content after the second '---'.
   const regex = /^---\n([\s\S]*?)\n---\n([\s\S]*)$/;
   const match = mdContent.match(regex);
 
@@ -35,7 +34,7 @@ function parseMdToJSON<T extends BaseParsedMdContent>(mdContent: string): T {
 
   const [, header, body] = match;
 
-  const json: Partial<T> = {};
+  const json: Record<string, string | string[] | undefined> = {} as Partial<T>;
   const lines = header.split("\n");
 
   for (const line of lines) {
@@ -43,15 +42,26 @@ function parseMdToJSON<T extends BaseParsedMdContent>(mdContent: string): T {
     if (valueParts.length > 0) {
       const value = valueParts.join(":").trim();
       if (key.trim() !== "") {
-        if (value.startsWith("'") && value.endsWith("'")) {
-          (json as Record<string, string | string[] | undefined>)[key] = value.slice(1, -1);
-        } else if (value.startsWith("'") && value.endsWith("',")) {
-          if (!(json as Record<string, string | string[] | undefined>)[key]) {
-            (json as Record<string, string | string[] | undefined>)[key] = [];
+        if (value.startsWith("[") && value.endsWith("]")) {
+          try {
+            // Replace single quotes with double quotes before parsing
+            const validJson = value.replace(/'/g, '"');
+            json[key] = JSON.parse(validJson);
+          } catch (error) {
+            throw new Error("Invalid JSON format");
           }
-          ((json as Record<string, string | string[] | undefined>)[key] as string[]).push(value.slice(1, -2));
         } else {
-          (json as Record<string, string | string[] | undefined>)[key] = value;
+          // Handle other key-value pairs
+          if (value.startsWith("'") && value.endsWith("'")) {
+            json[key] = value.slice(1, -1);
+          } else if (value.startsWith("'") && value.endsWith("',")) {
+            if (!json[key]) {
+              json[key] = [];
+            }
+            (json[key] as string[]).push(value.slice(1, -2));
+          } else {
+            json[key] = value;
+          }
         }
       }
     }
@@ -61,5 +71,6 @@ function parseMdToJSON<T extends BaseParsedMdContent>(mdContent: string): T {
 
   return json as T;
 }
+
 
 export { generateUniqueStr, generateUniqueHash, parseMdToJSON, };
