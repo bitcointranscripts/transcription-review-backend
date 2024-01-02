@@ -20,6 +20,8 @@ import { parseMdToJSON } from "../helpers/transcript";
 import axios from "axios";
 import { BaseParsedMdContent, TranscriptAttributes } from "../types/transcript";
 
+
+// THis function fetches and parses a transcript from a URL (already saved in the db which points to transcript on github), or returns the original transcript if no URL is provided. This is use to sync a transcript in review with the FE.
 const transcriptWrapper = async (transcript: TranscriptAttributes) => {
   if (!transcript.transcriptUrl) return transcript;
   try {
@@ -182,7 +184,7 @@ export async function findOne(req: Request, res: Response) {
           message: `Review with id=${id} does not exist`,
         });
       }
-      return transcriptWrapper(data.transcript);
+      return res.status(200).send(transcriptWrapper(data.transcript))
     })
     .catch((_err) => {
       res.status(500).send({
