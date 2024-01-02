@@ -7,7 +7,13 @@ export async function sendAlert(
   transcriptUrl?: string | null,
   transcriptHash?: string | null
 ) {
-  if (!process.env.DISCORD_WEBHOOK_URL) {
+
+ //bypass alerts in development
+  if (process.env.NODE_ENV === "development") {
+    return;
+  }
+
+  if (!process.env.DISCORD_WEBHOOK_URL ) {
     throw new Error("DISCORD_WEBHOOK_URL is not set");
   }
 
