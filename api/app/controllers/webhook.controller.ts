@@ -279,14 +279,15 @@ async function processCommit(
 }
 
 function isValidEnvironmentAndBranch(branch: string, env: string): boolean {
-  const allowedBranches = ["master", "staging"];
+  const allowedBranches = ["master", "staging", "development"];
   if (!allowedBranches.includes(branch)) {
     return false;
   }
 
   return (
     (branch === "master" && env === "production") ||
-    (branch === "staging" && env === "staging")
+    (branch === "staging" && env === "staging") ||
+    (branch === "development" && env === "development")
   );
 }
 
