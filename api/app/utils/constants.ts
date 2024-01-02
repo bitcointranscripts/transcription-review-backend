@@ -19,7 +19,7 @@ const currentTime = Math.floor(Date.now() / 1000);
 const JWTEXPIRYTIMEINHOURS = currentTime + (expiresInHours * 60 * 60);
 
 
-// This is a random number that is used to note the numbers of pages to be cashed
+// This is a random number that is used to note the number of pages to be cached
 const PAGE_COUNT = 100;
 
 
