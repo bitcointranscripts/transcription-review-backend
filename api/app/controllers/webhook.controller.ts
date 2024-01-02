@@ -169,11 +169,12 @@ export async function create(req: Request, res: Response) {
 async function processCommit(
   commit: any,
   pushEvent: any,
-  type: "added" | "modified"
+  type: "added" | "modified",
+  branch: string
 ) {
   const changedFiles = [...commit[type]]; // get the files that were added or modified in the commit so we don't have to maintain two separate functions, this is also easily extendable when we want to take care of deleted commits.
   for (const file of changedFiles) {
-    const rawUrl = `https://raw.githubusercontent.com/${pushEvent.repository.full_name}/master/${file}`;
+    const rawUrl = `https://raw.githubusercontent.com/${pushEvent.repository.full_name}/${branch}/${file}`;
     const response: any = await axios.get(rawUrl);
     const mdContent = response.data;
     const jsonContent: BaseParsedMdContent =
@@ -230,26 +231,18 @@ async function processCommit(
     };
 
     let transcriptData: any;
-    if (type === "added") {
+
+    if (type === "added" || (type === "modified" && !existingTranscript)) {
       transcriptData = await Transcript.create(transcript);
-    } else if (type === "modified") {
-      // Find the existing transcript in the database
-      const existingTranscript = await Transcript.findOne({
-        where: { transcriptUrl: rawUrl },
-      });
-
-      if (!existingTranscript) {
-        throw new Error("No transcript found to update");
-      }
-
+    } else if (type === "modified" && existingTranscript) {
       // Update the transcript in the database
       await existingTranscript.update(transcript);
-
+    
       // Invalidate the cache
       const redisTransaction = redis.multi();
       redisTransaction.del(`transcript:${existingTranscript.id}`);
       await redisTransaction.exec();
-
+    
       transcriptData = existingTranscript;
     }
 
@@ -286,15 +279,14 @@ async function processCommit(
 }
 
 function isValidEnvironmentAndBranch(branch: string, env: string): boolean {
-  const allowedBranches = ["master", "staging", "development"];
+  const allowedBranches = ["master", "staging"];
   if (!allowedBranches.includes(branch)) {
     return false;
   }
 
   return (
     (branch === "master" && env === "production") ||
-    (branch === "staging" && env === "staging") ||
-    (branch === "development" && env === "development")
+    (branch === "staging" && env === "development")
   );
 }
 
@@ -329,8 +321,8 @@ export async function handlePushEvent(req: Request, res: Response) {
 
   try {
     for (const commit of commits) {
-      await processCommit(commit, pushEvent, "added");
-      await processCommit(commit, pushEvent, "modified");
+      await processCommit(commit, pushEvent, "added", branch);
+      await processCommit(commit, pushEvent, "modified", branch);
     }
   } catch (error) {
     // Send error email
