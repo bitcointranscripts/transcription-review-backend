@@ -24,6 +24,7 @@ function generateUniqueHash(content: any) {
 }
 
 function parseMdToJSON<T extends BaseParsedMdContent>(mdContent: string): T {
+  // This regex matches a markdown file with a YAML front matter. It captures the YAML header and the body separately.
   const regex = /^---\n([\s\S]*?)\n---\n([\s\S]*)$/;
   const match = mdContent.match(regex);
 
