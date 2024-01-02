@@ -237,12 +237,12 @@ async function processCommit(
     } else if (type === "modified" && existingTranscript) {
       // Update the transcript in the database
       await existingTranscript.update(transcript);
-    
+
       // Invalidate the cache
       const redisTransaction = redis.multi();
       redisTransaction.del(`transcript:${existingTranscript.id}`);
       await redisTransaction.exec();
-    
+
       transcriptData = existingTranscript;
     }
 
