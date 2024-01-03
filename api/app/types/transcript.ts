@@ -22,7 +22,12 @@ export interface TranscriptAttributes {
 }
 
 export interface BaseParsedMdContent extends TranscriptAttributes {
+  title: string;
+  transcript_by: string;
+  categories: string[];
+  tags: string[];
+  speakers: string[];
+  date: string;
   body: string;
   [key: string]: string | string[] | any;
 }
-
