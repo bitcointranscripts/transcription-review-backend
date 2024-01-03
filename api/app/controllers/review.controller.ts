@@ -27,10 +27,8 @@ const transcriptWrapper = async (transcript: TranscriptAttributes) => {
   try {
     const response = await axios.get(transcript.transcriptUrl);
     const transcriptData = parseMdToJSON<BaseParsedMdContent>(response.data);
-    const newTranscript = {
-      ...transcriptData, content: transcriptData.content.body
-    };
-    return newTranscript;
+   transcript["originalContent"] = transcriptData
+   return transcript;
   } catch (error: unknown) {
     if (error instanceof Error) {
       throw error
