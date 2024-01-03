@@ -23,19 +23,24 @@ import { BaseParsedMdContent, TranscriptAttributes } from "../types/transcript";
 
 // THis function fetches and parses a transcript from a URL (already saved in the db which points to transcript on github), or returns the original transcript if no URL is provided. This is use to sync a transcript in review with the FE.
 const transcriptWrapper = async (transcript: TranscriptAttributes) => {
-  if (!transcript.transcriptUrl) return transcript;
-  try {
-    const response = await axios.get(transcript.transcriptUrl);
-    const transcriptData = parseMdToJSON<BaseParsedMdContent>(response.data);
-   transcript["originalContent"] = transcriptData
-   return transcript;
-  } catch (error: unknown) {
-    if (error instanceof Error) {
-      throw error
-    } else {
-      throw new Error("Error parsing transcript");
+  // Create a copy of the transcript object to avoid modifying the original
+  let newTranscript = { ...transcript };
+
+  if (transcript.transcriptUrl) {
+    try {
+      const response = await axios.get(transcript.transcriptUrl);
+      const transcriptData = parseMdToJSON<BaseParsedMdContent>(response.data);
+      newTranscript["originalContent"] = transcriptData;
+    } catch (error: unknown) {
+      if (error instanceof Error) {
+        throw error;
+      } else {
+        throw new Error("Error parsing transcript");
+      }
     }
   }
+
+  return newTranscript;
 }
 
 // Create and Save a new review
