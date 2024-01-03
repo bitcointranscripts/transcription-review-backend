@@ -184,7 +184,8 @@ export async function findOne(req: Request, res: Response) {
           message: `Review with id=${id} does not exist`,
         });
       }
-      return res.status(200).send(await transcriptWrapper(data.transcript))
+      const transcript = await transcriptWrapper(data.transcript)
+      return res.status(200).send({ ...data.dataValues, transcript })
     })
     .catch((_err) => {
       res.status(500).send({
