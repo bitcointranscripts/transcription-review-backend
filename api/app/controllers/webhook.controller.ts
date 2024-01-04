@@ -174,8 +174,10 @@ async function processCommit(
 ) {
   const changedFiles = [...commit[type]]; // get the files that were added or modified in the commit so we don't have to maintain two separate functions, this is also easily extendable when we want to take care of deleted commits.
   for (const file of changedFiles) {
-    const rawUrl = `https://raw.githubusercontent.com/${pushEvent.repository?.full_name}/${branch}/${file}`;
-    const response = await axios.get(rawUrl);
+    const rawUrl = `https://api.github.com/repos/${pushEvent.repository?.full_name}/contents/${file}?ref=${branch}`;
+    const response = await axios.get(rawUrl, {
+      headers: { 'Accept': 'application/vnd.github.v3.raw' },
+    });    
     const mdContent = response.data;
     const jsonContent: BaseParsedMdContent =
       parseMdToJSON<BaseParsedMdContent>(mdContent);
