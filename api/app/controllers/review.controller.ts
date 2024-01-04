@@ -20,9 +20,11 @@ import { parseMdToJSON } from "../helpers/transcript";
 import axios from "axios";
 import { BaseParsedMdContent, TranscriptAttributes } from "../types/transcript";
 
-
 // THis function fetches and parses a transcript from a URL (already saved in the db which points to transcript on github), or returns the original transcript if no URL is provided. This is use to sync a transcript in review with the FE.
-const transcriptWrapper = async (transcript: TranscriptAttributes, branchUrl?: string | undefined) => {
+const transcriptWrapper = async (
+  transcript: TranscriptAttributes,
+  branchUrl?: string | undefined
+) => {
   // If there's no branchUrl, return the transcript as is
   if (!branchUrl) {
     return transcript;
@@ -38,7 +40,7 @@ const transcriptWrapper = async (transcript: TranscriptAttributes, branchUrl?: s
     if (!branchData || !branchData.body) {
       return transcript;
     }
-    newTranscript.content.body = branchData.body;
+    newTranscript.content = branchData
   } catch (error: unknown) {
     if (error instanceof Error) {
       throw error;
@@ -48,7 +50,7 @@ const transcriptWrapper = async (transcript: TranscriptAttributes, branchUrl?: s
   }
 
   return newTranscript;
-}
+};
 
 // Create and Save a new review
 export async function create(req: Request, res: Response) {
@@ -184,24 +186,28 @@ export async function findOne(req: Request, res: Response) {
     return;
   }
 
-  await Review.findOne({
-    where: { id: id, userId: userId },
-    include: { model: Transcript },
-  })
-    .then(async (data) => {
-      if (!data) {
-        return res.status(404).send({
-          message: `Review with id=${id} does not exist`,
-        });
-      }
-      const transcript = await transcriptWrapper(data.transcript)
-      return res.status(200).send({ ...data.dataValues, transcript })
-    })
-    .catch((_err) => {
-      res.status(500).send({
-        message: "Error retrieving review with id=" + id,
-      });
+  try {
+    const data = await Review.findOne({
+      where: { id: id, userId: userId },
+      include: { model: Transcript },
     });
+
+    if (!data) {
+      return res.status(404).send({
+        message: `Review with id=${id} does not exist`,
+      });
+    }
+
+    const branchUrl =
+      "https://raw.githubusercontent.com/nully0x/bitcointranscripts/master/test/one.md";
+    const transcriptData = data.transcript.dataValues;
+    const transcript = await transcriptWrapper(transcriptData, branchUrl);
+    return res.status(200).send({ ...data.dataValues, transcript });
+  } catch (err) {
+    res.status(500).send({
+      message: "Error retrieving review with id=" + id,
+    });
+  }
 }
 
 // Update a review by the id in the request
