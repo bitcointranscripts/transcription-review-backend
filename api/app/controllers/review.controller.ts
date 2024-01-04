@@ -34,7 +34,9 @@ const transcriptWrapper = async (
   let newTranscript = { ...transcript };
 
   try {
-    const response = await axios.get(branchUrl);
+    const response = await axios.get(branchUrl, {
+      headers: { 'Accept': 'application/vnd.github.v3.raw' },
+    }); 
     const branchData = parseMdToJSON<BaseParsedMdContent>(response.data);
     // If the branchData doesn't have a body, return the transcript as is
     if (!branchData || !branchData.body) {
