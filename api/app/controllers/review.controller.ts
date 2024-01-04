@@ -198,8 +198,7 @@ export async function findOne(req: Request, res: Response) {
       });
     }
 
-    const branchUrl =
-      "https://raw.githubusercontent.com/nully0x/bitcointranscripts/master/test/one.md";
+    const branchUrl = data.branchUrl
     const transcriptData = data.transcript.dataValues;
     const transcript = await transcriptWrapper(transcriptData, branchUrl);
     return res.status(200).send({ ...data.dataValues, transcript });
