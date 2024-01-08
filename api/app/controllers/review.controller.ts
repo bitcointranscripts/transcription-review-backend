@@ -19,6 +19,7 @@ import {
 import { parseMdToJSON } from "../helpers/transcript";
 import axios from "axios";
 import { BaseParsedMdContent, TranscriptAttributes } from "../types/transcript";
+import { redis } from "../db";
 
 // THis function fetches and parses a transcript from a URL (already saved in the db which points to transcript on github), or returns the original transcript if no URL is provided. This is use to sync a transcript in review with the FE.
 const transcriptWrapper = async (
@@ -35,14 +36,14 @@ const transcriptWrapper = async (
 
   try {
     const response = await axios.get(branchUrl, {
-      headers: { 'Accept': 'application/vnd.github.v3.raw' },
-    }); 
+      headers: { Accept: "application/vnd.github.v3.raw" },
+    });
     const branchData = parseMdToJSON<BaseParsedMdContent>(response.data);
     // If the branchData doesn't have a body, return the transcript as is
     if (!branchData || !branchData.body) {
       return transcript;
     }
-    newTranscript.content = branchData
+    newTranscript.content = branchData;
   } catch (error: unknown) {
     if (error instanceof Error) {
       throw error;
@@ -200,7 +201,7 @@ export async function findOne(req: Request, res: Response) {
       });
     }
 
-    const branchUrl = data.branchUrl
+    const branchUrl = data.branchUrl;
     const transcriptData = data.transcript.dataValues;
     const transcript = await transcriptWrapper(transcriptData, branchUrl);
     return res.status(200).send({ ...data.dataValues, transcript });
@@ -439,5 +440,39 @@ export const getAllReviewsForAdmin = async (req: Request, res: Response) => {
         message: error.message,
       });
     }
+  }
+};
+
+export const resetReviews = async (req: Request, res: Response) => {
+  const { id } = req.params; // Get the review ID from the request parameters
+
+  try {
+    // Find the review
+    const review = await Review.findOne({ where: { id } });
+
+    if (!review) {
+      return res.status(404).send("Review not found");
+    }
+
+    // Delete the review
+    await Review.destroy({ where: { id } });
+
+    // Reset the transcript
+    await Transcript.update(
+      { status: "queued", claimedBy: null },
+      { where: { id: review.transcriptId } }
+    );
+
+    // Clear the Redis cache
+    redis.del(`review:${id}`, (err, succeeded) => {
+      if (err) {
+        throw err;
+      }
+      console.log(`Deleted review:${id} from Redis cache: ${succeeded}`);
+    });
+
+    res.status(200).send("Reset successful");
+  } catch (err) {
+    res.status(500).send(`Error resetting review: ${err}`);
   }
 };
