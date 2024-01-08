@@ -19,7 +19,7 @@ export function reviewRoutes(app: Express) {
    *         transcriptId:
    *           type: integer
    *           description: Id of the transcript that gets reviewed
-   * 
+   *
    *     Pagination:
    *       type: integer
    *       minimum: 1
@@ -262,7 +262,7 @@ export function reviewRoutes(app: Express) {
  *         schema:
  *           type: string
  *         required: true
- *         description: The review id
+ *         description: The transcript id
  *     responses:
  *       200:
  *         description: The review was reset successfully
