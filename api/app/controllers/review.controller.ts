@@ -20,6 +20,7 @@ import { parseMdToJSON } from "../helpers/transcript";
 import axios from "axios";
 import { BaseParsedMdContent, TranscriptAttributes } from "../types/transcript";
 import { redis } from "../db";
+import { Logger } from "../helpers/logger";
 
 // THis function fetches and parses a transcript from a URL (already saved in the db which points to transcript on github), or returns the original transcript if no URL is provided. This is use to sync a transcript in review with the FE.
 const transcriptWrapper = async (
@@ -468,7 +469,7 @@ export const resetReviews = async (req: Request, res: Response) => {
       if (err) {
         throw err;
       }
-      console.log(`Deleted review:${id} from Redis cache: ${succeeded}`);
+      Logger.info(`Redis cache cleared for review ${id}: ${succeeded}`);
     });
 
     res.status(200).send("Reset successful");
