@@ -20,7 +20,6 @@ import { parseMdToJSON } from "../helpers/transcript";
 import axios from "axios";
 import { BaseParsedMdContent, TranscriptAttributes } from "../types/transcript";
 import { redis } from "../db";
-import { Logger } from "../helpers/logger";
 
 // THis function fetches and parses a transcript from a URL (already saved in the db which points to transcript on github), or returns the original transcript if no URL is provided. This is use to sync a transcript in review with the FE.
 const transcriptWrapper = async (
@@ -179,7 +178,42 @@ export async function findAll(req: Request, res: Response) {
 }
 
 // Find a single review with an id
-async function update(req: Request, res: Response) {
+export async function findOne(req: Request, res: Response) {
+  const id = parseInt(req.params.id);
+  const userId = req.body.userId;
+
+  if (!id) {
+    res.status(400).send({
+      message: "Review id cannot be empty!",
+    });
+    return;
+  }
+
+  try {
+    const data = await Review.findOne({
+      where: { id: id, userId: userId },
+      include: { model: Transcript },
+    });
+
+    if (!data) {
+      return res.status(404).send({
+        message: `Review with id=${id} does not exist`,
+      });
+    }
+
+    const branchUrl = data.branchUrl;
+    const transcriptData = data.transcript.dataValues;
+    const transcript = await transcriptWrapper(transcriptData, branchUrl);
+    return res.status(200).send({ ...data.dataValues, transcript });
+  } catch (err) {
+    res.status(500).send({
+      message: "Error retrieving review with id=" + id,
+    });
+  }
+}
+
+// Update a review by the id in the request
+export async function update(req: Request, res: Response) {
   const id = req.params.id;
   const userId = req.body.userId;
 
@@ -489,56 +523,22 @@ export const resetReviews = async (req: Request, res: Response) => {
       return res.status(404).send("Review not found");
     }
 
+    // Delete the review
+    await Review.destroy({ where: { id } });
+
     // Reset the transcript
     await Transcript.update(
       { status: "queued", claimedBy: null },
       { where: { id: review.transcriptId } }
     );
 
-    // Get the updated transcript
-    const updatedTranscript = await Transcript.findOne({
-      where: { id: review.transcriptId },
-    });
-
-    if (!updatedTranscript) {
-      throw new Error("Transcript not found");
-    }
-    // Now you can use updatedTranscript.id
-
-    // Delete the review
-    await Review.destroy({ where: { id } });
-
-    // Clear the Redis cache for the review
+    // Clear the Redis cache
     redis.del(`review:${id}`, (err, succeeded) => {
       if (err) {
         throw err;
       }
-      Logger.info(`Redis cache cleared for review ${id}: ${succeeded}`);
+      console.log(`Deleted review:${id} from Redis cache: ${succeeded}`);
     });
-
-    // Clear the Redis cache for the transcript
-    redis.del(`transcript:${updatedTranscript.id}`, (err, succeeded) => {
-      if (err) {
-        throw err;
-      }
-      Logger.info(
-        `Redis cache cleared for transcript ${updatedTranscript.id}: ${succeeded}`
-      );
-    });
-
-    // Clear the Redis cache for the pages of transcripts
-    const totalItems = await Transcript.count();
-    const totalPages = Math.ceil(totalItems / DB_QUERY_LIMIT);
-    for (let page = 1; page <= totalPages; page++) {
-      redis.del(`transcripts:page:${page}`, (err, succeeded) => {
-        if (err) {
-          throw err;
-        }
-        Logger.info(
-          `Redis cache cleared for transcripts page ${page}: ${succeeded}`
-        );
-      });
-    }
 
     res.status(200).send("Reset successful");
   } catch (err) {
