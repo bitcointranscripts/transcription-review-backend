@@ -262,7 +262,7 @@ export function reviewRoutes(app: Express) {
  *         schema:
  *           type: string
  *         required: true
- *         description: The transcript id
+ *         description: The review id
  *     responses:
  *       200:
  *         description: The review was reset successfully
