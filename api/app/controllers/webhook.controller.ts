@@ -4,7 +4,7 @@ import { Review, Transaction, Wallet, Transcript, User } from "../db/models";
 import { sequelize } from "../db";
 import { TRANSACTION_STATUS, TRANSACTION_TYPE } from "../types/transaction";
 import { TranscriptAttributes, TranscriptStatus } from "../types/transcript";
-import { PAGE_COUNT, PR_EVENT_ACTIONS } from "../utils/constants";
+import { DB_QUERY_LIMIT, PAGE_COUNT, PR_EVENT_ACTIONS } from "../utils/constants";
 import { redis } from "../db";
 import {
   calculateCreditAmount,
@@ -176,8 +176,8 @@ async function processCommit(
   for (const file of changedFiles) {
     const rawUrl = `https://api.github.com/repos/${pushEvent.repository?.full_name}/contents/${file}?ref=${branch}`;
     const response = await axios.get(rawUrl, {
-      headers: { 'Accept': 'application/vnd.github.v3.raw' },
-    });    
+      headers: { Accept: "application/vnd.github.v3.raw" },
+    });
     const mdContent = response.data;
     const jsonContent: BaseParsedMdContent =
       parseMdToJSON<BaseParsedMdContent>(mdContent);
@@ -235,18 +235,36 @@ async function processCommit(
 
     let transcriptData: any;
 
+    async function cacheTranscript(transcriptData: any) {
+      const redisTransaction = redis.multi();
+      redisTransaction.sadd("cachedTranscripts", transcriptData.id);
+      redisTransaction.set(
+        `transcript:${transcriptData.id}`,
+        JSON.stringify(transcriptData),
+        "EX",
+        CACHE_EXPIRATION
+      );
+      const totalItems = await Transcript.count();
+      const totalPages = Math.ceil(totalItems / DB_QUERY_LIMIT);
+      for (let page = 1; page <= totalPages; page++) {
+        redisTransaction.del(`transcripts:page:${page}`);
+      }
+      await redisTransaction.exec((err, _results) => {
+        if (err) {
+          Transcript.destroy({ where: { id: transcriptData.id } });
+          throw err;
+        }
+      });
+    }
+    
+
     if (type === "added" || (type === "modified" && !existingTranscript)) {
       transcriptData = await Transcript.create(transcript);
+      await cacheTranscript(transcriptData);
     } else if (type === "modified" && existingTranscript) {
-      // Update the transcript in the database
       await existingTranscript.update(transcript);
-
-      // Invalidate the cache
-      const redisTransaction = redis.multi();
-      redisTransaction.del(`transcript:${existingTranscript.id}`);
-      await redisTransaction.exec();
-
       transcriptData = existingTranscript;
+      await cacheTranscript(transcriptData);
     }
 
     // Send alert to Discord
@@ -256,28 +274,6 @@ async function processCommit(
       transcriptData.transcriptUrl,
       transcriptData.transcriptHash
     );
-
-    const redisNewTranscriptTransaction = redis.multi();
-
-    redisNewTranscriptTransaction.sadd("cachedTranscripts", transcriptData.id);
-
-    redisNewTranscriptTransaction.set(
-      `transcript:${transcriptData.id}`,
-      JSON.stringify(transcriptData),
-      "EX",
-      CACHE_EXPIRATION
-    );
-
-    for (let i = 0; i < PAGE_COUNT; i++) {
-      redisNewTranscriptTransaction.del(`transcriptsPage:${i}`);
-    }
-
-    await redisNewTranscriptTransaction.exec((err, _results) => {
-      if (err) {
-        Transcript.destroy({ where: { id: transcriptData.id } });
-        throw err;
-      }
-    });
   }
 }
 
