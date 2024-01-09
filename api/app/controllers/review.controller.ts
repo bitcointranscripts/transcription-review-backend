@@ -455,22 +455,56 @@ export const resetReviews = async (req: Request, res: Response) => {
       return res.status(404).send("Review not found");
     }
 
-    // Delete the review
-    await Review.destroy({ where: { id } });
-
     // Reset the transcript
     await Transcript.update(
       { status: "queued", claimedBy: null },
       { where: { id: review.transcriptId } }
     );
 
-    // Clear the Redis cache
+    // Get the updated transcript
+    const updatedTranscript = await Transcript.findOne({
+      where: { id: review.transcriptId },
+    });
+
+    if (!updatedTranscript) {
+      throw new Error("Transcript not found");
+    }
+    // Now you can use updatedTranscript.id
+
+    // Delete the review
+    await Review.destroy({ where: { id } });
+
+    // Clear the Redis cache for the review
     redis.del(`review:${id}`, (err, succeeded) => {
       if (err) {
         throw err;
       }
       Logger.info(`Redis cache cleared for review ${id}: ${succeeded}`);
     });
+
+    // Clear the Redis cache for the transcript
+    redis.del(`transcript:${updatedTranscript.id}`, (err, succeeded) => {
+      if (err) {
+        throw err;
+      }
+      Logger.info(
+        `Redis cache cleared for transcript ${updatedTranscript.id}: ${succeeded}`
+      );
+    });
+
+    // Clear the Redis cache for the pages of transcripts
+    const totalItems = await Transcript.count();
+    const totalPages = Math.ceil(totalItems / DB_QUERY_LIMIT);
+    for (let page = 1; page <= totalPages; page++) {
+      redis.del(`transcripts:page:${page}`, (err, succeeded) => {
+        if (err) {
+          throw err;
+        }
+        Logger.info(
+          `Redis cache cleared for transcripts page ${page}: ${succeeded}`
+        );
+      });
+    }
 
     res.status(200).send("Reset successful");
   } catch (err) {
