@@ -20,7 +20,7 @@ import {
   resetRedisCachedPages,
 } from "../db/helpers/redis";
 import { BaseParsedMdContent } from "../types/transcript";
-import { json } from "sequelize";
+
 
 // create a new credit transaction when a review is merged
 async function createCreditTransaction(review: Review, amount: number) {
@@ -174,13 +174,14 @@ async function processCommit(
 ) {
   const changedFiles = [...commit[type]]; // get the files that were added or modified in the commit so we don't have to maintain two separate functions, this is also easily extendable when we want to take care of deleted commits.
   for (const file of changedFiles) {
-    const rawUrl = `https://api.github.com/repos/${pushEvent.repository?.full_name}/contents/${file}?ref=${branch}`;
+    try {
+
+      const rawUrl = `https://api.github.com/repos/${pushEvent.repository?.full_name}/contents/${file}?ref=${branch}`;
     const response = await axios.get(rawUrl, {
       headers: { Accept: "application/vnd.github.v3.raw" },
     });
     const mdContent = response.data;
-    const jsonContent: BaseParsedMdContent =
-      parseMdToJSON<BaseParsedMdContent>(mdContent);
+    const jsonContent: BaseParsedMdContent = parseMdToJSON<BaseParsedMdContent>(mdContent);
     const transcript_by = jsonContent.transcript_by.toLowerCase();
 
     function isTranscriptValid(transcript_by: string): boolean {
@@ -261,22 +262,35 @@ async function processCommit(
     if (type === "added" || (type === "modified" && !existingTranscript)) {
       transcriptData = await Transcript.create(transcript);
       await cacheTranscript(transcriptData);
+      // Send alert to Discord
+      await sendAlert(
+        "New Transcript Ready for Review!",
+        false,
+        transcriptData.originalContent.title,
+        transcriptData.originalContent.speakers,
+        transcriptData.transcriptUrl,
+      );
     } else if (type === "modified" && existingTranscript) {
       await existingTranscript.update(transcript);
       transcriptData = existingTranscript;
       await cacheTranscript(transcriptData);
+      // Send alert to Discord
+      await sendAlert(
+        "Transcript modified",
+        false,
+        transcriptData.originalContent.title,
+        transcriptData.originalContent.speakers,
+        transcriptData.transcriptUrl,
+      );
     }
-
-    // Send alert to Discord
-    await sendAlert(
-      `Transcript Queued Successfully`,
-      transcriptData.originalContent.title,
-      transcriptData.transcriptUrl,
-      transcriptData.transcriptHash
-    );
+    } catch (error) {
+      throw error;
+    }
+    
   }
 }
 
+// Check if the branch is valid for the current environment
 function isValidEnvironmentAndBranch(branch: string, env: string): boolean {
   const allowedBranches = ["master", "staging", "development"];
   if (!allowedBranches.includes(branch)) {
@@ -290,26 +304,35 @@ function isValidEnvironmentAndBranch(branch: string, env: string): boolean {
   );
 }
 
+// Handle errors and send alerts
+async function handleError(error: any, res: Response) {
+  const message = error instanceof Error ? error.message : "Unknown error";
+  await sendAlert(message, true);
+  return res.status(500).json({ message: message });
+}
+
+
+// Handle push events from GitHub
 export async function handlePushEvent(req: Request, res: Response) {
   if (!verify_signature(req)) {
     return res.status(401).json("Unauthorized");
   }
 
-  const pushEvent: any = req.body;
+  const { body: pushEvent } = req;
   if (!pushEvent) {
     return res.status(500).json({
       message: "No push event found in the request body.",
     });
   }
 
-  const commits = pushEvent.commits;
+  const { commits, ref } = pushEvent;
   if (!commits) {
     return res.status(500).json({
       message: "No commits found in the request body.",
     });
   }
 
-  const branch = pushEvent.ref.split("/").pop();
+  const branch = ref.split("/").pop();
 
   const env = process.env.NODE_ENV as string;
 
@@ -319,16 +342,29 @@ export async function handlePushEvent(req: Request, res: Response) {
       .json({ message: "Invalid branch for the current environment" });
   }
 
+  let processedCommits = 0;
+
   try {
-    for (const commit of commits) {
-      await processCommit(commit, pushEvent, "added", branch);
-      await processCommit(commit, pushEvent, "modified", branch);
-    }
+    await Promise.all(
+      commits.map(async (commit: any) => {
+        try {
+          await processCommit(commit, pushEvent, "added", branch);
+          await processCommit(commit, pushEvent, "modified", branch);
+          processedCommits++;
+        } catch (error) {
+          throw error;
+        }
+      })
+    );
   } catch (error) {
-    // Send error email
-    const message = error instanceof Error ? error.message : "Unknown error";
-    await sendAlert(message);
-    return res.status(500).json({ message: message });
+    let unprocessedCommits = commits.length - processedCommits;
+    let errorMessage = "Unknown error";
+    if (error instanceof Error) {
+      errorMessage = error.message;
+    }
+    const finalErrorMessage = `Error processing commit: ${errorMessage}.\n ${unprocessedCommits} commit(s) left unprocessed.`;
+    return handleError(new Error(finalErrorMessage), res);
   }
+
   return res.status(200).json({ message: "Transcript queued Successfully" });
 }
