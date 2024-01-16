@@ -6,4 +6,5 @@ export interface ReviewAttributes {
   userId: number;
   transcriptId: number;
   pr_url?: string | null;
+  branchUrl?: string | null;
 }
