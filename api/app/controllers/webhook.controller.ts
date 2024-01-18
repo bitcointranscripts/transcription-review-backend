@@ -24,6 +24,7 @@ import {
   resetRedisCachedPages,
 } from "../db/helpers/redis";
 import { BaseParsedMdContent } from "../types/transcript";
+import { send } from "process";
 
 // create a new credit transaction when a review is merged
 async function createCreditTransaction(review: Review, amount: number) {
@@ -284,8 +285,8 @@ async function processCommit(
           transcriptData.transcriptUrl
         );
       }
-    } catch (error) {
-      throw error;
+    } catch (error: any) {
+      sendAlert(`Error processing file ${file}: ${error.message}`, true);
     }
   }
 }
@@ -340,21 +341,19 @@ export async function handlePushEvent(req: Request, res: Response) {
       .status(400)
       .json({ message: "Invalid branch for the current environment" });
   }
-
   try {
     const commitPromises = commits.map(async (commit: any) => {
       try {
         await processCommit(commit, pushEvent, "added", branch);
         await processCommit(commit, pushEvent, "modified", branch);
-      } catch (error) {
-        throw error;
+      } catch (error: any) {
+        sendAlert(error.message, true);
+        return { status: "rejected", reason: error.message };
       }
     });
-
-    await Promise.all(commitPromises);
+    await Promise.allSettled(commitPromises);
   } catch (error) {
     return handleError(error, res);
   }
-
-  return res.status(200).json({ message: "Transcript queued Successfully" });
+  return res.sendStatus(200);
 }

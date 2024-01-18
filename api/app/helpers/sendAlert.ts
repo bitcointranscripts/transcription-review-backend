@@ -35,7 +35,8 @@ export async function sendAlert(
   const webhookUrl = isError ? process.env.DISCORD_ERROR_WEBHOOK_URL : process.env.DISCORD_TRANSCRIPT_WEBHOOK_URL;
 
   if (!webhookUrl) {
-    throw new Error("Webhook URL is not set");
+    console.error("Webhook URL is not set");
+    return;
   }
 
   const transformedUrl = transformUrl(transcriptUrl);
