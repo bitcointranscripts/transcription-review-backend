@@ -201,11 +201,10 @@ async function processCommit(
         );
       }
 
-      const transcriptHash = generateUniqueHash(jsonContent);
       const totalWords = getTotalWords(jsonContent.body);
       const content = jsonContent;
 
-      if (!transcriptHash || !totalWords) {
+      if (!totalWords) {
         throw new Error(
           "Malformed data: transcript content might not be in the correct format"
         );
@@ -231,7 +230,7 @@ async function processCommit(
           title: content.title.trim(),
         },
         content: content,
-        transcriptHash,
+        transcriptHash: "",
         transcriptUrl: rawUrl,
         status: TranscriptStatus.queued,
         contentTotalWords: totalWords,
