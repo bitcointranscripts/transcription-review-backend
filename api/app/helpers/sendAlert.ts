@@ -1,4 +1,5 @@
 import axios from "axios";
+import { Logger } from "./logger";
 require("dotenv").config();
 
 function transformUrl(transcriptUrl?: string | null): string | null {
@@ -35,7 +36,7 @@ export async function sendAlert(
   const webhookUrl = isError ? process.env.DISCORD_ERROR_WEBHOOK_URL : process.env.DISCORD_TRANSCRIPT_WEBHOOK_URL;
 
   if (!webhookUrl) {
-    console.error("Webhook URL is not set");
+    Logger.error("Error sending alert: Webhook URL not found");
     return;
   }
 
