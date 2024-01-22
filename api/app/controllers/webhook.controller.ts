@@ -221,7 +221,7 @@ async function processCommit(
 
       if (!isTranscriptValid(transcript_by)) {
         throw new Error(
-          "Transcript not from TSTBTC or does not need review - did not queue transcript"
+          "Transcript not from TSTBTC or does not need review"
         );
       }
 

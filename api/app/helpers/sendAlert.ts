@@ -4,6 +4,7 @@ require("dotenv").config();
 
 function transformUrl(transcriptUrl?: string | null): string | null {
   if (!transcriptUrl) {
+   Logger.error("Error transforming URL: URL not found");
     return null;
   }
 
