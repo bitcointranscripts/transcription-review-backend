@@ -25,7 +25,7 @@ export async function sendAlert(
   message: string,
   isError: boolean = false,
   transcriptTitle?: string | null,
-  speakers?: string | null,
+  speakers?: string,
   transcriptUrl?: string | null
 ) {
   //bypass alerts in development
