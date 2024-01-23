@@ -90,3 +90,13 @@ export const validateTranscriptMetadata = (
 
   return { isValid: true, keys: null };
 };
+
+
+
+export const isTranscriptValid = (transcript_by: string): boolean => {
+  const lowerCaseTranscriptBy = transcript_by.toLowerCase();
+  return (
+    lowerCaseTranscriptBy.includes("tstbtc") &&
+    lowerCaseTranscriptBy.includes("--needs-review")
+  );
+}

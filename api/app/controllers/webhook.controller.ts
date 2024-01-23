@@ -1,30 +1,22 @@
 import { Request, Response } from "express";
-import axios, { AxiosResponse } from "axios";
+import axios from "axios";
 import { Review, Transaction, Wallet, Transcript, User } from "../db/models";
 import { sequelize } from "../db";
 import { TRANSACTION_STATUS, TRANSACTION_TYPE } from "../types/transaction";
 import { TranscriptAttributes, TranscriptStatus } from "../types/transcript";
-import {
-  DB_QUERY_LIMIT,
-  PAGE_COUNT,
-  PR_EVENT_ACTIONS,
-} from "../utils/constants";
-import { redis } from "../db";
+import { PR_EVENT_ACTIONS } from "../utils/constants";
+
 import {
   calculateCreditAmount,
   generateTransactionId,
 } from "../utils/transaction";
 import { verify_signature } from "../utils/validate-webhook-signature";
-import { generateUniqueHash, parseMdToJSON } from "../helpers/transcript";
+import { parseMdToJSON } from "../helpers/transcript";
 import { getTotalWords } from "../utils/review.inference";
 import { sendAlert } from "../helpers/sendAlert";
-import {
-  CACHE_EXPIRATION,
-  deleteCache,
-  resetRedisCachedPages,
-} from "../db/helpers/redis";
+import { cacheTranscript } from "../db/helpers/redis";
 import { BaseParsedMdContent } from "../types/transcript";
-import { send } from "process";
+import { isTranscriptValid } from "../utils/functions";
 
 // create a new credit transaction when a review is merged
 async function createCreditTransaction(review: Review, amount: number) {
@@ -186,20 +178,18 @@ async function processCommit(
       const mdContent = response.data;
       const jsonContent: BaseParsedMdContent =
         parseMdToJSON<BaseParsedMdContent>(mdContent);
-      const transcript_by = jsonContent.transcript_by.toLowerCase();
 
-      function isTranscriptValid(transcript_by: string): boolean {
-        const lowerCaseTranscriptBy = transcript_by.toLowerCase();
-        return (
-          lowerCaseTranscriptBy.includes("tstbtc") &&
-          lowerCaseTranscriptBy.includes("--needs-review")
-        );
-      }
-
+      // Validate the content
       if (!jsonContent) {
         throw new Error(
           "Malformed data: transcript content might not be in the correct format"
         );
+      }
+      const transcript_by = jsonContent.transcript_by.toLowerCase();
+
+      // Validate the transcript_by before making any DB calls
+      if (!isTranscriptValid(transcript_by)) {
+        throw new Error("Transcript not from TSTBTC or does not need review");
       }
 
       const totalWords = getTotalWords(jsonContent.body);
@@ -219,12 +209,6 @@ async function processCommit(
         throw new Error("transcript already exists");
       }
 
-      if (!isTranscriptValid(transcript_by)) {
-        throw new Error(
-          "Transcript not from TSTBTC or does not need review"
-        );
-      }
-
       const transcript: TranscriptAttributes = {
         originalContent: {
           ...content,
@@ -237,29 +221,7 @@ async function processCommit(
         contentTotalWords: totalWords,
       };
 
-      let transcriptData: any;
-
-      async function cacheTranscript(transcriptData: any) {
-        const redisTransaction = redis.multi();
-        redisTransaction.sadd("cachedTranscripts", transcriptData.id);
-        redisTransaction.set(
-          `transcript:${transcriptData.id}`,
-          JSON.stringify(transcriptData),
-          "EX",
-          CACHE_EXPIRATION
-        );
-        const totalItems = await Transcript.count();
-        const totalPages = Math.ceil(totalItems / DB_QUERY_LIMIT);
-        for (let page = 1; page <= totalPages; page++) {
-          redisTransaction.del(`transcripts:page:${page}`);
-        }
-        await redisTransaction.exec((err, _results) => {
-          if (err) {
-            Transcript.destroy({ where: { id: transcriptData.id } });
-            throw err;
-          }
-        });
-      }
+      let transcriptData: TranscriptAttributes;
 
       if (type === "added" || (type === "modified" && !existingTranscript)) {
         transcriptData = await Transcript.create(transcript);
