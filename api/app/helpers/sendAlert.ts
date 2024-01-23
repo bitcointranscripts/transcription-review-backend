@@ -4,7 +4,7 @@ require("dotenv").config();
 
 function transformUrl(transcriptUrl?: string | null): string | null {
   if (!transcriptUrl) {
-   Logger.error("Error transforming URL: URL not found");
+    Logger.error("Error transforming URL: URL not found");
     return null;
   }
 
@@ -26,7 +26,7 @@ export async function sendAlert(
   isError: boolean = false,
   transcriptTitle?: string | null,
   speakers?: string | null,
-  transcriptUrl?: string | null,
+  transcriptUrl?: string | null
 ) {
   //bypass alerts in development
   if (process.env.NODE_ENV === "development") {
@@ -34,21 +34,26 @@ export async function sendAlert(
   }
 
   // Use ternary operator for setting webhookUrl
-  const webhookUrl = isError ? process.env.DISCORD_ERROR_WEBHOOK_URL : process.env.DISCORD_TRANSCRIPT_WEBHOOK_URL;
+  const webhookUrl = isError
+    ? process.env.DISCORD_ERROR_WEBHOOK_URL
+    : process.env.DISCORD_TRANSCRIPT_WEBHOOK_URL;
 
   if (!webhookUrl) {
     Logger.error("Error sending alert: Webhook URL not found");
     return;
   }
-
-  const transformedUrl = transformUrl(transcriptUrl);
-
-  // Use template literals for constructing content
-  const content = isError ? `❌ Transcript not added to the Queue\n${message}` : `🤖 ${message}\nTitle: ${transcriptTitle}\nSpeakers: ${speakers}\nLink: ${transformedUrl}`;
+  let content;
+  if (isError) {
+    content = `❌ Transcript not added to the Queue\n${message}`;
+  } else {
+    // Only transform the URL when isError is false
+    const transformedUrl = transformUrl(transcriptUrl);
+    content = `🤖 ${message}\nTitle: ${transcriptTitle}\nSpeakers: ${speakers}\nLink: ${transformedUrl}`;
+  }
 
   try {
     await axios.post(webhookUrl, { content });
-  } catch (error) {
-    throw new Error("Error sending alert");
+  } catch (error: any) {
+    throw new Error(`Error sending alert: ${error.message}`);
   }
 }
