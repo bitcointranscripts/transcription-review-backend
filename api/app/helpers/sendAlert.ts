@@ -26,7 +26,7 @@ export async function sendAlert(
   isError: boolean = false,
   transcriptTitle?: string | null,
   speakers?: string,
-  transcriptUrl?: string | null
+  transcriptUrl?: string
 ) {
   //bypass alerts in development
   if (process.env.NODE_ENV === "development") {
