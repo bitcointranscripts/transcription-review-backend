@@ -4,7 +4,7 @@ import { Review, Transaction, Wallet, Transcript, User } from "../db/models";
 import { sequelize } from "../db";
 import { TRANSACTION_STATUS, TRANSACTION_TYPE } from "../types/transaction";
 import { TranscriptAttributes, TranscriptStatus } from "../types/transcript";
-import { PR_EVENT_ACTIONS } from "../utils/constants";
+import { PR_EVENT_ACTIONS, DELAY_IN_BETWEEN_REQUESTS } from "../utils/constants";
 
 import {
   calculateCreditAmount,
@@ -16,7 +16,7 @@ import { getTotalWords } from "../utils/review.inference";
 import { sendAlert } from "../helpers/sendAlert";
 import { cacheTranscript } from "../db/helpers/redis";
 import { BaseParsedMdContent } from "../types/transcript";
-import { isTranscriptValid } from "../utils/functions";
+import { delay, isTranscriptValid,  } from "../utils/functions";
 
 // create a new credit transaction when a review is merged
 async function createCreditTransaction(review: Review, amount: number) {
@@ -162,6 +162,7 @@ export async function create(req: Request, res: Response) {
   }
 }
 
+
 async function processCommit(
   commit: any,
   pushEvent: any,
@@ -226,6 +227,9 @@ async function processCommit(
       if (type === "added" || (type === "modified" && !existingTranscript)) {
         transcriptData = await Transcript.create(transcript);
         await cacheTranscript(transcriptData);
+
+        // Add delay here
+        await delay(delayBetweenRequests);
         // Send alert to Discord
         await sendAlert(
           "New Transcript Ready for Review!",
@@ -238,6 +242,8 @@ async function processCommit(
         await existingTranscript.update(transcript);
         transcriptData = existingTranscript;
         await cacheTranscript(transcriptData);
+
+        await delay(delayBetweenRequests);
         // Send alert to Discord
         await sendAlert(
           "Transcript modified",
@@ -248,7 +254,9 @@ async function processCommit(
         );
       }
     } catch (error: any) {
+      await delay(delayBetweenRequests);
       sendAlert(`Error processing file ${file}: ${error.message}`, true);
+      continue; // Continue with the next iteration
     }
   }
 }
@@ -310,6 +318,7 @@ export async function handlePushEvent(req: Request, res: Response) {
         await processCommit(commit, pushEvent, "modified", branch);
       } catch (error: any) {
         sendAlert(error.message, true);
+        res.status(500).json({ message: error.message });
         return { status: "rejected", reason: error.message };
       }
     });

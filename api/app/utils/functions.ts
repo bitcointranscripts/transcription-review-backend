@@ -100,3 +100,5 @@ export const isTranscriptValid = (transcript_by: string): boolean => {
     lowerCaseTranscriptBy.includes("--needs-review")
   );
 }
+
+export const delay = (ms: number) => new Promise((res) => setTimeout(res, ms));

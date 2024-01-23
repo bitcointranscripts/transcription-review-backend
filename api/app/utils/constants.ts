@@ -43,6 +43,8 @@ const MINUTE_END_OF_DAY = 59;
 const SECOND_END_OF_DAY = 59;
 const MILLISECOND_END_OF_DAY = 999;
 
+const DELAY_IN_BETWEEN_REQUESTS = 3000; // Delay of 3 second between requests
+
 export {
   PR_EVENT_ACTIONS,
   QUERY_REVIEW_STATUS,
@@ -64,6 +66,7 @@ export {
   SECOND_END_OF_DAY,
   MILLISECOND_END_OF_DAY,
   PAGE_COUNT,
+  DELAY_IN_BETWEEN_REQUESTS
 };
 
 
