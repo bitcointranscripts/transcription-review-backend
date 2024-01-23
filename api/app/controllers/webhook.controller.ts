@@ -229,7 +229,7 @@ async function processCommit(
         await cacheTranscript(transcriptData);
 
         // Add delay here
-        await delay(delayBetweenRequests);
+        await delay(DELAY_IN_BETWEEN_REQUESTS);
         // Send alert to Discord
         await sendAlert(
           "New Transcript Ready for Review!",
@@ -243,7 +243,7 @@ async function processCommit(
         transcriptData = existingTranscript;
         await cacheTranscript(transcriptData);
 
-        await delay(delayBetweenRequests);
+        await delay(DELAY_IN_BETWEEN_REQUESTS);
         // Send alert to Discord
         await sendAlert(
           "Transcript modified",
@@ -254,7 +254,7 @@ async function processCommit(
         );
       }
     } catch (error: any) {
-      await delay(delayBetweenRequests);
+      await delay(DELAY_IN_BETWEEN_REQUESTS);
       sendAlert(`Error processing file ${file}: ${error.message}`, true);
       continue; // Continue with the next iteration
     }
