@@ -1,26 +1,22 @@
 import { Request, Response } from "express";
-import axios, { AxiosResponse } from "axios";
+import axios from "axios";
 import { Review, Transaction, Wallet, Transcript, User } from "../db/models";
 import { sequelize } from "../db";
 import { TRANSACTION_STATUS, TRANSACTION_TYPE } from "../types/transaction";
 import { TranscriptAttributes, TranscriptStatus } from "../types/transcript";
-import { DB_QUERY_LIMIT, PAGE_COUNT, PR_EVENT_ACTIONS } from "../utils/constants";
-import { redis } from "../db";
+import { PR_EVENT_ACTIONS } from "../utils/constants";
+
 import {
   calculateCreditAmount,
   generateTransactionId,
 } from "../utils/transaction";
 import { verify_signature } from "../utils/validate-webhook-signature";
-import { generateUniqueHash, parseMdToJSON } from "../helpers/transcript";
+import { parseMdToJSON } from "../helpers/transcript";
 import { getTotalWords } from "../utils/review.inference";
 import { sendAlert } from "../helpers/sendAlert";
-import {
-  CACHE_EXPIRATION,
-  deleteCache,
-  resetRedisCachedPages,
-} from "../db/helpers/redis";
+import { cacheTranscript } from "../db/helpers/redis";
 import { BaseParsedMdContent } from "../types/transcript";
-import { json } from "sequelize";
+import { isTranscriptValid } from "../utils/functions";
 
 // create a new credit transaction when a review is merged
 async function createCreditTransaction(review: Review, amount: number) {
@@ -173,110 +169,111 @@ async function processCommit(
   branch: string
 ) {
   const changedFiles = [...commit[type]]; // get the files that were added or modified in the commit so we don't have to maintain two separate functions, this is also easily extendable when we want to take care of deleted commits.
-  for (const file of changedFiles) {
+  // Create an array of promises to fetch file contents
+  const fetchFilePromises = changedFiles.map(async (file) => {
     const rawUrl = `https://api.github.com/repos/${pushEvent.repository?.full_name}/contents/${file}?ref=${branch}`;
-    const response = await axios.get(rawUrl, {
-      headers: { Accept: "application/vnd.github.v3.raw" },
-    });
-    const mdContent = response.data;
-    const jsonContent: BaseParsedMdContent =
-      parseMdToJSON<BaseParsedMdContent>(mdContent);
-    const transcript_by = jsonContent.transcript_by.toLowerCase();
-
-    function isTranscriptValid(transcript_by: string): boolean {
-      const lowerCaseTranscriptBy = transcript_by.toLowerCase();
-      return (
-        lowerCaseTranscriptBy.includes("tstbtc") &&
-        lowerCaseTranscriptBy.includes("--needs-review")
-      );
-    }
-
-    if (!jsonContent) {
-      throw new Error(
-        "Malformed data: transcript content might not be in the correct format"
-      );
-    }
-
-    const transcriptHash = generateUniqueHash(jsonContent);
-    const totalWords = getTotalWords(jsonContent.body);
-    const content = jsonContent;
-
-    if (!transcriptHash || !totalWords) {
-      throw new Error(
-        "Malformed data: transcript content might not be in the correct format"
-      );
-    }
-
-    const existingTranscript = await Transcript.findOne({
-      where: { transcriptUrl: rawUrl },
-    });
-
-    if (existingTranscript && type === "added") {
-      throw new Error("transcript already exists");
-    }
-
-    if (!isTranscriptValid(transcript_by)) {
-      throw new Error(
-        "Transcript not from TSTBTC or does not need review - did not queue transcript"
-      );
-    }
-
-    const transcript: TranscriptAttributes = {
-      originalContent: {
-        ...content,
-        title: content.title.trim(),
-      },
-      content: content,
-      transcriptHash,
-      transcriptUrl: rawUrl,
-      status: TranscriptStatus.queued,
-      contentTotalWords: totalWords,
-    };
-
-    let transcriptData: any;
-
-    async function cacheTranscript(transcriptData: any) {
-      const redisTransaction = redis.multi();
-      redisTransaction.sadd("cachedTranscripts", transcriptData.id);
-      redisTransaction.set(
-        `transcript:${transcriptData.id}`,
-        JSON.stringify(transcriptData),
-        "EX",
-        CACHE_EXPIRATION
-      );
-      const totalItems = await Transcript.count();
-      const totalPages = Math.ceil(totalItems / DB_QUERY_LIMIT);
-      for (let page = 1; page <= totalPages; page++) {
-        redisTransaction.del(`transcripts:page:${page}`);
-      }
-      await redisTransaction.exec((err, _results) => {
-        if (err) {
-          Transcript.destroy({ where: { id: transcriptData.id } });
-          throw err;
-        }
+    try {
+      const response = await axios.get(rawUrl, {
+        headers: { Accept: "application/vnd.github.v3.raw" },
       });
+      return { file, response, rawUrl };
+    } catch (error) {
+      return { file, error, rawUrl };
     }
-    
+  });
+  // Fetch file contents concurrently
+  const results = await Promise.all(fetchFilePromises);
 
-    if (type === "added" || (type === "modified" && !existingTranscript)) {
-      transcriptData = await Transcript.create(transcript);
-      await cacheTranscript(transcriptData);
-    } else if (type === "modified" && existingTranscript) {
-      await existingTranscript.update(transcript);
-      transcriptData = existingTranscript;
-      await cacheTranscript(transcriptData);
+  // Process each file
+  for (const result of results) {
+    try {
+      if ("error" in result) {
+        throw result.error;
+      }
+
+      const { response, rawUrl } = result;
+
+      const mdContent = response.data;
+      const jsonContent: BaseParsedMdContent =
+        parseMdToJSON<BaseParsedMdContent>(mdContent);
+
+      // Validate the content
+      if (!jsonContent) {
+        throw new Error(
+          "Malformed data: transcript content might not be in the correct format"
+        );
+      }
+      const transcript_by = jsonContent.transcript_by.toLowerCase();
+
+      // Validate the transcript_by before making any DB calls
+      if (!isTranscriptValid(transcript_by)) {
+        throw new Error("Transcript not from TSTBTC or does not need review");
+      }
+
+      const totalWords = getTotalWords(jsonContent.body);
+      const content = jsonContent;
+
+      if (!totalWords) {
+        throw new Error(
+          "Malformed data: transcript content might not be in the correct format"
+        );
+      }
+
+      const existingTranscript = await Transcript.findOne({
+        where: { transcriptUrl: rawUrl },
+      });
+
+      if (existingTranscript && type === "added") {
+        throw new Error("transcript already exists");
+      }
+
+      const transcript: TranscriptAttributes = {
+        originalContent: {
+          ...content,
+          title: content.title.trim(),
+        },
+        content: content,
+        transcriptHash: "",
+        transcriptUrl: rawUrl,
+        status: TranscriptStatus.queued,
+        contentTotalWords: totalWords,
+      };
+
+      let transcriptData: TranscriptAttributes;
+
+      if (type === "added" || (type === "modified" && !existingTranscript)) {
+        transcriptData = await Transcript.create(transcript);
+        await cacheTranscript(transcriptData);
+
+        // Send alert to Discord
+        sendAlert(
+          "New Transcript Ready for Review!",
+          false,
+          transcriptData.originalContent.title,
+          transcriptData.originalContent.speakers,
+          transcriptData.transcriptUrl
+        );
+      } else if (type === "modified" && existingTranscript) {
+        await existingTranscript.update(transcript);
+        transcriptData = existingTranscript;
+        await cacheTranscript(transcriptData);
+
+        // Send alert to Discord
+        sendAlert(
+          "Transcript modified",
+          false,
+          transcriptData.originalContent.title,
+          transcriptData.originalContent.speakers,
+          transcriptData.transcriptUrl
+        );
+      }
+    } catch (error: any) {
+      sendAlert(`Error processing file ${result.file}: ${error.message}`, true);
     }
-
-    // Send alert to Discord
-    await sendAlert(
-      `Transcript Queued Successfully`,
-      transcriptData.originalContent.title,
-      transcriptData.transcriptUrl,
-      transcriptData.transcriptHash
-    );
   }
 }
 
+// Check if the branch is valid for the current environment
 function isValidEnvironmentAndBranch(branch: string, env: string): boolean {
   const allowedBranches = ["master", "staging", "development"];
   if (!allowedBranches.includes(branch)) {
@@ -290,26 +287,34 @@ function isValidEnvironmentAndBranch(branch: string, env: string): boolean {
   );
 }
 
+// Handle errors and send alerts
+async function handleError(error: any, res: Response) {
+  const message = error instanceof Error ? error.message : "Unknown error";
+  sendAlert(message, true);
+  return res.status(500).json({ message: message });
+}
+
+// Handle push events from GitHub
 export async function handlePushEvent(req: Request, res: Response) {
   if (!verify_signature(req)) {
     return res.status(401).json("Unauthorized");
   }
 
-  const pushEvent: any = req.body;
+  const { body: pushEvent } = req;
   if (!pushEvent) {
     return res.status(500).json({
       message: "No push event found in the request body.",
     });
   }
 
-  const commits = pushEvent.commits;
+  const { commits, ref } = pushEvent;
   if (!commits) {
     return res.status(500).json({
       message: "No commits found in the request body.",
     });
   }
 
-  const branch = pushEvent.ref.split("/").pop();
+  const branch = ref.split("/").pop();
 
   const env = process.env.NODE_ENV as string;
 
@@ -318,17 +323,20 @@ export async function handlePushEvent(req: Request, res: Response) {
       .status(400)
       .json({ message: "Invalid branch for the current environment" });
   }
-
   try {
-    for (const commit of commits) {
-      await processCommit(commit, pushEvent, "added", branch);
-      await processCommit(commit, pushEvent, "modified", branch);
-    }
+    const commitPromises = commits.map(async (commit: any) => {
+      try {
+        await processCommit(commit, pushEvent, "added", branch);
+        await processCommit(commit, pushEvent, "modified", branch);
+      } catch (error: any) {
+        sendAlert(error.message, true);
+        res.status(500).json({ message: error.message });
+        return { status: "rejected", reason: error.message };
+      }
+    });
+    await Promise.allSettled(commitPromises);
   } catch (error) {
-    // Send error email
-    const message = error instanceof Error ? error.message : "Unknown error";
-    await sendAlert(message);
-    return res.status(500).json({ message: message });
+    return handleError(error, res);
   }
-  return res.status(200).json({ message: "Transcript queued Successfully" });
+  return res.sendStatus(200);
 }
