@@ -101,4 +101,3 @@ export const isTranscriptValid = (transcript_by: string): boolean => {
   );
 }
 
-export const delay = (ms: number) => new Promise((res) => setTimeout(res, ms));

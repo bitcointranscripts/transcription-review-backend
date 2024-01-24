@@ -1,6 +1,8 @@
 import axios from "axios";
 import { Logger } from "./logger";
 require("dotenv").config();
+import { DELAY_IN_BETWEEN_REQUESTS } from "../utils/constants";
+import Bottleneck from "bottleneck";
 
 function transformUrl(transcriptUrl?: string | null): string | null {
   if (!transcriptUrl) {
@@ -19,6 +21,22 @@ function transformUrl(transcriptUrl?: string | null): string | null {
   const transformedUrlPath = transcriptUrlPath.replace(/\.md$/, "");
 
   return transformedUrlPath;
+}
+
+interface DiscordMessage {
+  webhookUrl: string;
+  content: string;
+}
+const limiter = new Bottleneck({
+  minTime: DELAY_IN_BETWEEN_REQUESTS, // 3 seconds
+});
+
+async function sendDiscordMessage({ webhookUrl, content }: DiscordMessage) {
+  try {
+    await axios.post(webhookUrl, { content });
+  } catch (error) {
+    Logger.error(error);
+  }
 }
 
 export async function sendAlert(
@@ -51,9 +69,6 @@ export async function sendAlert(
     content = `🤖 ${message}\nTitle: ${transcriptTitle}\nSpeakers: ${speakers}\nLink: ${transformedUrl}`;
   }
 
-  try {
-    await axios.post(webhookUrl, { content });
-  } catch (error: any) {
-    throw new Error(`Error sending alert: ${error.message}`);
-  }
+  const payload = { webhookUrl, content };
+  limiter.schedule(() => sendDiscordMessage(payload));
 }
