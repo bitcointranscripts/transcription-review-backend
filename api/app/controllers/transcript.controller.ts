@@ -48,7 +48,7 @@ export async function create(req: Request, res: Response) {
     },
     content: content,
     transcriptHash,
-    transcriptUrl: null,
+    transcriptUrl: "",
     status: TranscriptStatus.queued,
     contentTotalWords: totalWords,
   };
