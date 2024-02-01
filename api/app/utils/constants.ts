@@ -19,6 +19,10 @@ const currentTime = Math.floor(Date.now() / 1000);
 const JWTEXPIRYTIMEINHOURS = currentTime + (expiresInHours * 60 * 60);
 
 
+// This is a random number that is used to note the number of pages to be cached
+const PAGE_COUNT = 100;
+
+
 const EXPIRYTIMEINHOURS = 24;
 const MAXPENDINGREVIEWS = 3;
 const INVOICEEXPIRYTIME = 5 * 60 * 1000
@@ -38,6 +42,8 @@ const HOUR_END_OF_DAY = 23;
 const MINUTE_END_OF_DAY = 59;
 const SECOND_END_OF_DAY = 59;
 const MILLISECOND_END_OF_DAY = 999;
+
+const DELAY_IN_BETWEEN_REQUESTS = 3000; // Delay of 3 second between requests
 
 export {
   PR_EVENT_ACTIONS,
@@ -59,6 +65,8 @@ export {
   MINUTE_END_OF_DAY,
   SECOND_END_OF_DAY,
   MILLISECOND_END_OF_DAY,
+  PAGE_COUNT,
+  DELAY_IN_BETWEEN_REQUESTS
 };
 
 

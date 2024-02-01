@@ -19,6 +19,7 @@ import {
 } from "../db/helpers/redis";
 import { validateTranscriptMetadata } from "../utils/functions";
 import { Logger } from "../helpers/logger";
+import { ReviewAttributes } from "../types/review";
 
 // Create and Save a new Transcript
 export async function create(req: Request, res: Response) {
@@ -47,6 +48,7 @@ export async function create(req: Request, res: Response) {
     },
     content: content,
     transcriptHash,
+    transcriptUrl: "",
     status: TranscriptStatus.queued,
     contentTotalWords: totalWords,
   };
@@ -345,6 +347,7 @@ export async function claim(req: Request, res: Response) {
   const transcriptId = req.params.id;
 
   const uid = req.body.claimedBy;
+  const branchUrl = req.body.branchUrl
   const currentTime = new Date().getTime();
   const activeCondition = buildIsActiveCondition(currentTime);
   const pendingCondition = buildIsPendingCondition();
@@ -373,10 +376,14 @@ export async function claim(req: Request, res: Response) {
     return;
   }
 
-  const review = {
+  const review: ReviewAttributes = {
     userId: uid,
     transcriptId: Number(transcriptId),
   };
+
+  if (branchUrl) {
+    review.branchUrl = branchUrl
+  }
 
   try {
     const resp = await Transcript.update(

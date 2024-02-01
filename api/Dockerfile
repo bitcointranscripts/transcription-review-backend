@@ -8,6 +8,9 @@ COPY package*.json ./
 
 RUN yarn install --immutable --immutable-cache --check-cache
 
+# Install Sequelize CLI globally
+RUN yarn global add sequelize-cli
+
 COPY . .
 
 RUN chmod 777 node_modules
@@ -20,4 +23,4 @@ ARG NODE_ENV=NODE_ENV
 
 EXPOSE 8080/tcp
 
-CMD ["node", "./dist/server.js"]
+CMD ["sh", "-c", "sequelize-cli db:migrate && node ./dist/server.js"]
