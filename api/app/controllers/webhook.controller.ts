@@ -143,7 +143,7 @@ export async function create(req: Request, res: Response) {
       );
 
       if (associatedTranscript) {
-        associatedTranscript.claimedBy = undefined;
+        associatedTranscript.claimedBy = null;
         associatedTranscript.status = TranscriptStatus.queued;
         await associatedTranscript?.save();
         res.sendStatus(200);
