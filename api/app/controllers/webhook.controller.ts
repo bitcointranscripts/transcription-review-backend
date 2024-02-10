@@ -1,70 +1,17 @@
 import { Request, Response } from "express";
 import axios from "axios";
-import { Review, Transaction, Wallet, Transcript, User } from "../db/models";
-import { sequelize } from "../db";
-import { TRANSACTION_STATUS, TRANSACTION_TYPE } from "../types/transaction";
+import { Review, Transcript } from "../db/models";
 import { TranscriptAttributes, TranscriptStatus } from "../types/transcript";
 import { PR_EVENT_ACTIONS } from "../utils/constants";
 
-import {
-  calculateCreditAmount,
-  generateTransactionId,
-} from "../utils/transaction";
 import { verify_signature } from "../utils/validate-webhook-signature";
-import { parseMdToJSON } from "../helpers/transcript";
 import { parseMdToJSON } from "../helpers/transcript";
 import { getTotalWords } from "../utils/review.inference";
 import { sendAlert } from "../helpers/sendAlert";
 import { cacheTranscript } from "../db/helpers/redis";
 import { BaseParsedMdContent } from "../types/transcript";
 import { isTranscriptValid } from "../utils/functions";
-
-// create a new credit transaction when a review is merged
-async function createCreditTransaction(review: Review, amount: number) {
-  const dbTransaction = await sequelize.transaction();
-  const currentTime = new Date();
-
-  const user = await User.findByPk(review.userId);
-  if (!user) throw new Error(`Could not find user with id=${review.userId}`);
-
-  const userWallet = await Wallet.findOne({
-    where: { userId: user.id },
-  });
-  if (!userWallet)
-    throw new Error(`Could not get wallet for user with id=${user.id}`);
-
-  const newWalletBalance = userWallet.balance + Math.round(+amount);
-  const creditTransaction = {
-    id: generateTransactionId(),
-    reviewId: review.id,
-    walletId: userWallet.id,
-    amount: Math.round(+amount),
-    transactionType: TRANSACTION_TYPE.CREDIT,
-    transactionStatus: TRANSACTION_STATUS.SUCCESS,
-    timestamp: currentTime,
-  };
-  try {
-    await Transaction.create(creditTransaction, {
-      transaction: dbTransaction,
-    });
-    await userWallet.update(
-      {
-        balance: newWalletBalance,
-      },
-      { transaction: dbTransaction }
-    );
-    await dbTransaction.commit();
-  } catch (error) {
-    await dbTransaction.rollback();
-    const failedTransaction = {
-      ...creditTransaction,
-      transactionStatus: TRANSACTION_STATUS.FAILED,
-    };
-    await Transaction.create(failedTransaction);
-
-    throw error;
-  }
-}
+import { addCreditTransactionQueue } from "../utils/cron";
 
 export async function create(req: Request, res: Response) {
   if (!verify_signature(req)) {
@@ -166,7 +113,8 @@ export async function create(req: Request, res: Response) {
 async function processCommit(
   commit: any,
   pushEvent: any,
-  type: "added" | "modified"
+  type: "added" | "modified",
+  branch: string
 ) {
   const changedFiles = [...commit[type]]; // get the files that were added or modified in the commit so we don't have to maintain two separate functions, this is also easily extendable when we want to take care of deleted commits.
   // Create an array of promises to fetch file contents
@@ -246,29 +194,34 @@ async function processCommit(
         await cacheTranscript(transcriptData);
 
         // Send alert to Discord
-        sendAlert(
-          "New Transcript Ready for Review!",
-          false,
-          transcriptData.originalContent.title,
-          transcriptData.originalContent.speakers,
-          transcriptData.transcriptUrl
-        );
+        sendAlert({
+          message: "New Transcript Ready for Review!",
+          isError: false,
+          transcriptTitle: transcriptData.originalContent.title,
+          speakers: transcriptData.originalContent.speakers,
+          transcriptUrl: transcriptData.transcriptUrl,
+          type: "transcript",
+        });
       } else if (type === "modified" && existingTranscript) {
         await existingTranscript.update(transcript);
         transcriptData = existingTranscript;
         await cacheTranscript(transcriptData);
 
         // Send alert to Discord
-        sendAlert(
-          "Transcript modified",
-          false,
-          transcriptData.originalContent.title,
-          transcriptData.originalContent.speakers,
-          transcriptData.transcriptUrl
-        );
+        sendAlert({
+          message: "Transcript modified",
+          isError: false,
+          transcriptTitle: transcriptData.originalContent.title,
+          speakers: transcriptData.originalContent.speakers,
+          transcriptUrl: transcriptData.transcriptUrl,
+          type: "transcript",
+        });
       }
     } catch (error: any) {
-      sendAlert(`Error processing file ${result.file}: ${error.message}`, true);
+      sendAlert({
+        message: `Error processing file ${result.file}: ${error.message}`,
+        isError: true,
+      });
     }
   }
 }
@@ -290,7 +243,7 @@ function isValidEnvironmentAndBranch(branch: string, env: string): boolean {
 // Handle errors and send alerts
 async function handleError(error: any, res: Response) {
   const message = error instanceof Error ? error.message : "Unknown error";
-  sendAlert(message, true);
+  sendAlert({ message, isError: true });
   return res.status(500).json({ message: message });
 }
 
@@ -329,7 +282,7 @@ export async function handlePushEvent(req: Request, res: Response) {
         await processCommit(commit, pushEvent, "added", branch);
         await processCommit(commit, pushEvent, "modified", branch);
       } catch (error: any) {
-        sendAlert(error.message, true);
+        sendAlert({ message: error.message, isError: true });
         res.status(500).json({ message: error.message });
         return { status: "rejected", reason: error.message };
       }
