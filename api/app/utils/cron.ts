@@ -1,24 +1,100 @@
 import Queue from "bull";
+import path from "path";
+import { Worker } from "worker_threads";
 
-import { Review } from "../db/models/review";
-import { Transcript } from "../db/models/transcript";
+import { redis, REDIS_HOST, REDIS_PASSWORD, REDIS_PORT } from "../db";
+import { deleteCache, resetRedisCachedPages } from "../db/helpers/redis";
+import { Review, Transcript } from "../db/models";
+import { Logger } from "../helpers/logger";
+import { sendAlert } from "../helpers/sendAlert";
 import { TranscriptStatus } from "../types/transcript";
 import {
   buildIsExpiredAndNotArchivedCondition,
   getUnixTimeFromHours,
 } from "../utils/review.inference";
 import { EXPIRYTIMEINHOURS } from "./constants";
-import { deleteCache, resetRedisCachedPages } from "../db/helpers/redis";
-import { REDIS_HOST, REDIS_PASSWORD, REDIS_PORT, redis } from "../db";
-import { Logger } from "../helpers/logger";
+
+const redisConfig = {
+  port: REDIS_PORT,
+  host: REDIS_HOST,
+  password: REDIS_PASSWORD,
+};
 
 const expiryQueue = new Queue<{ reviewId: number }>("cron-for-review-expiry", {
-  redis: {
-    port: REDIS_PORT,
-    host: REDIS_HOST,
-    password: REDIS_PASSWORD,
-  },
+  redis: redisConfig,
   defaultJobOptions: { delay: getUnixTimeFromHours(EXPIRYTIMEINHOURS) },
+});
+
+const creditTransactionQueue = new Queue<{
+  transcript: Transcript;
+  review: Review;
+}>("credit-transaction", {
+  redis: redisConfig,
+});
+
+export function startBackgroundTaskForCreditTransaction(
+  transcript: Transcript,
+  review: Review,
+  done: any
+) {
+  return new Promise((resolve, reject) => {
+    const worker = new Worker(path.resolve(__dirname, "./wordDiffWorker.js"), {
+      workerData: {
+        transcript: transcript,
+        review: review,
+      },
+    });
+
+    worker.on("message", (result) => {
+      resolve(result);
+      done();
+      Logger.info(`Worker transaction processed:, ${JSON.stringify(result)}`);
+    });
+    worker.on("error", (error) => {
+      reject(error);
+      done();
+      Logger.error(`Worker error:, ${JSON.stringify(error)}`);
+      sendAlert({
+        message: `Error in background task for credit transaction: ${error.message}`,
+        isError: true,
+        transcriptTitle: transcript.originalContent?.title,
+        transcriptUrl: transcript.transcriptUrl ?? review.pr_url,
+        type: "transaction",
+      });
+    });
+    worker.on("exit", (code) => {
+      if (code !== 0) {
+        reject(new Error(`Worker stopped with exit code ${code}`));
+        done();
+        Logger.error(`Worker stopped with exit code ${code}`);
+        sendAlert({
+          message: `Worker stopped with exit code ${code}`,
+          isError: true,
+          transcriptTitle: transcript.originalContent?.title,
+          transcriptUrl: transcript.transcriptUrl ?? review.pr_url,
+          type: "transaction",
+        });
+      }
+    });
+  });
+}
+
+export const addCreditTransactionQueue = async (
+  transcript: Transcript,
+  review: Review
+) => {
+  await creditTransactionQueue.add({ transcript, review });
+};
+
+creditTransactionQueue.process(async (job, done) => {
+  const { transcript, review } = job.data;
+  try {
+    startBackgroundTaskForCreditTransaction(transcript, review, done);
+    Logger.info(`Credit transaction created for review: ${review.id}`);
+  } catch (error) {
+    Logger.error("Error in credit transaction queue", error);
+  }
+  done();
 });
 
 // Requeue transcript if review has expired
@@ -63,11 +139,7 @@ expiryQueue.process(async (job, done) => {
 // run CRON once daily to archive expired review that could have slipped by
 
 const dailyCheckForMissedExpiredReviews = new Queue("daily-cron-expired", {
-  redis: {
-    port: REDIS_PORT,
-    host: REDIS_HOST,
-    password: REDIS_PASSWORD,
-  },
+  redis: redisConfig,
   defaultJobOptions: {
     repeat: { cron: "0 0 * * *", key: "dailyExpiredCheck" },
   },
