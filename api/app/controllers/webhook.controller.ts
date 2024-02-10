@@ -1,17 +1,11 @@
 import { Request, Response } from "express";
-import axios, { AxiosResponse } from "axios";
-import { Review, Transaction, Wallet, Transcript, User } from "../db/models";
-import { sequelize } from "../db";
-import { TRANSACTION_STATUS, TRANSACTION_TYPE } from "../types/transaction";
+import axios from "axios";
+import { Review, Transcript } from "../db/models";
 import { TranscriptAttributes, TranscriptStatus } from "../types/transcript";
-import { PAGE_COUNT, PR_EVENT_ACTIONS } from "../utils/constants";
-import { redis } from "../db";
-import {
-  calculateCreditAmount,
-  generateTransactionId,
-} from "../utils/transaction";
+import { PR_EVENT_ACTIONS } from "../utils/constants";
+
 import { verify_signature } from "../utils/validate-webhook-signature";
-import { generateUniqueHash, parseMdToJSON } from "../helpers/transcript";
+import { parseMdToJSON } from "../helpers/transcript";
 import { getTotalWords } from "../utils/review.inference";
 import { sendAlert } from "../helpers/sendAlert";
 import {
@@ -20,54 +14,8 @@ import {
   resetRedisCachedPages,
 } from "../db/helpers/redis";
 import { BaseParsedMdContent } from "../types/transcript";
-import { json } from "sequelize";
-
-// create a new credit transaction when a review is merged
-async function createCreditTransaction(review: Review, amount: number) {
-  const dbTransaction = await sequelize.transaction();
-  const currentTime = new Date();
-
-  const user = await User.findByPk(review.userId);
-  if (!user) throw new Error(`Could not find user with id=${review.userId}`);
-
-  const userWallet = await Wallet.findOne({
-    where: { userId: user.id },
-  });
-  if (!userWallet)
-    throw new Error(`Could not get wallet for user with id=${user.id}`);
-
-  const newWalletBalance = userWallet.balance + Math.round(+amount);
-  const creditTransaction = {
-    id: generateTransactionId(),
-    reviewId: review.id,
-    walletId: userWallet.id,
-    amount: Math.round(+amount),
-    transactionType: TRANSACTION_TYPE.CREDIT,
-    transactionStatus: TRANSACTION_STATUS.SUCCESS,
-    timestamp: currentTime,
-  };
-  try {
-    await Transaction.create(creditTransaction, {
-      transaction: dbTransaction,
-    });
-    await userWallet.update(
-      {
-        balance: newWalletBalance,
-      },
-      { transaction: dbTransaction }
-    );
-    await dbTransaction.commit();
-  } catch (error) {
-    await dbTransaction.rollback();
-    const failedTransaction = {
-      ...creditTransaction,
-      transactionStatus: TRANSACTION_STATUS.FAILED,
-    };
-    await Transaction.create(failedTransaction);
-
-    throw error;
-  }
-}
+import { isTranscriptValid } from "../utils/functions";
+import { addCreditTransactionQueue } from "../utils/cron";
 
 export async function create(req: Request, res: Response) {
   if (!verify_signature(req)) {
