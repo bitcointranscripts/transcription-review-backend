@@ -1,17 +1,11 @@
 import { Request, Response } from "express";
-import axios, { AxiosResponse } from "axios";
-import { Review, Transaction, Wallet, Transcript, User } from "../db/models";
-import { sequelize } from "../db";
-import { TRANSACTION_STATUS, TRANSACTION_TYPE } from "../types/transaction";
+import axios from "axios";
+import { Review, Transcript } from "../db/models";
 import { TranscriptAttributes, TranscriptStatus } from "../types/transcript";
-import { PAGE_COUNT, PR_EVENT_ACTIONS } from "../utils/constants";
-import { redis } from "../db";
-import {
-  calculateCreditAmount,
-  generateTransactionId,
-} from "../utils/transaction";
+import { PR_EVENT_ACTIONS } from "../utils/constants";
+
 import { verify_signature } from "../utils/validate-webhook-signature";
-import { generateUniqueHash, parseMdToJSON } from "../helpers/transcript";
+import { parseMdToJSON } from "../helpers/transcript";
 import { getTotalWords } from "../utils/review.inference";
 import { sendAlert } from "../helpers/sendAlert";
 import {
@@ -20,54 +14,8 @@ import {
   resetRedisCachedPages,
 } from "../db/helpers/redis";
 import { BaseParsedMdContent } from "../types/transcript";
-import { json } from "sequelize";
-
-// create a new credit transaction when a review is merged
-async function createCreditTransaction(review: Review, amount: number) {
-  const dbTransaction = await sequelize.transaction();
-  const currentTime = new Date();
-
-  const user = await User.findByPk(review.userId);
-  if (!user) throw new Error(`Could not find user with id=${review.userId}`);
-
-  const userWallet = await Wallet.findOne({
-    where: { userId: user.id },
-  });
-  if (!userWallet)
-    throw new Error(`Could not get wallet for user with id=${user.id}`);
-
-  const newWalletBalance = userWallet.balance + Math.round(+amount);
-  const creditTransaction = {
-    id: generateTransactionId(),
-    reviewId: review.id,
-    walletId: userWallet.id,
-    amount: Math.round(+amount),
-    transactionType: TRANSACTION_TYPE.CREDIT,
-    transactionStatus: TRANSACTION_STATUS.SUCCESS,
-    timestamp: currentTime,
-  };
-  try {
-    await Transaction.create(creditTransaction, {
-      transaction: dbTransaction,
-    });
-    await userWallet.update(
-      {
-        balance: newWalletBalance,
-      },
-      { transaction: dbTransaction }
-    );
-    await dbTransaction.commit();
-  } catch (error) {
-    await dbTransaction.rollback();
-    const failedTransaction = {
-      ...creditTransaction,
-      transactionStatus: TRANSACTION_STATUS.FAILED,
-    };
-    await Transaction.create(failedTransaction);
-
-    throw error;
-  }
-}
+import { isTranscriptValid } from "../utils/functions";
+import { addCreditTransactionQueue } from "../utils/cron";
 
 export async function create(req: Request, res: Response) {
   if (!verify_signature(req)) {
@@ -169,7 +117,8 @@ export async function create(req: Request, res: Response) {
 async function processCommit(
   commit: any,
   pushEvent: any,
-  type: "added" | "modified"
+  type: "added" | "modified",
+  branch: string
 ) {
   const changedFiles = [...commit[type]]; // get the files that were added or modified in the commit so we don't have to maintain two separate functions, this is also easily extendable when we want to take care of deleted commits.
   for (const file of changedFiles) {
@@ -222,61 +171,67 @@ async function processCommit(
       contentTotalWords: totalWords,
     };
 
-    let transcriptData: any;
-    if (type === "added") {
-      transcriptData = await Transcript.create(transcript);
-    } else if (type === "modified") {
-      // Find the existing transcript in the database
-      const existingTranscript = await Transcript.findOne({
-        where: { transcriptUrl: rawUrl },
+      let transcriptData: TranscriptAttributes;
+
+      if (type === "added" || (type === "modified" && !existingTranscript)) {
+        transcriptData = await Transcript.create(transcript);
+        await cacheTranscript(transcriptData);
+
+        // Send alert to Discord
+        sendAlert({
+          message: "New Transcript Ready for Review!",
+          isError: false,
+          transcriptTitle: transcriptData.originalContent.title,
+          speakers: transcriptData.originalContent.speakers,
+          transcriptUrl: transcriptData.transcriptUrl,
+          type: "transcript",
+        });
+      } else if (type === "modified" && existingTranscript) {
+        await existingTranscript.update(transcript);
+        transcriptData = existingTranscript;
+        await cacheTranscript(transcriptData);
+
+        // Send alert to Discord
+        sendAlert({
+          message: "Transcript modified",
+          isError: false,
+          transcriptTitle: transcriptData.originalContent.title,
+          speakers: transcriptData.originalContent.speakers,
+          transcriptUrl: transcriptData.transcriptUrl,
+          type: "transcript",
+        });
+      }
+    } catch (error: any) {
+      sendAlert({
+        message: `Error processing file ${result.file}: ${error.message}`,
+        isError: true,
       });
-
-      if (!existingTranscript) {
-        throw new Error("No transcript found to update");
-      }
-
-      // Update the transcript in the database
-      await existingTranscript.update(transcript);
-
-      // Invalidate the cache
-      const redisTransaction = redis.multi();
-      redisTransaction.del(`transcript:${existingTranscript.id}`);
-      await redisTransaction.exec();
-
-      transcriptData = existingTranscript;
     }
-
-    // Send alert to Discord
-    await sendAlert(
-      `Transcript Queued Successfully`,
-      transcriptData.originalContent.title
-    );
-
-   const redisNewTranscriptTransaction = redis.multi();
-
-    // Add the new transcript's ID to the "cachedTranscripts" set
-    redisNewTranscriptTransaction.sadd("cachedTranscripts", transcriptData.id);
-
-    // Cache the new transcript
-    redisNewTranscriptTransaction.set(`transcript:${transcriptData.id}`, JSON.stringify(transcriptData), 'EX', CACHE_EXPIRATION);
-
-    // Delete cached pages of transcripts
-    for (let i = 0; i < PAGE_COUNT; i++) {
-      redisNewTranscriptTransaction.del(`transcriptsPage:${i}`);
-    }
-
-    // Execute the Redis transaction
-    await redisNewTranscriptTransaction.exec((err, _results) => {
-      if (err) {
-        // If an error occurred during the transaction, delete the new transcript from the database
-        Transcript.destroy({ where: { id: transcriptData.id } });
-        throw err;
-      }
-    });
-
   }
 }
 
+// Check if the branch is valid for the current environment
+function isValidEnvironmentAndBranch(branch: string, env: string): boolean {
+  const allowedBranches = ["master", "staging", "development"];
+  if (!allowedBranches.includes(branch)) {
+    return false;
+  }
+
+  return (
+    (branch === "master" && env === "production") ||
+    (branch === "staging" && env === "staging") ||
+    (branch === "development" && env === "development")
+  );
+}
+
+// Handle errors and send alerts
+async function handleError(error: any, res: Response) {
+  const message = error instanceof Error ? error.message : "Unknown error";
+  sendAlert({ message, isError: true });
+  return res.status(500).json({ message: message });
+}
+
+// Handle push events from GitHub
 export async function handlePushEvent(req: Request, res: Response) {
   if (!verify_signature(req)) {
     return res.status(401).json("Unauthorized");
@@ -296,14 +251,27 @@ export async function handlePushEvent(req: Request, res: Response) {
     });
   }
 
-  let responseStatus = 200;
-  let responseMessage = "success";
+  const branch = ref.split("/").pop();
 
+  const env = process.env.NODE_ENV as string;
+
+  if (!isValidEnvironmentAndBranch(branch, env)) {
+    return res
+      .status(400)
+      .json({ message: "Invalid branch for the current environment" });
+  }
   try {
-    for (const commit of commits) {
-      await processCommit(commit, pushEvent, "added");
-      await processCommit(commit, pushEvent, "modified");
-    }
+    const commitPromises = commits.map(async (commit: any) => {
+      try {
+        await processCommit(commit, pushEvent, "added", branch);
+        await processCommit(commit, pushEvent, "modified", branch);
+      } catch (error: any) {
+        sendAlert({ message: error.message, isError: true });
+        res.status(500).json({ message: error.message });
+        return { status: "rejected", reason: error.message };
+      }
+    });
+    await Promise.allSettled(commitPromises);
   } catch (error) {
     // Send error email
     const message = error instanceof Error ? error.message : "Unknown error";
