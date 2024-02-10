@@ -4,6 +4,20 @@ require("dotenv").config();
 import { DELAY_IN_BETWEEN_REQUESTS } from "../utils/constants";
 import Bottleneck from "bottleneck";
 
+interface DiscordAlertContent {
+  message: string;
+  isError: boolean;
+  transcriptTitle?: string | null;
+  speakers?: string;
+  transcriptUrl?: string;
+  type?: "transaction" | "transcript";
+}
+
+interface DiscordMessage {
+  webhookUrl: string;
+  content: string;
+}
+
 function transformUrl(transcriptUrl?: string | null): string | null {
   if (!transcriptUrl) {
     Logger.error("Error transforming URL: URL not found");
@@ -23,10 +37,6 @@ function transformUrl(transcriptUrl?: string | null): string | null {
   return transformedUrlPath;
 }
 
-interface DiscordMessage {
-  webhookUrl: string;
-  content: string;
-}
 const limiter = new Bottleneck({
   minTime: DELAY_IN_BETWEEN_REQUESTS, // 3 seconds
 });
@@ -39,13 +49,14 @@ async function sendDiscordMessage({ webhookUrl, content }: DiscordMessage) {
   }
 }
 
-export async function sendAlert(
-  message: string,
-  isError: boolean = false,
-  transcriptTitle?: string | null,
-  speakers?: string,
-  transcriptUrl?: string
-) {
+export async function sendAlert({
+  message,
+  isError,
+  transcriptTitle,
+  speakers,
+  transcriptUrl,
+  type,
+}: DiscordAlertContent) {
   //bypass alerts in development
   if (process.env.NODE_ENV === "development") {
     return;
@@ -62,7 +73,19 @@ export async function sendAlert(
   }
   let content;
   if (isError) {
-    content = `❌ Transcript not added to the Queue\n${message}`;
+    switch (type) {
+      case "transaction":
+        content = `❌ ${message}\nTitle: ${transcriptTitle}\nLink: ${transformUrl(
+          transcriptUrl
+        )}`;
+        break;
+      case "transcript":
+        content = `❌ Transcript not added to the Queue\n${message}`;
+        break;
+      default:
+        content = `ℹ️ Unknown alert type: ${type}\n${message}`;
+        break;
+    }
   } else {
     // Only transform the URL when isError is false
     const transformedUrl = transformUrl(transcriptUrl);
