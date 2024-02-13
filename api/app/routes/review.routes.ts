@@ -20,6 +20,7 @@ export function reviewRoutes(app: Express) {
    *           type: integer
    *           description: Id of the transcript that gets reviewed
    *
+   *
    *     Pagination:
    *       type: integer
    *       minimum: 1
