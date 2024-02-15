@@ -17,9 +17,12 @@ RUN chmod 777 node_modules
 
 RUN yarn build
 
+COPY ./app/utils/wordDiffWorker.js ./dist/app/utils/wordDiffWorker.js
+
 ARG DB_URL=DB_URL
 ARG PORT=PORT
 ARG NODE_ENV=NODE_ENV
+ENV APP_PATH=/usr/src/app/dist/app/utils/
 
 EXPOSE 8080/tcp
 
