@@ -1,4 +1,6 @@
 const { parentPort, workerData } = require("worker_threads");
+const path = require('path');
+const appPath = process.env.APP_PATH || '../../dist/app';
 // we have to import the functions from the dist folder's file
 // because the worker is running in a separate process and
 // it doesn't have access to the same scope as the main process
@@ -7,7 +9,7 @@ const { parentPort, workerData } = require("worker_threads");
 const {
   createCreditTransaction,
   calculateCreditAmount,
-} = require("../../dist/app/utils/transaction");
+} = require(path.join(appPath, 'transaction'));
 
 async function processJob({ transcript, review }) {
   try {
