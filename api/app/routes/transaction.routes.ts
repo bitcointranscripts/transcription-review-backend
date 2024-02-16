@@ -81,6 +81,29 @@ export function transactionRoutes(app: Express) {
    *         description: Some server error
    */
 
+  /**
+   * @swagger
+   * /api/transaction/credit:
+   *   get:
+   *     security:
+   *       - bearerAuth: []
+   *     summary: process unpaid review transactions
+   *     tags: [Transactions]
+   *     parameters:
+   *       - in: query
+   *         name: reviewId
+   *         schema:
+   *           type: string
+   *         description: Id of the review
+   *     responses:
+   *       200:
+   *         description: The response for processing unpaid review transactions
+   *       404:
+   *         description: Bad request
+   *       500:
+   *         description: Error processing unpaid review transaction
+   */
+
   // Get Transaction
   router.get("/", transactions.findAll);
 
@@ -89,6 +112,9 @@ export function transactionRoutes(app: Express) {
 
   // Get all Transactions for Admin
   router.get("/all", admin, transactions.getAllTransactions);
+
+  // Process unpaid review transactions
+  router.post("/credit", admin, transactions.processUnpaidReviewTransaction);
 
   app.use("/api/transactions", auth, router);
 }
