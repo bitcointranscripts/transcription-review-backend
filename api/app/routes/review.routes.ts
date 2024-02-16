@@ -249,29 +249,63 @@ export function reviewRoutes(app: Express) {
    *         description: Some error happened
    */
 
-/**
- * @swagger
- * /api/reviews/{id}/reset:
- *   post:
- *     security:
- *       - bearerAuth: []
- *     summary: Reset reviews for a transcript
- *     tags: [Reviews]
- *     parameters:
- *       - in: path
- *         name: id
- *         schema:
- *           type: string
- *         required: true
- *         description: The review id
- *     responses:
- *       200:
- *         description: The review was reset successfully
- *       404:
- *         description: Review was not found
- *       500:
- *         description: Some error happened
- */
+  /**
+   * @swagger
+   * /api/reviews/{id}/reset:
+   *   post:
+   *     security:
+   *       - bearerAuth: []
+   *     summary: Reset reviews for a transcript
+   *     tags: [Reviews]
+   *     parameters:
+   *       - in: path
+   *         name: id
+   *         schema:
+   *           type: string
+   *         required: true
+   *         description: The review id
+   *     responses:
+   *       200:
+   *         description: The review was reset successfully
+   *       404:
+   *         description: Review was not found
+   *       500:
+   *         description: Some error happened
+   */
+
+  /**
+   * @swagger
+   * /api/reviews/payment:
+   *   get:
+   *     security:
+   *       - bearerAuth: []
+   *     summary: Get paid or unpaid reviews
+   *     tags: [Reviews]
+   *     parameters:
+   *       - in: query
+   *         name: status
+   *         schema:
+   *           type: string
+   *           enum: [paid, unpaid]
+   *         description: Filter reviews based on status
+   *       - in: query
+   *         name: page
+   *         schema:
+   *           $ref: '#/components/schemas/Pagination'
+   *     responses:
+   *       200:
+   *         description: The list of reviews
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: array
+   *               items:
+   *                 $ref: '#/components/schemas/Review'
+   *       404:
+   *         description: Review was not found.
+   *       500:
+   *         description: Some error happened
+   */
 
   // Create a new review
   router.post("/", reviews.create);

@@ -291,14 +291,7 @@ export const processUnpaidReviewTransaction = async (
     return res.status(400).send({ message: "Review id is required" });
   }
   try {
-    const review = await Review.findByPk(reviewId, {
-      include: [
-        {
-          model: Transcript,
-          required: true,
-        },
-      ],
-    });
+    const review = await Review.findByPk(reviewId);
     if (!review) {
       return res
         .status(404)
@@ -310,15 +303,22 @@ export const processUnpaidReviewTransaction = async (
       },
     });
     if (unpaidReviewTransaction) {
-      return res.status(200).send({
-        message: `Transaction for review - ${reviewId} already exists`,
+      return res
+        .status(200)
+        .send({ message: `Transaction for review - ${reviewId} already exists` });
+    }
+    const associatedTranscript = await Transcript.findByPk(review.transcriptId);
+    if (!associatedTranscript) {
+      return res.status(404).send({
+        message: `Transcript with id=${review.transcriptId} not found`,
       });
     }
-
-    await addCreditTransactionQueue(review.transcript, review);
-    return res.status(200).send({
-      message: `Processing credit transaction for review ${reviewId}`,
-    });
+    await addCreditTransactionQueue(associatedTranscript, review);
+    return res
+      .status(200)
+      .send({
+        message: `Processing credit transaction for review ${reviewId}`,
+      });
   } catch (error) {
     Logger.error("Error in processing unpaid review transaction", error);
     res
