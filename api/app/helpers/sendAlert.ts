@@ -1,4 +1,5 @@
 import axios from "axios";
+import { Logger } from "./logger";
 require("dotenv").config();
 import { DELAY_IN_BETWEEN_REQUESTS } from "../utils/constants";
 import Bottleneck from "bottleneck";

@@ -13,7 +13,7 @@ export interface TranscriptAttributes {
   content: any;
   originalContent: any;
   transcriptHash: string;
-  transcriptUrl: string;
+  transcriptUrl: string | undefined;
   status: string;
   claimedBy?: number | null;
   archivedBy?: number | null;
@@ -21,15 +21,13 @@ export interface TranscriptAttributes {
   contentTotalWords: number;
 }
 
-
-export interface TSTBTCAttributes {
+export interface BaseParsedMdContent extends TranscriptAttributes {
   title: string;
   transcript_by: string;
   categories: string[];
   tags: string[];
   speakers: string[];
-  date: null | string;
-  loc: string;
-  media: string;
+  date: string;
   body: string;
+  [key: string]: string | string[] | any;
 }
