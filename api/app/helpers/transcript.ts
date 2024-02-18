@@ -1,4 +1,6 @@
 import crypto from "crypto";
+import { BaseParsedMdContent } from "../types/transcript";
+import * as yaml from "js-yaml";
 
 const getFirstFiveWords = (paragraph: string) => {
   const words = paragraph.trim().split(/\s+/);
@@ -21,41 +23,28 @@ function generateUniqueHash(content: any) {
   return buffer.toString("base64");
 }
 
-function parseMdToJSON(mdContent: any) {
-  const regex = /^---\s*([\s\S]*?)\s*---\s*([\s\S]*)$/;
+function parseMdToJSON<T extends BaseParsedMdContent>(mdContent: string): T {
+  // This regex matches a markdown file with a YAML front matter. It captures the YAML header and the body separately.
+  const regex = /^---\n([\s\S]*?)\n---\n([\s\S]*)$/;
   const match = mdContent.match(regex);
 
   if (!match) {
     throw new Error("Invalid Markdown format");
   }
 
-  const header = match[1];
-  const body = match[2].replace(/\n/g, " ");
+  const [, header, body] = match;
 
-  const json: any = {};
-  const lines = header.split("\n");
-  for (const line of lines) {
-    const [key, ...valueParts] = line.split(":");
-    if (valueParts.length > 0) {
-      const value = valueParts.join(":").trim();
-      if (key.trim() !== "") {
-        if (value.startsWith("'") && value.endsWith("'")) {
-          json[key] = value.slice(1, -1);
-        } else if (value.startsWith("'") && value.endsWith("',")) {
-          if (!json[key]) {
-            json[key] = [];
-          }
-          json[key].push(value.slice(1, -2));
-        } else {
-          json[key] = value;
-        }
-      }
-    }
+  let json: Record<string, string | string[] | undefined>;
+  try {
+    // Use js-yaml's safeLoad function to parse the YAML header
+    json = yaml.load(header) as Partial<T>;
+  } catch (error) {
+    throw new Error("Invalid YAML header");
   }
 
   json.body = body;
 
-  return json;
+  return json as T;
 }
 
 export { generateUniqueStr, generateUniqueHash, parseMdToJSON };
