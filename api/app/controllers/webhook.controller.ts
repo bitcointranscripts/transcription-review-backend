@@ -8,11 +8,7 @@ import { verify_signature } from "../utils/validate-webhook-signature";
 import { parseMdToJSON } from "../helpers/transcript";
 import { getTotalWords } from "../utils/review.inference";
 import { sendAlert } from "../helpers/sendAlert";
-import {
-  CACHE_EXPIRATION,
-  deleteCache,
-  resetRedisCachedPages,
-} from "../db/helpers/redis";
+import { cacheTranscript } from "../db/helpers/redis";
 import { BaseParsedMdContent } from "../types/transcript";
 import { isTranscriptValid } from "../utils/functions";
 import { addCreditTransactionQueue } from "../utils/cron";
@@ -258,7 +254,7 @@ export async function handlePushEvent(req: Request, res: Response) {
     return res.status(401).json("Unauthorized");
   }
 
-  const pushEvent = req.body;
+  const { body: pushEvent } = req;
   if (!pushEvent) {
     return res.status(500).json({
       message: "No push event found in the request body.",
