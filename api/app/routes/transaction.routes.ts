@@ -24,8 +24,8 @@ export function transactionRoutes(app: Express) {
   /**
    * @swagger
    * tags:
-   *   name: Transaction
-   *   description: The reviews API routes
+   *   name: Transactions
+   *   description: The transactions API routes
    * /api/transactions:
    *   get:
    *     summary: List of all transactions of a user
@@ -83,8 +83,8 @@ export function transactionRoutes(app: Express) {
 
   /**
    * @swagger
-   * /api/transaction/credit:
-   *   get:
+   * /api/transactions/credit:
+   *   post:
    *     security:
    *       - bearerAuth: []
    *     summary: process unpaid review transactions
