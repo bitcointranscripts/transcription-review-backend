@@ -1,7 +1,7 @@
 import { Request, Response } from "express";
 import { Op } from "sequelize";
 
-import { Review, Transcript, User } from "../db/models";
+import { Review, Transaction, Transcript, User } from "../db/models";
 import {
   DB_QUERY_LIMIT,
   DB_START_PAGE,
@@ -21,6 +21,7 @@ import axios from "axios";
 import { BaseParsedMdContent, TranscriptAttributes } from "../types/transcript";
 import { redis } from "../db";
 import { Logger } from "../helpers/logger";
+import { TRANSACTION_TYPE } from "../types/transaction";
 
 // THis function fetches and parses a transcript from a URL (already saved in the db which points to transcript on github), or returns the original transcript if no URL is provided. This is use to sync a transcript in review with the FE.
 const transcriptWrapper = async (
@@ -436,6 +437,75 @@ export const getAllReviewsForAdmin = async (req: Request, res: Response) => {
 
     res.status(200).json(response);
   } catch (error) {
+    if (error instanceof Error) {
+      res.status(500).json({
+        message: error.message,
+      });
+    }
+  }
+};
+
+export const getReviewsByPaymentStatus = async (
+  req: Request,
+  res: Response
+) => {
+  const status = (req.query.status as string)?.toLowerCase();
+
+  if (!status) {
+    return res.status(400).json({
+      message: "status of 'paid' or 'unpaid' is required",
+    });
+  }
+
+  const validStatuses = ["paid", "unpaid"];
+
+  if (!validStatuses.includes(status)) {
+    return res.status(400).json({
+      message: "status must be either 'paid' or 'unpaid'",
+    });
+  }
+
+  try {
+    const mergedReviews = await Review.findAll({
+      where: { mergedAt: { [Op.not]: null } },
+    });
+    const allCreditTransactions = await Transaction.findAll({
+      where: { transactionType: TRANSACTION_TYPE.CREDIT },
+    });
+
+    const creditTransactionReviewIds = allCreditTransactions.map(
+      (transaction) => transaction.reviewId
+    );
+    const unpaidMergedReviews = mergedReviews.filter(
+      (review) => !creditTransactionReviewIds.includes(review.id)
+    );
+    const paidMergedReviews = mergedReviews.filter((review) =>
+      creditTransactionReviewIds.includes(review.id)
+    );
+
+    let response: {
+      totalItems: number;
+      data: Review[];
+    } = {
+      totalItems: 0,
+      data: [],
+    };
+
+    if (status === "paid") {
+      response = {
+        totalItems: paidMergedReviews.length,
+        data: paidMergedReviews,
+      };
+      return res.status(200).json(response);
+    } else if (status === "unpaid") {
+      response = {
+        totalItems: unpaidMergedReviews.length,
+        data: unpaidMergedReviews,
+      };
+      return res.status(200).json(response);
+    }
+  } catch (error) {
+    Logger.error("Error in getting reviews by payment status", error);
     if (error instanceof Error) {
       res.status(500).json({
         message: error.message,

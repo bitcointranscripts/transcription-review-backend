@@ -1,10 +1,12 @@
 import { Request, Response } from "express";
 import { Op } from "sequelize";
 
-import { Review, Transaction, User, Wallet } from "../db/models";
+import { Review, Transaction, Transcript, User, Wallet } from "../db/models";
 import { TRANSACTION_STATUS, TRANSACTION_TYPE } from "../types/transaction";
 import { DB_START_PAGE, DB_TXN_QUERY_LIMIT } from "../utils/constants";
 import { generateTransactionId } from "../utils/transaction";
+import { addCreditTransactionQueue } from "../utils/cron";
+import { Logger } from "../helpers/logger";
 
 // Create and Save a new Transaction
 export async function create(req: Request, res: Response) {
@@ -277,5 +279,50 @@ export const getAllTransactions = async (req: Request, res: Response) => {
   } catch (error) {
     console.log(error);
     res.status(500).json({ message: "Internal server error" });
+  }
+};
+
+export const processUnpaidReviewTransaction = async (
+  req: Request,
+  res: Response
+) => {
+  const reviewId = req.body.reviewId;
+  if (!reviewId) {
+    return res.status(400).send({ message: "Review id is required" });
+  }
+  try {
+    const review = await Review.findByPk(reviewId, {
+      include: [
+        {
+          model: Transcript,
+          required: true,
+        },
+      ],
+    });
+    if (!review) {
+      return res
+        .status(404)
+        .send({ message: `Review with id=${reviewId} not found` });
+    }
+    const unpaidReviewTransaction = await Transaction.findOne({
+      where: {
+        reviewId: reviewId,
+      },
+    });
+    if (unpaidReviewTransaction) {
+      return res.status(200).send({
+        message: `Transaction for review - ${reviewId} already exists`,
+      });
+    }
+
+    await addCreditTransactionQueue(review.transcript, review);
+    return res.status(200).send({
+      message: `Processing credit transaction for review ${reviewId}`,
+    });
+  } catch (error) {
+    Logger.error("Error in processing unpaid review transaction", error);
+    res
+      .status(500)
+      .send({ message: "Error processing unpaid review transaction" });
   }
 };
