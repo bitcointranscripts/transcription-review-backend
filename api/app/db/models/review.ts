@@ -38,7 +38,7 @@ export class Review extends Model<ReviewAttributes> {
   public pr_url?: string;
 
   @Column(DataType.TEXT)
-  public branchURL?: string;
+  public branchUrl?: string;
 
   @ForeignKey(() => User)
   @Column(DataType.INTEGER)
