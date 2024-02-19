@@ -21,6 +21,7 @@ import axios from "axios";
 import { BaseParsedMdContent, TranscriptAttributes } from "../types/transcript";
 import { redis } from "../db";
 import { Logger } from "../helpers/logger";
+import { TRANSACTION_TYPE } from "../types/transaction";
 
 // THis function fetches and parses a transcript from a URL (already saved in the db which points to transcript on github), or returns the original transcript if no URL is provided. This is use to sync a transcript in review with the FE.
 const transcriptWrapper = async (
