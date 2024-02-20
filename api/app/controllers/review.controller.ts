@@ -275,6 +275,7 @@ export const getAllReviewsForAdmin = async (req: Request, res: Response) => {
   const userSearch = req.query.user as string;
   const page: number = Number(req.query.page) || DB_START_PAGE;
   const limit: number = Number(req.query.limit) || DB_QUERY_LIMIT;
+  const offset = (page - 1) * limit;
 
   const condition: {
     [key: string | number]: any;
@@ -389,6 +390,8 @@ export const getAllReviewsForAdmin = async (req: Request, res: Response) => {
     const reviews = await Review.findAll({
       where: condition,
       order: [["createdAt", "DESC"]],
+      offset: offset,
+      limit: limit,
       include: [
         { model: Transcript, required: true, attributes: { exclude: ["id"] } },
         {
