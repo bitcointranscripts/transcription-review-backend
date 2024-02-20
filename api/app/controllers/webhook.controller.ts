@@ -244,7 +244,7 @@ function isValidEnvironmentAndBranch(branch: string, env: string): boolean {
 // Handle errors and send alerts
 async function handleError(error: any, res: Response) {
   const message = error instanceof Error ? error.message : "Unknown error";
-  sendAlert({ message, isError: true, type: "transcript"});
+  sendAlert({ message, isError: true, type: "transcript" });
   return res.status(500).json({ message: message });
 }
 
@@ -283,7 +283,11 @@ export async function handlePushEvent(req: Request, res: Response) {
         await processCommit(commit, pushEvent, "added", branch);
         await processCommit(commit, pushEvent, "modified", branch);
       } catch (error: any) {
-        sendAlert({ message: error.message, isError: true, type: "transcript"});
+        sendAlert({
+          message: error.message,
+          isError: true,
+          type: "transcript",
+        });
         res.status(500).json({ message: error.message });
         return { status: "rejected", reason: error.message };
       }
