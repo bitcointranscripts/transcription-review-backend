@@ -374,14 +374,14 @@ export async function claim(req: Request, res: Response) {
   // if user has successfully reviewed fewer than 3 transcripts
   // allow to claim only 1 transcript and return if user has already has a pending review
   // if user has successfully reviewed 3 or more transcripts, allow to have 6 pending reviews
-  const mergedReviews = await Review.findAll({
+  const successfulReviews = await Review.findAll({
     where: { ...userCondition, mergedAt: { [Op.ne]: null } },
   });
   const pendingReview = await Review.findAll({
     where: { ...userCondition, ...pendingCondition },
   });
   if (
-    mergedReviews.length <= MERGED_REVIEWS_THRESHOLD &&
+    successfulReviews.length <= MERGED_REVIEWS_THRESHOLD &&
     pendingReview.length
   ) {
     res.status(500).send({
