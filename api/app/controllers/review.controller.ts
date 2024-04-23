@@ -5,16 +5,10 @@ import { Review, Transaction, Transcript, User } from "../db/models";
 import {
   DB_QUERY_LIMIT,
   DB_START_PAGE,
-  QUERY_REVIEW_STATUS,
-  HOUR_END_OF_DAY,
-  MINUTE_END_OF_DAY,
-  SECOND_END_OF_DAY,
-  MILLISECOND_END_OF_DAY,
 } from "../utils/constants";
 import {
-  buildIsActiveCondition,
-  buildIsInActiveCondition,
-  buildIsPendingCondition,
+  buildCondition,
+  buildReviewResponse,
 } from "../utils/review.inference";
 import { parseMdToJSON } from "../helpers/transcript";
 import axios from "axios";
@@ -22,6 +16,7 @@ import { BaseParsedMdContent, TranscriptAttributes } from "../types/transcript";
 import { redis } from "../db";
 import { Logger } from "../helpers/logger";
 import { TRANSACTION_TYPE } from "../types/transaction";
+
 
 // THis function fetches and parses a transcript from a URL (already saved in the db which points to transcript on github), or returns the original transcript if no URL is provided. This is use to sync a transcript in review with the FE.
 const transcriptWrapper = async (
@@ -91,7 +86,7 @@ export async function create(req: Request, res: Response) {
 
 // Retrieve all reviews from the database.
 export async function findAll(req: Request, res: Response) {
-  let queryStatus = req.query.status;
+  const queryStatus = req.query.status as string | undefined;
   const userId = Number(req.body.userId);
   const page: number = Number(req.query.page) || 1;
   const limit: number = Number(req.query.limit) || 5;
@@ -110,67 +105,28 @@ export async function findAll(req: Request, res: Response) {
     return;
   }
 
-  let groupedCondition = {};
-  const currentTime = new Date().getTime();
-
-  const userIdCondition = { userId: { [Op.eq]: user.id } };
-
-  // add condition if query exists
-  if (Boolean(user.id)) {
-    groupedCondition = { ...groupedCondition, ...userIdCondition };
-  }
-  if (queryStatus) {
-    switch (queryStatus) {
-      case QUERY_REVIEW_STATUS.ACTIVE:
-        const activeCondition = buildIsActiveCondition(currentTime);
-        groupedCondition = { ...groupedCondition, ...activeCondition };
-        break;
-      case QUERY_REVIEW_STATUS.PENDING:
-        const pendingCondition = buildIsPendingCondition();
-        groupedCondition = { ...groupedCondition, ...pendingCondition };
-        break;
-      case QUERY_REVIEW_STATUS.INACTIVE:
-        const inActiveCondition = buildIsInActiveCondition(currentTime);
-        groupedCondition = { ...groupedCondition, ...inActiveCondition };
-        break;
-      default:
-        break;
-    }
-  }
+  const { condition } = buildCondition({status: queryStatus, userId: user.id});
 
   try {
     const totalItems = await Review.count({
-      where: groupedCondition,
+      where: condition,
     });
-    const totalPages = Math.ceil(totalItems / limit);
-    const hasNextPage = page < totalPages;
-    const hasPreviousPage = page > 1;
 
     const data = await Review.findAll({
-      where: groupedCondition,
-      limit: limit,
-      offset: offset,
-      order: [["createdAt", "DESC"]],
+      where: condition,
+      limit,
+      offset,
+      order: [['createdAt', 'DESC']],
       include: { model: Transcript },
     });
 
-    const response = {
-      totalItems: totalItems,
-      itemsPerPage: limit,
-      totalPages: totalPages,
-      currentPage: page,
-      hasNextPage,
-      hasPreviousPage,
-      data,
-    };
+    const response = buildReviewResponse (data, page, limit, totalItems);
+
     res.status(200).send(response);
   } catch (error) {
     console.log(error);
     res.status(500).send({
-      message:
-        error instanceof Error
-          ? error.message
-          : "Some error occurred while retrieving reviews.",
+      message: error instanceof Error ? error.message : 'Some error occurred while retrieving reviews.',
     });
   }
 }
@@ -275,128 +231,27 @@ export const getAllReviewsForAdmin = async (req: Request, res: Response) => {
   const userSearch = req.query.user as string;
   const page: number = Number(req.query.page) || DB_START_PAGE;
   const limit: number = Number(req.query.limit) || DB_QUERY_LIMIT;
-  const offset = (page - 1) * limit;
+  const offset = Math.max(0, (page - 1) * limit);
 
-  const condition: {
-    [key: string | number]: any;
-  } = {};
-
-  const userCondition: {
-    [Op.or]?: {
-      email?: { [Op.iLike]: string };
-      githubUsername?: { [Op.iLike]: string };
-    }[];
-  } = {};
-
-  if (status) {
-    const currentTime = new Date().getTime();
-    switch (status) {
-      case QUERY_REVIEW_STATUS.ACTIVE:
-        const activeCondition = buildIsActiveCondition(currentTime);
-        condition[Op.and as unknown as keyof typeof Op] = activeCondition;
-        break;
-
-      case "expired":
-        const expiredCondition = buildIsInActiveCondition(currentTime);
-        condition[Op.and as unknown as keyof typeof Op] = expiredCondition;
-        break;
-
-      case QUERY_REVIEW_STATUS.PENDING:
-        const pendingCondition = buildIsPendingCondition();
-        condition[Op.and as unknown as keyof typeof Op] = pendingCondition;
-        break;
-
-      default:
-        break;
-    }
-  }
-
-  // Check if the mergedAt parameter is provided in the query
-  if (Boolean(mergedAt)) {
-    // Convert the mergedAt string to a Date object
-    const date = new Date(mergedAt as string);
-
-    // Calculate the start of the day (00:00:00.000) for the mergedAt date
-    const startOfDay = new Date(
-      date.getFullYear(),
-      date.getMonth(),
-      date.getDate()
-    );
-
-    // Calculate the end of the day (23:59:59.999) for the mergedAt date
-    const endOfDay = new Date(
-      date.getFullYear(),
-      date.getMonth(),
-      date.getDate(),
-      HOUR_END_OF_DAY,
-      MINUTE_END_OF_DAY,
-      SECOND_END_OF_DAY,
-      MILLISECOND_END_OF_DAY
-    );
-
-    // Set the condition for mergedAt to filter records within the specified day
-    condition.mergedAt = {
-      [Op.gte]: startOfDay,
-      [Op.lte]: endOfDay,
-    };
-  }
-
-  if (Boolean(transcriptId)) {
-    condition.transcriptId = { [Op.eq]: transcriptId };
-  }
-  if (Boolean(userId)) {
-    condition.userId = { [Op.eq]: userId };
-  }
-
-  // Check if the mergedAt parameter is provided in the query for all time zone support
-  if (Boolean(mergedAt)) {
-    // Convert the mergedAt string to a Date object
-    const date = new Date(mergedAt as string);
-
-    // Calculate the start of the day (00:00:00.000) for the mergedAt date
-    const startOfDay = new Date(
-      date.getFullYear(),
-      date.getMonth(),
-      date.getDate()
-    );
-
-    // Calculate the end of the day (23:59:59.999) for the mergedAt date
-    const endOfDay = new Date(
-      date.getFullYear(),
-      date.getMonth(),
-      date.getDate(),
-      HOUR_END_OF_DAY,
-      MINUTE_END_OF_DAY,
-      SECOND_END_OF_DAY,
-      MILLISECOND_END_OF_DAY
-    );
-
-    // Set the condition for mergedAt to filter records within the specified day
-    condition.mergedAt = {
-      [Op.gte]: startOfDay,
-      [Op.lte]: endOfDay,
-    };
-  }
-
-  if (userSearch) {
-    const searchCondition = { [Op.iLike]: `%${userSearch.toLowerCase()}%` };
-    userCondition[Op.or] = [
-      { email: searchCondition },
-      { githubUsername: searchCondition },
-    ];
-  }
+  const { condition, userCondition } = buildCondition({
+    status,
+    transcriptId,
+    userId,
+    mergedAt,
+    userSearch,
+  });
 
   try {
     const reviews = await Review.findAll({
       where: condition,
-      order: [["createdAt", "DESC"]],
-      offset: offset,
-      limit: limit,
+      order: [['createdAt', 'DESC']],
+      offset,
+      limit,
       include: [
-        { model: Transcript, required: true, attributes: { exclude: ["id"] } },
+        { model: Transcript, required: true, attributes: { exclude: ['id'] } },
         {
           model: User,
-          attributes: { exclude: ["id", "jwt", "albyToken"] },
+          attributes: { exclude: ['id', 'jwt', 'albyToken'] },
           where: userCondition,
           required: true,
         },
@@ -416,19 +271,7 @@ export const getAllReviewsForAdmin = async (req: Request, res: Response) => {
       ],
     });
 
-    const totalPages = Math.ceil(reviewCount / limit);
-    const hasNextPage = page < totalPages;
-    const hasPreviousPage = page > 1;
-
-    const response = {
-      totalItems: reviewCount,
-      totalPages,
-      currentPage: page,
-      itemsPerPage: limit,
-      hasNextPage,
-      hasPreviousPage,
-      data: reviews,
-    };
+    const response = buildReviewResponse (reviews, page, limit, reviewCount);
 
     res.status(200).json(response);
   } catch (error) {
