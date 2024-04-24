@@ -231,6 +231,11 @@ export function reviewRoutes(app: Express) {
    *           type: string
    *         description: Filter reviews based on mergedAt
    *       - in: query
+   *         name: submittedAt
+   *         schema:
+   *           type: string
+   *         description: Filter reviews based on submittedAt
+   *       - in: query
    *         name: page
    *         schema:
    *           $ref: '#/components/schemas/Pagination'

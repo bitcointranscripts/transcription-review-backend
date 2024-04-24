@@ -152,6 +152,7 @@ export const buildCondition = ({
   userId,
   mergedAt,
   userSearch,
+  submittedAt,
 }: BuildConditionArgs) => {
   const condition: { [key: string | number]: any } = {};
   const userCondition: { [Op.or]?: { email?: { [Op.iLike]: string }; githubUsername?: { [Op.iLike]: string } }[] } = {};
@@ -193,6 +194,25 @@ export const buildCondition = ({
     );
 
     condition.mergedAt = {
+      [Op.gte]: startOfDay,
+      [Op.lte]: endOfDay,
+    };
+  }
+
+  if (submittedAt) {
+    const date = new Date(submittedAt);
+    const startOfDay = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+    const endOfDay = new Date(
+      date.getFullYear(),
+      date.getMonth(),
+      date.getDate(),
+      HOUR_END_OF_DAY,
+      MINUTE_END_OF_DAY,
+      SECOND_END_OF_DAY,
+      MILLISECOND_END_OF_DAY
+    );
+
+    condition.submittedAt = {
       [Op.gte]: startOfDay,
       [Op.lte]: endOfDay,
     };

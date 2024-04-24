@@ -16,4 +16,5 @@ export interface BuildConditionArgs {
   userId?: number;
   mergedAt?: string;
   userSearch?: string;
+  submittedAt?: string;
 }
