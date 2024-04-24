@@ -11,7 +11,7 @@ import {
 } from "../utils/review.inference";
 import {
   DB_QUERY_LIMIT,
-  MAX_PENDING_REVIEWS,
+  DB_START_PAGE, MAX_PENDING_REVIEWS,
   MERGED_REVIEWS_THRESHOLD,
 } from "../utils/constants";
 import { generateUniqueHash } from "../helpers/transcript";
@@ -100,7 +100,7 @@ export async function create(req: Request, res: Response) {
 
 // Retrieve all unarchived and queued transcripts from the database.
 export async function findAll(req: Request, res: Response) {
-  const page: number = Number(req.query.page) || 1;
+  const page: number = Number(req.query.page) || DB_START_PAGE;
   const limit: number = Number(req.query.limit) || DB_QUERY_LIMIT;
   const offset: number = (page - 1) * limit;
   let condition = {

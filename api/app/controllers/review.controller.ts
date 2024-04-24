@@ -88,8 +88,8 @@ export async function create(req: Request, res: Response) {
 export async function findAll(req: Request, res: Response) {
   const queryStatus = req.query.status as string | undefined;
   const userId = Number(req.body.userId);
-  const page: number = Number(req.query.page) || 1;
-  const limit: number = Number(req.query.limit) || 5;
+  const page: number = Number(req.query.page) || DB_START_PAGE;
+  const limit: number = Number(req.query.limit) || DB_QUERY_LIMIT;
   const offset: number = (page - 1) * limit;
 
   const user = await User.findOne({
@@ -227,6 +227,7 @@ export const getAllReviewsForAdmin = async (req: Request, res: Response) => {
   const transcriptId = Number(req.query.transcriptId);
   const userId = Number(req.query.userId);
   const mergedAt = req.query.mergedAt as string;
+  const submittedAt = req.query.submittedAt as string;
   const status = req.query.status as string;
   const userSearch = req.query.user as string;
   const page: number = Number(req.query.page) || DB_START_PAGE;
@@ -239,6 +240,7 @@ export const getAllReviewsForAdmin = async (req: Request, res: Response) => {
     userId,
     mergedAt,
     userSearch,
+    submittedAt,
   });
 
   try {
