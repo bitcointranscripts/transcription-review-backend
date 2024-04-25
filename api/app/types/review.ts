@@ -8,3 +8,13 @@ export interface ReviewAttributes {
   pr_url?: string | null;
   branchUrl?: string | null;
 }
+
+
+export interface BuildConditionArgs {
+  status?: string;
+  transcriptId?: number;
+  userId?: number;
+  mergedAt?: string;
+  userSearch?: string;
+  submittedAt?: string;
+}

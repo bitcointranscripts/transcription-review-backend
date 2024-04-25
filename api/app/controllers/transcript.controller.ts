@@ -9,7 +9,13 @@ import {
   buildIsPendingCondition,
   getTotalWords,
 } from "../utils/review.inference";
-import { DB_QUERY_LIMIT, MAXPENDINGREVIEWS } from "../utils/constants";
+import {
+  DB_QUERY_LIMIT,
+  DB_START_PAGE,
+  MAX_PENDING_REVIEWS,
+  MERGED_REVIEWS_THRESHOLD,
+} from "../utils/constants";
+
 import { generateUniqueHash } from "../helpers/transcript";
 import { redis } from "../db";
 import {
@@ -96,7 +102,7 @@ export async function create(req: Request, res: Response) {
 
 // Retrieve all unarchived and queued transcripts from the database.
 export async function findAll(req: Request, res: Response) {
-  const page: number = Number(req.query.page) || 1;
+  const page: number = Number(req.query.page) || DB_START_PAGE;
   const limit: number = Number(req.query.limit) || DB_QUERY_LIMIT;
   const offset: number = (page - 1) * limit;
   let condition = {
@@ -135,6 +141,7 @@ export async function findAll(req: Request, res: Response) {
           totalItems,
           itemsPerPage: limit,
           totalPages,
+          currentPage: Number(page),
           hasNextPage,
           hasPreviousPage,
           data: cachedTranscripts,
@@ -194,7 +201,7 @@ export async function findAll(req: Request, res: Response) {
       totalItems: totalItems,
       itemsPerPage: limit,
       totalPages: totalPages,
-      currentPage: page,
+      currentPage: Number(page),
       hasNextPage,
       hasPreviousPage,
       data,
@@ -347,7 +354,7 @@ export async function claim(req: Request, res: Response) {
   const transcriptId = req.params.id;
 
   const uid = req.body.claimedBy;
-  const branchUrl = req.body.branchUrl
+  const branchUrl = req.body.branchUrl;
   const currentTime = new Date().getTime();
   const activeCondition = buildIsActiveCondition(currentTime);
   const pendingCondition = buildIsPendingCondition();
@@ -366,12 +373,28 @@ export async function claim(req: Request, res: Response) {
     return;
   }
 
+  // if user has successfully reviewed fewer than 3 transcripts
+  // allow to claim only 1 transcript and return if user has already has a pending review
+  // if user has successfully reviewed 3 or more transcripts, allow to have 6 pending reviews
+  const successfulReviews = await Review.findAll({
+    where: { ...userCondition, mergedAt: { [Op.ne]: null } },
+  });
   const pendingReview = await Review.findAll({
     where: { ...userCondition, ...pendingCondition },
   });
-  if (pendingReview.length >= MAXPENDINGREVIEWS) {
+  if (
+    successfulReviews.length <= MERGED_REVIEWS_THRESHOLD &&
+    pendingReview.length
+  ) {
     res.status(500).send({
-      message: "User has too many pending reviews, clear some and try again!",
+      message:
+        "You have a pending review, finish it first before claiming another!",
+    });
+    return;
+  }
+  if (pendingReview.length >= MAX_PENDING_REVIEWS) {
+    res.status(500).send({
+      message: `You have ${pendingReview.length} pending reviews, clear some and try again!`,
     });
     return;
   }
@@ -382,7 +405,7 @@ export async function claim(req: Request, res: Response) {
   };
 
   if (branchUrl) {
-    review.branchUrl = branchUrl
+    review.branchUrl = branchUrl;
   }
 
   try {
