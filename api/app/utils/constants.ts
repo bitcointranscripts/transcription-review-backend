@@ -16,25 +16,24 @@ const expiresInHours = 24;
 
 const currentTime = Math.floor(Date.now() / 1000);
 
-const JWTEXPIRYTIMEINHOURS = currentTime + (expiresInHours * 60 * 60);
-
+const JWTEXPIRYTIMEINHOURS = currentTime + expiresInHours * 60 * 60;
 
 // This is a random number that is used to note the number of pages to be cached
 const PAGE_COUNT = 100;
 
-
 const EXPIRYTIMEINHOURS = 24;
-const MAXPENDINGREVIEWS = 3;
-const INVOICEEXPIRYTIME = 5 * 60 * 1000
-const FEE_LIMIT_SAT=100
-const INVOICE_TIME_OUT = 60
+const MAX_PENDING_REVIEWS = 6;
+const MERGED_REVIEWS_THRESHOLD = 3;
+const INVOICEEXPIRYTIME = 5 * 60 * 1000;
+const FEE_LIMIT_SAT = 100;
+const INVOICE_TIME_OUT = 60;
 const PICO_BTC_TO_SATS = 10000;
 
 const DB_QUERY_LIMIT = 10;
 const DB_TXN_QUERY_LIMIT = 20;
-const DB_START_PAGE = 0;
+const DB_START_PAGE = 1;
 
-const PUBLIC_PROFILE_REVIEW_LIMIT = 5
+const PUBLIC_PROFILE_REVIEW_LIMIT = 5;
 
 const LOG_LEVEL = process.env.LOG_LEVEL || "info";
 
@@ -50,7 +49,7 @@ export {
   QUERY_REVIEW_STATUS,
   SATS_REWARD_RATE_PER_WORD,
   EXPIRYTIMEINHOURS,
-  MAXPENDINGREVIEWS,
+  MAX_PENDING_REVIEWS,
   JWTEXPIRYTIMEINHOURS,
   INVOICEEXPIRYTIME,
   FEE_LIMIT_SAT,
@@ -66,9 +65,6 @@ export {
   SECOND_END_OF_DAY,
   MILLISECOND_END_OF_DAY,
   PAGE_COUNT,
-  DELAY_IN_BETWEEN_REQUESTS
+  DELAY_IN_BETWEEN_REQUESTS,
+  MERGED_REVIEWS_THRESHOLD,
 };
-
-
-
-
