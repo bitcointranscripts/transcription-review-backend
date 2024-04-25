@@ -132,13 +132,14 @@ export async function findAll(req: Request, res: Response) {
           cachedTranscripts.push(transcript);
         }
       }
-
+    
       if (cachedTranscripts.length > 0) {
         console.log("Using cached transcripts");
         const responseWithCachedResult = {
           totalItems,
           itemsPerPage: limit,
           totalPages,
+          currentPage: Number(page),
           hasNextPage,
           hasPreviousPage,
           data: cachedTranscripts,
@@ -198,7 +199,7 @@ export async function findAll(req: Request, res: Response) {
       totalItems: totalItems,
       itemsPerPage: limit,
       totalPages: totalPages,
-      currentPage: page,
+      currentPage: Number(page),
       hasNextPage,
       hasPreviousPage,
       data,
