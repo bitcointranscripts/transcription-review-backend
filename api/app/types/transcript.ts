@@ -13,7 +13,7 @@ export interface TranscriptAttributes {
   content: any;
   originalContent: any;
   transcriptHash: string;
-  transcriptUrl: string | null;
+  transcriptUrl: string | undefined;
   status: string;
   claimedBy?: number | null;
   archivedBy?: number | null;

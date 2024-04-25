@@ -2,21 +2,14 @@ import { Request, Response } from "express";
 import { Op } from "sequelize";
 
 import { Review, Transaction, Transcript, User } from "../db/models";
-import {
-  DB_QUERY_LIMIT,
-  DB_START_PAGE,
-} from "../utils/constants";
-import {
-  buildCondition,
-  buildReviewResponse,
-} from "../utils/review.inference";
+import { DB_QUERY_LIMIT, DB_START_PAGE } from "../utils/constants";
+import { buildCondition, buildReviewResponse } from "../utils/review.inference";
 import { parseMdToJSON } from "../helpers/transcript";
 import axios from "axios";
 import { BaseParsedMdContent, TranscriptAttributes } from "../types/transcript";
 import { redis } from "../db";
 import { Logger } from "../helpers/logger";
 import { TRANSACTION_TYPE } from "../types/transaction";
-
 
 // THis function fetches and parses a transcript from a URL (already saved in the db which points to transcript on github), or returns the original transcript if no URL is provided. This is use to sync a transcript in review with the FE.
 const transcriptWrapper = async (
@@ -32,21 +25,25 @@ const transcriptWrapper = async (
   let newTranscript = { ...transcript };
 
   try {
-    const response = await axios.get(transcript.transcriptUrl);
-    const transcriptData = parseMdToJSON(response.data);
-    const newTranscript = {
-      ...transcriptData, content: transcriptData.content.body
-    };
-    return newTranscript;
+    const response = await axios.get(branchUrl, {
+      headers: { Accept: "application/vnd.github.v3.raw" },
+    });
+    const branchData = parseMdToJSON<BaseParsedMdContent>(response.data);
+    // If the branchData doesn't have a body, return the transcript as is
+    if (!branchData || !branchData.body) {
+      return transcript;
+    }
+    newTranscript.content = branchData;
   } catch (error: unknown) {
     if (error instanceof Error) {
-      const message = error.message;
-      throw new Error(message);
+      throw error;
     } else {
-      throw new Error("Error parsing transcript");
+      throw new Error("Error fetching or parsing branch data");
     }
   }
-}
+
+  return newTranscript;
+};
 
 // Create and Save a new review
 export async function create(req: Request, res: Response) {
@@ -105,7 +102,10 @@ export async function findAll(req: Request, res: Response) {
     return;
   }
 
-  const { condition } = buildCondition({status: queryStatus, userId: user.id});
+  const { condition } = buildCondition({
+    status: queryStatus,
+    userId: user.id,
+  });
 
   try {
     const totalItems = await Review.count({
@@ -116,17 +116,20 @@ export async function findAll(req: Request, res: Response) {
       where: condition,
       limit,
       offset,
-      order: [['createdAt', 'DESC']],
+      order: [["createdAt", "DESC"]],
       include: { model: Transcript },
     });
 
-    const response = buildReviewResponse (data, page, limit, totalItems);
+    const response = buildReviewResponse(data, page, limit, totalItems);
 
     res.status(200).send(response);
   } catch (error) {
     console.log(error);
     res.status(500).send({
-      message: error instanceof Error ? error.message : 'Some error occurred while retrieving reviews.',
+      message:
+        error instanceof Error
+          ? error.message
+          : "Some error occurred while retrieving reviews.",
     });
   }
 }
@@ -143,23 +146,27 @@ export async function findOne(req: Request, res: Response) {
     return;
   }
 
-  await Review.findOne({
-    where: { id: id, userId: userId },
-    include: { model: Transcript },
-  })
-    .then(async (data) => {
-      if (!data) {
-        return res.status(404).send({
-          message: `Review with id=${id} does not exist`,
-        });
-      }
-      return transcriptWrapper(data.transcript);
-    })
-    .catch((_err) => {
-      res.status(500).send({
-        message: "Error retrieving review with id=" + id,
-      });
+  try {
+    const data = await Review.findOne({
+      where: { id: id, userId: userId },
+      include: { model: Transcript },
     });
+
+    if (!data) {
+      return res.status(404).send({
+        message: `Review with id=${id} does not exist`,
+      });
+    }
+
+    const branchUrl = data.branchUrl;
+    const transcriptData = data.transcript.dataValues;
+    const transcript = await transcriptWrapper(transcriptData, branchUrl);
+    return res.status(200).send({ ...data.dataValues, transcript });
+  } catch (err) {
+    res.status(500).send({
+      message: "Error retrieving review with id=" + id,
+    });
+  }
 }
 
 // Update a review by the id in the request
@@ -246,14 +253,14 @@ export const getAllReviewsForAdmin = async (req: Request, res: Response) => {
   try {
     const reviews = await Review.findAll({
       where: condition,
-      order: [['createdAt', 'DESC']],
+      order: [["createdAt", "DESC"]],
       offset,
       limit,
       include: [
-        { model: Transcript, required: true, attributes: { exclude: ['id'] } },
+        { model: Transcript, required: true, attributes: { exclude: ["id"] } },
         {
           model: User,
-          attributes: { exclude: ['id', 'jwt', 'albyToken'] },
+          attributes: { exclude: ["id", "jwt", "albyToken"] },
           where: userCondition,
           required: true,
         },
@@ -273,7 +280,7 @@ export const getAllReviewsForAdmin = async (req: Request, res: Response) => {
       ],
     });
 
-    const response = buildReviewResponse (reviews, page, limit, reviewCount);
+    const response = buildReviewResponse(reviews, page, limit, reviewCount);
 
     res.status(200).json(response);
   } catch (error) {

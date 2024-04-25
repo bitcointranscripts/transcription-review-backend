@@ -11,7 +11,8 @@ import {
 } from "../utils/review.inference";
 import {
   DB_QUERY_LIMIT,
-  DB_START_PAGE, MAX_PENDING_REVIEWS,
+  DB_START_PAGE,
+  MAX_PENDING_REVIEWS,
   MERGED_REVIEWS_THRESHOLD,
 } from "../utils/constants";
 
@@ -53,7 +54,7 @@ export async function create(req: Request, res: Response) {
     },
     content: content,
     transcriptHash,
-    transcriptUrl: null,
+    transcriptUrl: "",
     status: TranscriptStatus.queued,
     contentTotalWords: totalWords,
   };
@@ -133,7 +134,7 @@ export async function findAll(req: Request, res: Response) {
           cachedTranscripts.push(transcript);
         }
       }
-    
+
       if (cachedTranscripts.length > 0) {
         console.log("Using cached transcripts");
         const responseWithCachedResult = {
