@@ -59,6 +59,16 @@ const buildIsExpiredAndNotArchivedCondition = (currentTime: number) => {
   };
 };
 
+const buildMergedCondition = () => {
+  const mergedQuery = {
+    [Op.and]: [ //ensuring all conditions are met
+      { mergedAt: { [Op.not]: null } }, // has been merged
+      { archivedAt: { [Op.not]: null } }, // has been archived
+    ]
+  };
+  return mergedQuery;
+}
+
 function getUnixTimeFromHours(hours: number) {
   const millisecondsInHour = 60 * 60 * 1000;
   const unixTimeInMilliseconds = hours * millisecondsInHour;
@@ -175,6 +185,11 @@ export const buildCondition = ({
         condition[Op.and as unknown as keyof typeof Op] = pendingCondition;
         break;
 
+      case QUERY_REVIEW_STATUS.MERGED:
+        const mergedCondition = buildMergedCondition();
+        condition[Op.and as unknown as keyof typeof Op] = mergedCondition;
+        break;
+
       default:
         break;
     }
@@ -266,4 +281,5 @@ export {
   buildIsExpiredAndNotArchivedCondition,
   calculateWordDiff,
   getTotalWords,
+  buildMergedCondition,
 };

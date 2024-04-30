@@ -8,6 +8,7 @@ const QUERY_REVIEW_STATUS = {
   ACTIVE: "active",
   PENDING: "pending",
   INACTIVE: "inactive",
+  MERGED: "merged",
 } as const;
 
 const SATS_REWARD_RATE_PER_WORD = 0.5;
