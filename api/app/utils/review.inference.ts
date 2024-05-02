@@ -59,11 +59,10 @@ const buildIsExpiredAndNotArchivedCondition = (currentTime: number) => {
   };
 };
 
-const buildMergedCondition = () => {
+const buildIsMergedCondition = () => {
   const mergedQuery = {
     [Op.and]: [ //ensuring all conditions are met
       { mergedAt: { [Op.not]: null } }, // has been merged
-      { archivedAt: { [Op.not]: null } }, // has been archived
     ]
   };
   return mergedQuery;
@@ -186,7 +185,7 @@ export const buildCondition = ({
         break;
 
       case QUERY_REVIEW_STATUS.MERGED:
-        const mergedCondition = buildMergedCondition();
+        const mergedCondition = buildIsMergedCondition();
         condition[Op.and as unknown as keyof typeof Op] = mergedCondition;
         break;
 
@@ -281,5 +280,5 @@ export {
   buildIsExpiredAndNotArchivedCondition,
   calculateWordDiff,
   getTotalWords,
-  buildMergedCondition,
+  buildIsMergedCondition,
 };
