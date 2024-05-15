@@ -45,6 +45,20 @@ const buildIsInActiveCondition = (currentTime: number) => {
   };
 };
 
+const buildIsExpiredAndArchivedCondition = (currentTime: number) => {
+  const timeStringAt24HoursPrior = new Date(
+    currentTime - unixEpochTimeInMilliseconds
+  ).toISOString();
+  return {
+    [Op.and]: {
+      mergedAt: { [Op.eq]: null }, // has not been merged
+      archivedAt: { [Op.not]: null }, // has been archived
+      submittedAt: { [Op.eq]: null }, // has not been submitted
+      createdAt: { [Op.lt]: timeStringAt24HoursPrior }, // expired
+    },
+  };
+}
+
 const buildIsExpiredAndNotArchivedCondition = (currentTime: number) => {
   const timeStringAt24HoursPrior = new Date(
     currentTime - unixEpochTimeInMilliseconds
@@ -175,7 +189,7 @@ export const buildCondition = ({
         break;
 
       case 'expired':
-        const expiredCondition = buildIsInActiveCondition(currentTime);
+        const expiredCondition = buildIsExpiredAndArchivedCondition(currentTime);
         condition[Op.and as unknown as keyof typeof Op] = expiredCondition;
         break;
 
@@ -277,6 +291,7 @@ export {
   buildIsActiveCondition,
   buildIsPendingCondition,
   buildIsInActiveCondition,
+  buildIsExpiredAndArchivedCondition,
   buildIsExpiredAndNotArchivedCondition,
   calculateWordDiff,
   getTotalWords,
