@@ -40,7 +40,7 @@ const buildIsExpiredAndArchivedCondition = (currentTime: number) => {
       createdAt: { [Op.lt]: timeStringAt24HoursPrior }, // expired
     },
   };
-}
+};
 
 const buildIsExpiredAndNotArchivedCondition = (currentTime: number) => {
   const timeStringAt24HoursPrior = new Date(
@@ -53,6 +53,14 @@ const buildIsExpiredAndNotArchivedCondition = (currentTime: number) => {
       submittedAt: { [Op.eq]: null }, // has not been submitted
       createdAt: { [Op.lt]: timeStringAt24HoursPrior }, // expired
     },
+  };
+};
+
+const buildIsExpiredAndArchivedOrNotArchivedCondition = (currentTime: number) => {
+  const expiredAndArchivedCondition = buildIsExpiredAndArchivedCondition(currentTime);
+  const expiredAndNotArchivedCondition = buildIsExpiredAndNotArchivedCondition(currentTime);
+  return {
+    [Op.or]: [expiredAndArchivedCondition, expiredAndNotArchivedCondition],
   };
 };
 
@@ -172,7 +180,7 @@ export const buildCondition = ({
         break;
 
       case 'expired':
-        const expiredCondition = buildIsExpiredAndArchivedCondition(currentTime);
+        const expiredCondition = buildIsExpiredAndArchivedOrNotArchivedCondition(currentTime);
         condition[Op.and as unknown as keyof typeof Op] = expiredCondition;
         break;
 
