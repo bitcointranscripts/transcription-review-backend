@@ -56,7 +56,10 @@ const buildIsExpiredAndNotArchivedCondition = (currentTime: number) => {
   };
 };
 
-const buildIsExpiredAndArchivedOrNotArchivedCondition = (currentTime: number) => {
+// This condition is used to get all expired reviews, whether they are archived or not.
+// Because we don't want to ignore expired reviews that has not yet been archived by the 
+// daily cron job.
+const buildIsExpiredCondition = (currentTime: number) => {
   const expiredAndArchivedCondition = buildIsExpiredAndArchivedCondition(currentTime);
   const expiredAndNotArchivedCondition = buildIsExpiredAndNotArchivedCondition(currentTime);
   return {
@@ -180,7 +183,7 @@ export const buildCondition = ({
         break;
 
       case 'expired':
-        const expiredCondition = buildIsExpiredAndArchivedOrNotArchivedCondition(currentTime);
+        const expiredCondition = buildIsExpiredCondition(currentTime);
         condition[Op.and as unknown as keyof typeof Op] = expiredCondition;
         break;
 
