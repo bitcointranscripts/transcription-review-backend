@@ -28,19 +28,16 @@ const buildIsPendingCondition = () => {
   };
 };
 
-const buildIsInActiveCondition = (currentTime: number) => {
+const buildIsExpiredAndArchivedCondition = (currentTime: number) => {
   const timeStringAt24HoursPrior = new Date(
     currentTime - unixEpochTimeInMilliseconds
   ).toISOString();
   return {
-    [Op.or]: {
-      mergedAt: { [Op.not]: null }, // has been merged
+    [Op.and]: {
+      mergedAt: { [Op.eq]: null }, // has not been merged
       archivedAt: { [Op.not]: null }, // has been archived
-      // inactive conditions when review has expired
-      [Op.and]: {
-        createdAt: { [Op.lt]: timeStringAt24HoursPrior }, // expired
-        submittedAt: { [Op.eq]: null }, // has not been submitted
-      },
+      submittedAt: { [Op.eq]: null }, // has not been submitted
+      createdAt: { [Op.lt]: timeStringAt24HoursPrior }, // expired
     },
   };
 };
@@ -56,6 +53,17 @@ const buildIsExpiredAndNotArchivedCondition = (currentTime: number) => {
       submittedAt: { [Op.eq]: null }, // has not been submitted
       createdAt: { [Op.lt]: timeStringAt24HoursPrior }, // expired
     },
+  };
+};
+
+// This condition is used to get all expired reviews, whether they are archived or not.
+// Because we don't want to ignore expired reviews that has not yet been archived by the 
+// daily cron job.
+const buildIsExpiredCondition = (currentTime: number) => {
+  const expiredAndArchivedCondition = buildIsExpiredAndArchivedCondition(currentTime);
+  const expiredAndNotArchivedCondition = buildIsExpiredAndNotArchivedCondition(currentTime);
+  return {
+    [Op.or]: [expiredAndArchivedCondition, expiredAndNotArchivedCondition],
   };
 };
 
@@ -175,7 +183,7 @@ export const buildCondition = ({
         break;
 
       case 'expired':
-        const expiredCondition = buildIsInActiveCondition(currentTime);
+        const expiredCondition = buildIsExpiredCondition(currentTime);
         condition[Op.and as unknown as keyof typeof Op] = expiredCondition;
         break;
 
@@ -276,7 +284,7 @@ export {
   getUnixTimeFromHours,
   buildIsActiveCondition,
   buildIsPendingCondition,
-  buildIsInActiveCondition,
+  buildIsExpiredAndArchivedCondition,
   buildIsExpiredAndNotArchivedCondition,
   calculateWordDiff,
   getTotalWords,
