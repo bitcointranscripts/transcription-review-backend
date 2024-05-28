@@ -201,64 +201,65 @@ export function userRoutes(app: Express) {
   /**
    * @swagger
    * /api/users/{id}:
-   *  tags: [Users]
-   *  put:
-   *    summary: Updates a JSONPlaceholder user.
-   *    description: Updates a single JSONPlaceholder user. Can be used to update a user profile when prototyping or testing an API.
+   *   put:
+   *    security:
+   *       - bearerAuth: []
+   *    tags: [Users]
+   *    summary: Updates a user profile.
+   *    description: Updates a user profile. Accessible only to admins. Can be used to update user permissions or Github username or both.
    *    parameters:
    *      - in: path
    *        name: id
    *        required: true
+   *        description: ID of the user to update.
    *        schema:
-   *          type: integer
-   *        description: Numeric ID of the user to update.
-   *      - in: query
-   *        name: username
-   *        required: true
-   *        schema:
-   *          type: string
-   *        description: The user's github username.
+   *         type: integer
+   *    requestBody:
+   *      required: true
+   *      content:
+   *        application/json:
+   *         schema:
+   *          type: object
+   *          properties:
+   *           permissions:
+   *              type: string
+   *              description: The user's permissions - either "admin" or "reviewer" or "evaluator".
+   *              enum: [admin, reviewer, evaluator]
+   *           githubUsername:
+   *              type: string
+   *              description: The user's Github username.
+   *              example: adamJonas
    *    responses:
    *      200:
    *        description: Update the records of a single user.
    *        content:
    *          application/json:
+   *           schema:
+   *            type: String
+   *            example: User updated successfully
+   *      404:
+   *        description: The user was not found.
+   *        content:
+   *          application/json:
+   *           schema:
+   *            type: String
+   *            example: User not found
+   *      400:
+   *        description: The user id is missing or the username is missing.
+   *        content:
+   *          application/json:
    *            schema:
-   *              type: object
-   *              properties:
-   *                 data:
-   *                   type: object
-   *                   properties:
-   *                     id:
-   *                       type: integer
-   *                       description: The user ID.
-   *                       example: 1
-   *                     githubUsername:
-   *                       type: string
-   *                       description: The user's Github username.
-   *                       example: ryanofsky
-   *                     authToken:
-   *                       type: string
-   *                       description: The user's authentication token.
-   *                       example: Thsdfk3j3kflfjdkfjfj
-   *                     permissions:
-   *                       type: string
-   *                       description: The user's permissions.
-   *                       enum: [admin, reviewer]
-   *                     archivedAt:
-   *                       type: datetime
-   *                       description: Date when a user is marked as inactive.
-   *                       example: 2023-03-08T13:42:08.699Z
-   *                     createdAt:
-   *                       type: datetime
-   *                       description: Date when a user is created
-   *                       example: 2023-03-08T13:42:08.699Z
-   *                     updatedAt:
-   *                       type: datetime
-   *                       description: Date when a user record is updated.
-   *                       example: 2023-03-08T13:42:08.699Z
+   *             type: String
+   *             example: Either permissions or githubUsername should be present!
+   *      500:
+   *        description: An error occurred while updating the user.
+   *        content:
+   *          application/json:
+   *           schema:
+   *            type: String
+   *            example: Cannot update User with id=1.
    */
-  router.put("/:id", auth, users.update);
+  router.put("/:id", auth, admin, users.update);
 
   app.use("/api/users", router);
 }

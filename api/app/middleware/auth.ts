@@ -46,3 +46,17 @@ export const admin = (req: Request, res: Response, next: NextFunction) => {
   }
   next();
 };
+
+export const evaluator = (req: Request, res: Response, next: NextFunction) => {
+  if (!req.body.userId || req.body.userPermissions !== USER_PERMISSIONS.EVALUATOR) {
+    return res.status(403).json({ error: "Evaluator role required" });
+  }
+  next();
+}
+
+export const adminOrEvaluator = (req: Request, res: Response, next: NextFunction) => {
+  if (!req.body.userId || (req.body.userPermissions !== USER_PERMISSIONS.ADMIN && req.body.userPermissions !== USER_PERMISSIONS.EVALUATOR)) {
+    return res.status(403).json({ error: "Admin or Evaluator role required" });
+  }
+  next();
+}

@@ -1,7 +1,7 @@
 import type { Express } from "express";
 import express from "express";
 import * as reviews from "../controllers/review.controller";
-import { admin, auth } from "../middleware/auth";
+import { admin, adminOrEvaluator, auth } from "../middleware/auth";
 
 export function reviewRoutes(app: Express) {
   const router = express.Router();
@@ -319,7 +319,7 @@ export function reviewRoutes(app: Express) {
   router.get("/", reviews.findAll);
 
   // Retrieve reviews for admin
-  router.get("/all", admin, reviews.getAllReviewsForAdmin);
+  router.get("/all", adminOrEvaluator, reviews.getAllReviewsForAdmin);
   // get paid or unpaid reviews
   router.get("/payment", admin, reviews.getReviewsByPaymentStatus);
 

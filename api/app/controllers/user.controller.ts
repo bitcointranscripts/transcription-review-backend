@@ -177,24 +177,57 @@ export async function findByPublicProfile(req: Request, res: Response) {
 
 // Update a User by the id in the request
 export function update(req: Request, res: Response) {
-  const id = Number(req.params.id);
+  const { permissions, githubUsername } = req.body;
+  const id = req.params.id;
 
-  User.update(req.body, {
-    where: { id: id },
+  if (!id) {
+    return res.status(400).send({
+      message: "User id can not be empty!",
+    });
+  }
+  if (!permissions && !githubUsername) {
+    return res.status(400).send({
+      message: "Either permissions or githubUsername should be present!",
+    });
+  }
+
+  const userExists = User.findByPk(id);
+  if (!userExists) {
+    return res.status(404).send({
+      message: "User not found",
+    });
+  }
+
+  let updateData: {
+    permissions?: USER_PERMISSIONS;
+    githubUsername?: string;
+  } = {};
+
+  if (permissions) {
+    updateData.permissions = permissions;
+  }
+  if (githubUsername) {
+    updateData.githubUsername = githubUsername?.toLowerCase();
+  }
+
+  User.update(updateData, {
+    where: {
+      id: Number(id),
+    },
   })
-    .then(async (num) => {
+    .then((num) => {
       if (Array.isArray(num) && num[0] == 1) {
-        return res.status(200).send({
+        res.send({
           message: "User was updated successfully.",
         });
       } else {
-        return res.status(200).send({
-          message: `Cannot update User with id=${id}. Maybe User was not found or req.body is empty!`,
+        res.status(500).send({
+          message: `Cannot update User with id=${id}.`,
         });
       }
     })
-    .catch((err) => {
-      return res.status(500).send({
+    .catch((_err) => {
+      res.status(500).send({
         message: "Error updating User with id=" + id,
       });
     });
