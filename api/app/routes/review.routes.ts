@@ -208,7 +208,7 @@ export function reviewRoutes(app: Express) {
    *         name: status
    *         schema:
    *           type: string
-   *           enum: [expired, pending, active]
+   *           enum: [expired, pending, active, merged]
    *         description: Filter reviews based on status
    *       - in: query
    *         name: transcriptId
@@ -230,6 +230,11 @@ export function reviewRoutes(app: Express) {
    *         schema:
    *           type: string
    *         description: Filter reviews based on mergedAt
+   *       - in: query
+   *         name: submittedAt
+   *         schema:
+   *           type: string
+   *         description: Filter reviews based on submittedAt
    *       - in: query
    *         name: page
    *         schema:

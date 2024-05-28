@@ -3,7 +3,9 @@ import { Op } from "sequelize";
 
 import { TranscriptAttributes } from "../types/transcript";
 import { wordCount } from "./functions";
-import { EXPIRYTIMEINHOURS } from "./constants";
+import { EXPIRYTIMEINHOURS, HOUR_END_OF_DAY, MILLISECOND_END_OF_DAY, MINUTE_END_OF_DAY, QUERY_REVIEW_STATUS, SECOND_END_OF_DAY } from "./constants";
+import { Review } from "../db/models";
+import { BuildConditionArgs } from "../types/review";
 
 const unixEpochTimeInMilliseconds = getUnixTimeFromHours(EXPIRYTIMEINHOURS);
 
@@ -26,19 +28,16 @@ const buildIsPendingCondition = () => {
   };
 };
 
-const buildIsInActiveCondition = (currentTime: number) => {
+const buildIsExpiredAndArchivedCondition = (currentTime: number) => {
   const timeStringAt24HoursPrior = new Date(
     currentTime - unixEpochTimeInMilliseconds
   ).toISOString();
   return {
-    [Op.or]: {
-      mergedAt: { [Op.not]: null }, // has been merged
+    [Op.and]: {
+      mergedAt: { [Op.eq]: null }, // has not been merged
       archivedAt: { [Op.not]: null }, // has been archived
-      // inactive conditions when review has expired
-      [Op.and]: {
-        createdAt: { [Op.lt]: timeStringAt24HoursPrior }, // expired
-        submittedAt: { [Op.eq]: null }, // has not been submitted
-      },
+      submittedAt: { [Op.eq]: null }, // has not been submitted
+      createdAt: { [Op.lt]: timeStringAt24HoursPrior }, // expired
     },
   };
 };
@@ -56,6 +55,26 @@ const buildIsExpiredAndNotArchivedCondition = (currentTime: number) => {
     },
   };
 };
+
+// This condition is used to get all expired reviews, whether they are archived or not.
+// Because we don't want to ignore expired reviews that has not yet been archived by the 
+// daily cron job.
+const buildIsExpiredCondition = (currentTime: number) => {
+  const expiredAndArchivedCondition = buildIsExpiredAndArchivedCondition(currentTime);
+  const expiredAndNotArchivedCondition = buildIsExpiredAndNotArchivedCondition(currentTime);
+  return {
+    [Op.or]: [expiredAndArchivedCondition, expiredAndNotArchivedCondition],
+  };
+};
+
+const buildIsMergedCondition = () => {
+  const mergedQuery = {
+    [Op.and]: [ //ensuring all conditions are met
+      { mergedAt: { [Op.not]: null } }, // has been merged
+    ]
+  };
+  return mergedQuery;
+}
 
 function getUnixTimeFromHours(hours: number) {
   const millisecondsInHour = 60 * 60 * 1000;
@@ -143,12 +162,131 @@ async function calculateWordDiff(data: TranscriptAttributes) {
   return { totalDiff, totalWords, addedWords, removedWords };
 }
 
+
+export const buildCondition = ({
+  status,
+  transcriptId,
+  userId,
+  mergedAt,
+  userSearch,
+  submittedAt,
+}: BuildConditionArgs) => {
+  const condition: { [key: string | number]: any } = {};
+  const userCondition: { [Op.or]?: { email?: { [Op.iLike]: string }; githubUsername?: { [Op.iLike]: string } }[] } = {};
+
+  if (status) {
+    const currentTime = new Date().getTime();
+    switch (status) {
+      case QUERY_REVIEW_STATUS.ACTIVE:
+        const activeCondition = buildIsActiveCondition(currentTime);
+        condition[Op.and as unknown as keyof typeof Op] = activeCondition;
+        break;
+
+      case 'expired':
+        const expiredCondition = buildIsExpiredCondition(currentTime);
+        condition[Op.and as unknown as keyof typeof Op] = expiredCondition;
+        break;
+
+      case QUERY_REVIEW_STATUS.PENDING:
+        const pendingCondition = buildIsPendingCondition();
+        condition[Op.and as unknown as keyof typeof Op] = pendingCondition;
+        break;
+
+      case QUERY_REVIEW_STATUS.MERGED:
+        const mergedCondition = buildIsMergedCondition();
+        condition[Op.and as unknown as keyof typeof Op] = mergedCondition;
+        break;
+
+      default:
+        break;
+    }
+  }
+
+  if (mergedAt) {
+    const date = new Date(mergedAt);
+    const startOfDay = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+    const endOfDay = new Date(
+      date.getFullYear(),
+      date.getMonth(),
+      date.getDate(),
+      HOUR_END_OF_DAY,
+      MINUTE_END_OF_DAY,
+      SECOND_END_OF_DAY,
+      MILLISECOND_END_OF_DAY
+    );
+
+    condition.mergedAt = {
+      [Op.gte]: startOfDay,
+      [Op.lte]: endOfDay,
+    };
+  }
+
+  if (submittedAt) {
+    const date = new Date(submittedAt);
+    const startOfDay = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+    const endOfDay = new Date(
+      date.getFullYear(),
+      date.getMonth(),
+      date.getDate(),
+      HOUR_END_OF_DAY,
+      MINUTE_END_OF_DAY,
+      SECOND_END_OF_DAY,
+      MILLISECOND_END_OF_DAY
+    );
+
+    condition.submittedAt = {
+      [Op.gte]: startOfDay,
+      [Op.lte]: endOfDay,
+    };
+  }
+
+  if (transcriptId) {
+    condition.transcriptId = { [Op.eq]: transcriptId };
+  }
+
+  if (userId) {
+    condition.userId = { [Op.eq]: userId };
+  }
+
+  if (userSearch) {
+    const searchCondition = { [Op.iLike]: `%${userSearch.toLowerCase()}%` };
+    userCondition[Op.or] = [
+      { email: searchCondition },
+      { githubUsername: searchCondition },
+    ];
+  }
+
+  return { condition, userCondition };
+};
+
+export const buildReviewResponse = (
+  reviews: Review[],
+  page: number,
+  limit: number,
+  totalItems: number
+) => {
+  const totalPages = Math.ceil(totalItems / limit);
+  const hasNextPage = page < totalPages;
+  const hasPreviousPage = page > 1;
+
+  return {
+    totalItems,
+    totalPages,
+    currentPage: page,
+    itemsPerPage: limit,
+    hasNextPage,
+    hasPreviousPage,
+    data: reviews,
+  };
+};
+
 export {
   getUnixTimeFromHours,
   buildIsActiveCondition,
   buildIsPendingCondition,
-  buildIsInActiveCondition,
+  buildIsExpiredAndArchivedCondition,
   buildIsExpiredAndNotArchivedCondition,
   calculateWordDiff,
   getTotalWords,
+  buildIsMergedCondition,
 };
