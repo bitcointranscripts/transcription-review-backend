@@ -11,9 +11,25 @@ export function userRoutes(app: Express) {
 
   /**
    * @swagger
-   * /api/users:
+   * /api/users/signin:
    *   post:
-   *     summary: Create a JSONPlaceholder user.
+   *     security:
+   *        - apiKeyAuth: []
+   *     tags: [Users]
+   *     summary: Creates or signs in a user.
+   *     description: Creates or signs in a user. If the user is already in the database, the user is signed in. If the user is not in the database, the user is created and signed in.
+   *     requestBody:
+   *      required: true
+   *      content:
+   *        application/json:
+   *          schema:
+   *            type: object
+   *            properties:
+   *              email:
+   *                type: string
+   *                description: The user's Github email.
+   *                example: example@email.com
+   *                required: true
    *     responses:
    *       200:
    *         description: Successfully signed in
@@ -22,17 +38,20 @@ export function userRoutes(app: Express) {
    *             schema:
    *               type: object
    *               properties:
-   *                 data:
-   *                   type: object
-   *                   properties:
-   *                     username:
-   *                       type: string
-   *                       description: The user's github username.
-   *                       example: glozow
-   *                     permissions:
-   *                       type: string
-   *                       description: The user's permissions.
-   *                       enum: [admin, reviewer]
+   *                    jwt:
+   *                      type: string
+   *                      description: The user's JWT token.
+   *                      example: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOjEsImVtYWlsIjoiZXhhbXBsZUBlbWFpbC5jb20iLCJwZXJtaXNzaW9ucyI6ImFkbWluIiwiaWF0IjoxNjI5MjIwNjI4LCJleHAiOjE2MjkzMDcxMjh9.
+   *       500:
+   *         description: An error occurred while signing in.
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                  message:
+   *                   type: string
+   *                   example: Unable to sign in. Some error occurred while signing in.
    */
    router.post("/signin", validateGitHubToken, users.signIn);
   
@@ -42,8 +61,11 @@ export function userRoutes(app: Express) {
    * @swagger
    * /api/users:
    *   get:
-   *     summary: Retrieve a list of JSONPlaceholder users.
-   *     description: Retrieve a list of users from JSONPlaceholder. Can be used to populate a list of fake users when prototyping or testing an API.
+   *     security:
+   *      - bearerAuth: []
+   *     tags: [Users]
+   *     summary: Retrieve a list of users.
+   *     description: Retrieve a list of users. Accessible only to admins. The data returned exculdes the user's JWT token, email, and updatedAt date.
    *     responses:
    *       200:
    *         description: A list of users.
@@ -65,10 +87,6 @@ export function userRoutes(app: Express) {
    *                         type: string
    *                         description: The user's Github username.
    *                         example: ryanofsky
-   *                       authToken:
-   *                         type: string
-   *                         description: The user's authentication token.
-   *                         example: Thsdfk3j3kflfjdkfjfj
    *                       permissions:
    *                         type: string
    *                         description: The user's permissions.
@@ -81,10 +99,6 @@ export function userRoutes(app: Express) {
    *                         type: datetime
    *                         description: Date when a user is created
    *                         example: 2023-03-08T13:42:08.699Z
-   *                       updatedAt:
-   *                         type: datetime
-   *                         description: Date when a user record is updated.
-   *                         example: 2023-03-08T13:42:08.699Z
    */
   router.get("/", auth, admin, users.findAll);
 
@@ -93,15 +107,22 @@ export function userRoutes(app: Express) {
    * @swagger
    * /api/users/public:
    *   get:
-   *     summary: Retrieve a single JSONPlaceholder user.
-   *     description: Retrieve a single JSONPlaceholder user.
-   *     parameters:
-   *       - in: query
-   *         name: username
-   *         required: true
-   *         schema:
-   *            type: string
-   *         description: The user's github username.
+   *     security:
+   *       - bearerAuth: []
+   *     tags: [Users]
+   *     summary: Retrieve a single user by their username.
+   *     description: Retrieve a single user by their username. The data returned is limited to the user's Github username, permissions, and archivedAt date.
+   *     requestBody:
+   *       required: true
+   *       content:
+   *         application/json:
+   *          schema:
+   *           type: object
+   *           properties:
+   *            username:
+   *              type: string
+   *              description: The user's Github username.
+   *              example: ryanofsky
    *     responses:
    *       200:
    *         description: A single user.
@@ -141,13 +162,16 @@ export function userRoutes(app: Express) {
    * @swagger
    * /api/users/{id}:
    *   get:
-   *     summary: Retrieve a single JSONPlaceholder user.
-   *     description: Retrieve a single JSONPlaceholder user. Can be used to populate a user profile when prototyping or testing an API.
+   *     security:
+   *      - bearerAuth: []
+   *     tags: [Users]
+   *     summary: Retrieve a single user.
+   *     description: Retrieve a single user. Returns all user data.
    *     parameters:
    *       - in: path
    *         name: id
    *         required: true
-   *         description: Numeric ID of the user to retrieve.
+   *         description: ID of the user to retrieve.
    *         schema:
    *           type: integer
    *     responses:
