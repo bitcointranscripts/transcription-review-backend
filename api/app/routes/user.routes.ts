@@ -1,8 +1,9 @@
 import type { Express } from "express";
 import express from "express";
 import * as users from "../controllers/user.controller";
-import { admin, auth } from "../middleware/auth";
+import { auth, authorizeRoles } from "../middleware/auth";
 import validateGitHubToken from "../middleware/validate-github-token";
+import { USER_PERMISSIONS } from "../types/user";
 
 export function userRoutes(app: Express) {
   const router = express.Router();
@@ -100,7 +101,7 @@ export function userRoutes(app: Express) {
    *                         description: Date when a user is created
    *                         example: 2023-03-08T13:42:08.699Z
    */
-  router.get("/", auth, admin, users.findAll);
+  router.get("/", auth, authorizeRoles([USER_PERMISSIONS.ADMIN]), users.findAll);
 
   // Retrieve a single User by their public profile (Github username)
   /**
@@ -283,7 +284,7 @@ export function userRoutes(app: Express) {
    *            type: String
    *            example: Cannot update User with id=1.
    */
-  router.put("/:id", auth, admin, users.update);
+  router.put("/:id", auth, authorizeRoles([USER_PERMISSIONS.ADMIN]), users.update);
 
   app.use("/api/users", router);
 }

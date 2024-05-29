@@ -1,7 +1,8 @@
 import type { Express } from "express";
 import express from "express";
 import * as transcripts from "../controllers/transcript.controller";
-import { admin, auth } from "../middleware/auth";
+import { auth, authorizeRoles } from "../middleware/auth";
+import { USER_PERMISSIONS } from "../types/user";
 
 export function transcriptRoutes(app: Express) {
   const router = express.Router();
@@ -183,7 +184,7 @@ export function transcriptRoutes(app: Express) {
    */
 
   // Create a new transcript
-  router.post("/", auth, admin, transcripts.create);
+  router.post("/", auth, authorizeRoles([USER_PERMISSIONS.ADMIN]), transcripts.create);
 
   // Retrieve all transcripts
   router.get("/", transcripts.findAll);
@@ -195,7 +196,7 @@ export function transcriptRoutes(app: Express) {
   router.put("/:id", auth, transcripts.update);
 
   // Archive a transcript with id
-  router.put("/:id/archive", auth, admin, transcripts.archive);
+  router.put("/:id/archive", auth, authorizeRoles([USER_PERMISSIONS.ADMIN]), transcripts.archive);
 
   // Claim a transcript with id
   router.put("/:id/claim", auth, transcripts.claim);
