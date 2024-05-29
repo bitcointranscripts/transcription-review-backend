@@ -124,7 +124,7 @@ export function findOne(req: Request, res: Response) {
 }
 // Find a public user with github username
 export async function findByPublicProfile(req: Request, res: Response) {
-  const username = req.body.username;
+  const username = req.query.username as string;
 
   if (!username) throw new Error("Username is required");
 
@@ -143,7 +143,7 @@ export async function findByPublicProfile(req: Request, res: Response) {
       attributes: { exclude: baseExclusion },
     });
     if (!user) {
-      return res.status(500).send({
+      return res.status(400).send({
         message: "No User with username=" + username,
       });
     }

@@ -113,17 +113,13 @@ export function userRoutes(app: Express) {
    *     tags: [Users]
    *     summary: Retrieve a single user by their username.
    *     description: Retrieve a single user by their username. The data returned is limited to the user's Github username, permissions, and archivedAt date.
-   *     requestBody:
-   *       required: true
-   *       content:
-   *         application/json:
-   *          schema:
-   *           type: object
-   *           properties:
-   *            username:
-   *              type: string
-   *              description: The user's Github username.
-   *              example: ryanofsky
+   *     parameters:
+   *       - in: query
+   *         name: username
+   *         schema:
+   *          type: string
+   *          description: The user's Github username.
+   *          example: ryanofsky
    *     responses:
    *       200:
    *         description: A single user.
