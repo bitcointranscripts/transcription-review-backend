@@ -1,6 +1,7 @@
 export enum USER_PERMISSIONS {
   REVIEWER = "reviewer",
   ADMIN = "admin",
+  EVALUATOR = "evaluator",
 }
 
 export interface UserAttributes {
@@ -9,6 +10,6 @@ export interface UserAttributes {
   email: string;
   jwt?: string | null;
   albyToken?: string;
-  permissions: "reviewer" | "admin";
+  permissions: USER_PERMISSIONS;
   archivedAt?: Date | null;
 }

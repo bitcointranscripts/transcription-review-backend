@@ -1,7 +1,8 @@
 import type { Express } from "express";
 import express from "express";
 import * as transactions from "../controllers/transaction.controller";
-import { admin, auth } from "../middleware/auth";
+import { auth, authorizeRoles } from "../middleware/auth";
+import { USER_PERMISSIONS } from "../types/user";
 
 export function transactionRoutes(app: Express) {
   const router = express.Router();
@@ -115,10 +116,10 @@ export function transactionRoutes(app: Express) {
   router.post("/", transactions.create);
 
   // Get all Transactions for Admin
-  router.get("/all", admin, transactions.getAllTransactions);
+  router.get("/all", authorizeRoles([USER_PERMISSIONS.ADMIN]), transactions.getAllTransactions);
 
   // Process unpaid review transactions
-  router.post("/credit", admin, transactions.processUnpaidReviewTransaction);
+  router.post("/credit", authorizeRoles([USER_PERMISSIONS.ADMIN]), transactions.processUnpaidReviewTransaction);
 
   app.use("/api/transactions", auth, router);
 }

@@ -40,9 +40,11 @@ export const auth = async (req: Request, res: Response, next: NextFunction) => {
   }
 };
 
-export const admin = (req: Request, res: Response, next: NextFunction) => {
-  if (!req.body.userId || req.body.userPermissions !== USER_PERMISSIONS.ADMIN) {
-    return res.status(403).json({ error: "Admin role required" });
-  }
-  next();
+export const authorizeRoles = (allowedRoles: USER_PERMISSIONS[]) => {
+  return (req: Request, res: Response, next: NextFunction) => {
+    if (!req.body.userId || !allowedRoles.includes(req.body.userPermissions)) {
+      return res.status(403).json({ error: `${allowedRoles.join(' or ')} role required` });
+    }
+    next();
+  };
 };

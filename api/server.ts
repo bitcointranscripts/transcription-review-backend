@@ -54,6 +54,21 @@ const options = {
         url: serverUrl,
       },
     ],
+    components: {
+      securitySchemes: {
+        bearerAuth: {
+          type: "http",
+          scheme: "bearer",
+          in: "header",
+          bearerFormat: "JWT",
+        },
+        apiKeyAuth: {
+          type: "apiKey",
+          in: "header",
+          name: "x-github-token",
+        },
+      },
+    },
   },
   apis: ["./app/routes/*.ts"],
 };
