@@ -1,7 +1,8 @@
 import type { Express } from "express";
 import express from "express";
 import * as reviews from "../controllers/review.controller";
-import { admin, auth } from "../middleware/auth";
+import { authorizeRoles, auth } from "../middleware/auth";
+import { USER_PERMISSIONS } from "../types/user";
 
 export function reviewRoutes(app: Express) {
   const router = express.Router();
@@ -319,9 +320,9 @@ export function reviewRoutes(app: Express) {
   router.get("/", reviews.findAll);
 
   // Retrieve reviews for admin
-  router.get("/all", admin, reviews.getAllReviewsForAdmin);
+  router.get("/all", authorizeRoles([USER_PERMISSIONS.ADMIN, USER_PERMISSIONS.EVALUATOR]), reviews.getAllReviewsForAdmin);
   // get paid or unpaid reviews
-  router.get("/payment", admin, reviews.getReviewsByPaymentStatus);
+  router.get("/payment", authorizeRoles([USER_PERMISSIONS.ADMIN]), reviews.getReviewsByPaymentStatus);
 
   // Retrieve a single review with id
   router.get("/:id", reviews.findOne);
@@ -332,7 +333,7 @@ export function reviewRoutes(app: Express) {
   // Submit a review with id
   router.put("/:id/submit", reviews.submit);
 
-  router.post("/:id/reset", admin, reviews.resetReviews);
+  router.post("/:id/reset", authorizeRoles([USER_PERMISSIONS.ADMIN]), reviews.resetReviews);
 
   app.use("/api/reviews", auth, router);
 }
