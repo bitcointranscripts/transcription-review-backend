@@ -3,9 +3,15 @@ import { Op } from "sequelize";
 
 import { TranscriptAttributes } from "../types/transcript";
 import { wordCount } from "./functions";
-import { EXPIRYTIMEINHOURS, HOUR_END_OF_DAY, MILLISECOND_END_OF_DAY, MINUTE_END_OF_DAY, QUERY_REVIEW_STATUS, SECOND_END_OF_DAY } from "./constants";
-import { Review } from "../db/models";
-import { BuildConditionArgs } from "../types/review";
+import {
+  EXPIRYTIMEINHOURS,
+  HOUR_END_OF_DAY,
+  MILLISECOND_END_OF_DAY,
+  MINUTE_END_OF_DAY,
+  QUERY_REVIEW_STATUS,
+  SECOND_END_OF_DAY,
+} from "./constants";
+import { BuildConditionArgs, IReview } from "../types/review";
 
 const unixEpochTimeInMilliseconds = getUnixTimeFromHours(EXPIRYTIMEINHOURS);
 
@@ -57,11 +63,13 @@ const buildIsExpiredAndNotArchivedCondition = (currentTime: number) => {
 };
 
 // This condition is used to get all expired reviews, whether they are archived or not.
-// Because we don't want to ignore expired reviews that has not yet been archived by the 
+// Because we don't want to ignore expired reviews that has not yet been archived by the
 // daily cron job.
 const buildIsExpiredCondition = (currentTime: number) => {
-  const expiredAndArchivedCondition = buildIsExpiredAndArchivedCondition(currentTime);
-  const expiredAndNotArchivedCondition = buildIsExpiredAndNotArchivedCondition(currentTime);
+  const expiredAndArchivedCondition =
+    buildIsExpiredAndArchivedCondition(currentTime);
+  const expiredAndNotArchivedCondition =
+    buildIsExpiredAndNotArchivedCondition(currentTime);
   return {
     [Op.or]: [expiredAndArchivedCondition, expiredAndNotArchivedCondition],
   };
@@ -69,12 +77,13 @@ const buildIsExpiredCondition = (currentTime: number) => {
 
 const buildIsMergedCondition = () => {
   const mergedQuery = {
-    [Op.and]: [ //ensuring all conditions are met
+    [Op.and]: [
+      //ensuring all conditions are met
       { mergedAt: { [Op.not]: null } }, // has been merged
-    ]
+    ],
   };
   return mergedQuery;
-}
+};
 
 function getUnixTimeFromHours(hours: number) {
   const millisecondsInHour = 60 * 60 * 1000;
@@ -162,7 +171,6 @@ async function calculateWordDiff(data: TranscriptAttributes) {
   return { totalDiff, totalWords, addedWords, removedWords };
 }
 
-
 export const buildCondition = ({
   status,
   transcriptId,
@@ -172,7 +180,12 @@ export const buildCondition = ({
   submittedAt,
 }: BuildConditionArgs) => {
   const condition: { [key: string | number]: any } = {};
-  const userCondition: { [Op.or]?: { email?: { [Op.iLike]: string }; githubUsername?: { [Op.iLike]: string } }[] } = {};
+  const userCondition: {
+    [Op.or]?: {
+      email?: { [Op.iLike]: string };
+      githubUsername?: { [Op.iLike]: string };
+    }[];
+  } = {};
 
   if (status) {
     const currentTime = new Date().getTime();
@@ -182,7 +195,7 @@ export const buildCondition = ({
         condition[Op.and as unknown as keyof typeof Op] = activeCondition;
         break;
 
-      case 'expired':
+      case "expired":
         const expiredCondition = buildIsExpiredCondition(currentTime);
         condition[Op.and as unknown as keyof typeof Op] = expiredCondition;
         break;
@@ -204,7 +217,11 @@ export const buildCondition = ({
 
   if (mergedAt) {
     const date = new Date(mergedAt);
-    const startOfDay = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+    const startOfDay = new Date(
+      date.getFullYear(),
+      date.getMonth(),
+      date.getDate()
+    );
     const endOfDay = new Date(
       date.getFullYear(),
       date.getMonth(),
@@ -223,7 +240,11 @@ export const buildCondition = ({
 
   if (submittedAt) {
     const date = new Date(submittedAt);
-    const startOfDay = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+    const startOfDay = new Date(
+      date.getFullYear(),
+      date.getMonth(),
+      date.getDate()
+    );
     const endOfDay = new Date(
       date.getFullYear(),
       date.getMonth(),
@@ -260,7 +281,7 @@ export const buildCondition = ({
 };
 
 export const buildReviewResponse = (
-  reviews: Review[],
+  reviews: IReview[],
   page: number,
   limit: number,
   totalItems: number
@@ -268,6 +289,10 @@ export const buildReviewResponse = (
   const totalPages = Math.ceil(totalItems / limit);
   const hasNextPage = page < totalPages;
   const hasPreviousPage = page > 1;
+
+  reviews.forEach((review) => {
+    computeReviewStatus(review);
+  });
 
   return {
     totalItems,
@@ -278,6 +303,59 @@ export const buildReviewResponse = (
     hasPreviousPage,
     data: reviews,
   };
+};
+
+export const computeReviewStatus = (review: IReview) => {
+  const currentTime = new Date().getTime();
+  const isExpiredReview = (review: IReview) => {
+    return (
+      (!review.submittedAt &&
+        !review.mergedAt &&
+        !review.archivedAt &&
+        review.createdAt <
+          new Date(currentTime - unixEpochTimeInMilliseconds)) ||
+      (!review.submittedAt &&
+        !review.mergedAt &&
+        review.archivedAt &&
+        review.createdAt < new Date(currentTime - unixEpochTimeInMilliseconds))
+    );
+  };
+
+  const isActiveReview = (review: IReview) => {
+    const timeStringAt24HoursPrior = new Date(
+      currentTime - unixEpochTimeInMilliseconds
+    ).toISOString();
+    return (
+      !review.submittedAt &&
+      !review.mergedAt &&
+      !review.archivedAt &&
+      review.createdAt > timeStringAt24HoursPrior
+    );
+  };
+
+  const isPendingReview = (review: IReview) => {
+    return review.submittedAt && !review.mergedAt && !review.archivedAt;
+  };
+
+  const isRejectedReview = (review: IReview) => {
+    return review.archivedAt && review.submittedAt && !review.mergedAt;
+  };
+
+  if (isPendingReview(review)) {
+    review.dataValues.status = QUERY_REVIEW_STATUS.PENDING;
+  } else if (isActiveReview(review)) {
+    review.dataValues.status = QUERY_REVIEW_STATUS.ACTIVE;
+  } else if (isExpiredReview(review)) {
+    review.dataValues.status = "expired";
+  } else if (review.mergedAt && !review.archivedAt) {
+    review.dataValues.status = QUERY_REVIEW_STATUS.MERGED;
+  } else if (isRejectedReview(review)) {
+    review.dataValues.status = "rejected";
+  } else {
+    review.dataValues.status = "unknown";
+  }
+
+  return review;
 };
 
 export {

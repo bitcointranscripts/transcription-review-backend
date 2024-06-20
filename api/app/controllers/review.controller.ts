@@ -3,7 +3,7 @@ import { Op } from "sequelize";
 
 import { Review, Transaction, Transcript, User } from "../db/models";
 import { DB_QUERY_LIMIT, DB_START_PAGE } from "../utils/constants";
-import { buildCondition, buildReviewResponse } from "../utils/review.inference";
+import { buildCondition, buildReviewResponse, computeReviewStatus } from "../utils/review.inference";
 import { parseMdToJSON } from "../helpers/transcript";
 import axios from "axios";
 import { BaseParsedMdContent, TranscriptAttributes } from "../types/transcript";
@@ -161,7 +161,8 @@ export async function findOne(req: Request, res: Response) {
     const branchUrl = data.branchUrl;
     const transcriptData = data.transcript.dataValues;
     const transcript = await transcriptWrapper(transcriptData, branchUrl);
-    return res.status(200).send({ ...data.dataValues, transcript });
+    const reviewWithComputedStatus = computeReviewStatus(data);
+    return res.status(200).send({ ...reviewWithComputedStatus.dataValues, transcript });
   } catch (err) {
     res.status(500).send({
       message: "Error retrieving review with id=" + id,
@@ -325,10 +326,11 @@ export const getReviewsByPaymentStatus = async (
     );
     const unpaidMergedReviews = mergedReviews.filter(
       (review) => !creditTransactionReviewIds.includes(review.id)
-    );
+    ).map((review) => computeReviewStatus(review));
     const paidMergedReviews = mergedReviews.filter((review) =>
       creditTransactionReviewIds.includes(review.id)
-    );
+    ).map((review) => computeReviewStatus(review))
+
 
     let response: {
       totalItems: number;
