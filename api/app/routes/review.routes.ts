@@ -209,7 +209,7 @@ export function reviewRoutes(app: Express) {
    *         name: status
    *         schema:
    *           type: string
-   *           enum: [expired, pending, active, merged]
+   *           enum: [expired, pending, active, merged, rejected]
    *         description: Filter reviews based on status
    *       - in: query
    *         name: transcriptId
