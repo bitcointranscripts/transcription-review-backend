@@ -62,6 +62,16 @@ const buildIsExpiredAndNotArchivedCondition = (currentTime: number) => {
   };
 };
 
+const buildIsRejectedCondition = () => {
+  return {
+    [Op.and]: [
+      { archivedAt: { [Op.not]: null } }, // has been archived
+      { submittedAt: { [Op.not]: null } }, // has been submitted
+      { mergedAt: { [Op.eq]: null } }, // has not been merged
+    ],
+  };
+};
+
 // This condition is used to get all expired reviews, whether they are archived or not.
 // Because we don't want to ignore expired reviews that has not yet been archived by the
 // daily cron job.
@@ -189,7 +199,7 @@ export const buildCondition = ({
 
   if (status) {
     const currentTime = new Date().getTime();
-    switch (status) {
+    switch (status?.toLowerCase()) {
       case QUERY_REVIEW_STATUS.ACTIVE:
         const activeCondition = buildIsActiveCondition(currentTime);
         condition[Op.and as unknown as keyof typeof Op] = activeCondition;
@@ -198,6 +208,11 @@ export const buildCondition = ({
       case "expired":
         const expiredCondition = buildIsExpiredCondition(currentTime);
         condition[Op.and as unknown as keyof typeof Op] = expiredCondition;
+        break;
+
+      case "rejected":
+        const rejectedCondition = buildIsRejectedCondition();
+        condition[Op.and as unknown as keyof typeof Op] = rejectedCondition;
         break;
 
       case QUERY_REVIEW_STATUS.PENDING:
