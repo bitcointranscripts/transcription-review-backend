@@ -178,7 +178,7 @@ export const getAllTransactions = async (req: Request, res: Response) => {
   const userSearch = req.query.user as string;
   const page: number = Number(req.query.page) || DB_START_PAGE;
   const limit: number = Number(req.query.limit) || DB_TXN_QUERY_LIMIT;
-  const offset: number = page * limit;
+  const offset = (page - 1) * limit;
 
   const txnCondition: {
     transactionStatus?: TRANSACTION_STATUS;
@@ -269,7 +269,7 @@ export const getAllTransactions = async (req: Request, res: Response) => {
     const response = {
       totalTransactions: transactionCount,
       totalPages,
-      page: page + 1,
+      page: page || DB_START_PAGE,
       itemsPerPage: limit,
       hasNextPage,
       hasPreviousPage,
