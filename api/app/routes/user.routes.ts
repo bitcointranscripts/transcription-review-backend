@@ -1,8 +1,9 @@
 import type { Express } from "express";
 import express from "express";
 import * as users from "../controllers/user.controller";
-import { admin, auth } from "../middleware/auth";
+import { auth, authorizeRoles } from "../middleware/auth";
 import validateGitHubToken from "../middleware/validate-github-token";
+import { USER_PERMISSIONS } from "../types/user";
 
 export function userRoutes(app: Express) {
   const router = express.Router();
@@ -11,9 +12,25 @@ export function userRoutes(app: Express) {
 
   /**
    * @swagger
-   * /api/users:
+   * /api/users/signin:
    *   post:
-   *     summary: Create a JSONPlaceholder user.
+   *     security:
+   *        - apiKeyAuth: []
+   *     tags: [Users]
+   *     summary: Creates or signs in a user.
+   *     description: Creates or signs in a user. If the user is already in the database, the user is signed in. If the user is not in the database, the user is created and signed in.
+   *     requestBody:
+   *      required: true
+   *      content:
+   *        application/json:
+   *          schema:
+   *            type: object
+   *            properties:
+   *              email:
+   *                type: string
+   *                description: The user's Github email.
+   *                example: example@email.com
+   *                required: true
    *     responses:
    *       200:
    *         description: Successfully signed in
@@ -22,17 +39,20 @@ export function userRoutes(app: Express) {
    *             schema:
    *               type: object
    *               properties:
-   *                 data:
-   *                   type: object
-   *                   properties:
-   *                     username:
-   *                       type: string
-   *                       description: The user's github username.
-   *                       example: glozow
-   *                     permissions:
-   *                       type: string
-   *                       description: The user's permissions.
-   *                       enum: [admin, reviewer]
+   *                    jwt:
+   *                      type: string
+   *                      description: The user's JWT token.
+   *                      example: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOjEsImVtYWlsIjoiZXhhbXBsZUBlbWFpbC5jb20iLCJwZXJtaXNzaW9ucyI6ImFkbWluIiwiaWF0IjoxNjI5MjIwNjI4LCJleHAiOjE2MjkzMDcxMjh9.
+   *       500:
+   *         description: An error occurred while signing in.
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                  message:
+   *                   type: string
+   *                   example: Unable to sign in. Some error occurred while signing in.
    */
    router.post("/signin", validateGitHubToken, users.signIn);
   
@@ -42,8 +62,11 @@ export function userRoutes(app: Express) {
    * @swagger
    * /api/users:
    *   get:
-   *     summary: Retrieve a list of JSONPlaceholder users.
-   *     description: Retrieve a list of users from JSONPlaceholder. Can be used to populate a list of fake users when prototyping or testing an API.
+   *     security:
+   *      - bearerAuth: []
+   *     tags: [Users]
+   *     summary: Retrieve a list of users.
+   *     description: Retrieve a list of users. Accessible only to admins. The data returned exculdes the user's JWT token, email, and updatedAt date.
    *     responses:
    *       200:
    *         description: A list of users.
@@ -65,10 +88,6 @@ export function userRoutes(app: Express) {
    *                         type: string
    *                         description: The user's Github username.
    *                         example: ryanofsky
-   *                       authToken:
-   *                         type: string
-   *                         description: The user's authentication token.
-   *                         example: Thsdfk3j3kflfjdkfjfj
    *                       permissions:
    *                         type: string
    *                         description: The user's permissions.
@@ -81,27 +100,26 @@ export function userRoutes(app: Express) {
    *                         type: datetime
    *                         description: Date when a user is created
    *                         example: 2023-03-08T13:42:08.699Z
-   *                       updatedAt:
-   *                         type: datetime
-   *                         description: Date when a user record is updated.
-   *                         example: 2023-03-08T13:42:08.699Z
    */
-  router.get("/", auth, admin, users.findAll);
+  router.get("/", auth, authorizeRoles([USER_PERMISSIONS.ADMIN]), users.findAll);
 
   // Retrieve a single User by their public profile (Github username)
   /**
    * @swagger
    * /api/users/public:
    *   get:
-   *     summary: Retrieve a single JSONPlaceholder user.
-   *     description: Retrieve a single JSONPlaceholder user.
+   *     security:
+   *       - bearerAuth: []
+   *     tags: [Users]
+   *     summary: Retrieve a single user by their username.
+   *     description: Retrieve a single user by their username. The data returned is limited to the user's Github username, permissions, and archivedAt date.
    *     parameters:
    *       - in: query
    *         name: username
-   *         required: true
    *         schema:
-   *            type: string
-   *         description: The user's github username.
+   *          type: string
+   *          description: The user's Github username.
+   *          example: ryanofsky
    *     responses:
    *       200:
    *         description: A single user.
@@ -141,13 +159,16 @@ export function userRoutes(app: Express) {
    * @swagger
    * /api/users/{id}:
    *   get:
-   *     summary: Retrieve a single JSONPlaceholder user.
-   *     description: Retrieve a single JSONPlaceholder user. Can be used to populate a user profile when prototyping or testing an API.
+   *     security:
+   *      - bearerAuth: []
+   *     tags: [Users]
+   *     summary: Retrieve a single user.
+   *     description: Retrieve a single user. Returns all user data.
    *     parameters:
    *       - in: path
    *         name: id
    *         required: true
-   *         description: Numeric ID of the user to retrieve.
+   *         description: ID of the user to retrieve.
    *         schema:
    *           type: integer
    *     responses:
@@ -201,64 +222,65 @@ export function userRoutes(app: Express) {
   /**
    * @swagger
    * /api/users/{id}:
-   *  tags: [Users]
-   *  put:
-   *    summary: Updates a JSONPlaceholder user.
-   *    description: Updates a single JSONPlaceholder user. Can be used to update a user profile when prototyping or testing an API.
+   *   put:
+   *    security:
+   *       - bearerAuth: []
+   *    tags: [Users]
+   *    summary: Updates a user profile.
+   *    description: Updates a user profile. Accessible only to admins. Can be used to update user permissions or Github username or both.
    *    parameters:
    *      - in: path
    *        name: id
    *        required: true
+   *        description: ID of the user to update.
    *        schema:
-   *          type: integer
-   *        description: Numeric ID of the user to update.
-   *      - in: query
-   *        name: username
-   *        required: true
-   *        schema:
-   *          type: string
-   *        description: The user's github username.
+   *         type: integer
+   *    requestBody:
+   *      required: true
+   *      content:
+   *        application/json:
+   *         schema:
+   *          type: object
+   *          properties:
+   *           permissions:
+   *              type: string
+   *              description: The user's permissions - either "admin" or "reviewer" or "evaluator".
+   *              enum: [admin, reviewer, evaluator]
+   *           githubUsername:
+   *              type: string
+   *              description: The user's Github username.
+   *              example: adamJonas
    *    responses:
    *      200:
    *        description: Update the records of a single user.
    *        content:
    *          application/json:
+   *           schema:
+   *            type: String
+   *            example: User updated successfully
+   *      404:
+   *        description: The user was not found.
+   *        content:
+   *          application/json:
+   *           schema:
+   *            type: String
+   *            example: User not found
+   *      400:
+   *        description: The user id is missing or the username is missing.
+   *        content:
+   *          application/json:
    *            schema:
-   *              type: object
-   *              properties:
-   *                 data:
-   *                   type: object
-   *                   properties:
-   *                     id:
-   *                       type: integer
-   *                       description: The user ID.
-   *                       example: 1
-   *                     githubUsername:
-   *                       type: string
-   *                       description: The user's Github username.
-   *                       example: ryanofsky
-   *                     authToken:
-   *                       type: string
-   *                       description: The user's authentication token.
-   *                       example: Thsdfk3j3kflfjdkfjfj
-   *                     permissions:
-   *                       type: string
-   *                       description: The user's permissions.
-   *                       enum: [admin, reviewer]
-   *                     archivedAt:
-   *                       type: datetime
-   *                       description: Date when a user is marked as inactive.
-   *                       example: 2023-03-08T13:42:08.699Z
-   *                     createdAt:
-   *                       type: datetime
-   *                       description: Date when a user is created
-   *                       example: 2023-03-08T13:42:08.699Z
-   *                     updatedAt:
-   *                       type: datetime
-   *                       description: Date when a user record is updated.
-   *                       example: 2023-03-08T13:42:08.699Z
+   *             type: String
+   *             example: Either permissions or githubUsername should be present!
+   *      500:
+   *        description: An error occurred while updating the user.
+   *        content:
+   *          application/json:
+   *           schema:
+   *            type: String
+   *            example: Cannot update User with id=1.
    */
-  router.put("/:id", auth, users.update);
+  router.put("/:id", auth, authorizeRoles([USER_PERMISSIONS.ADMIN]), users.update);
 
   app.use("/api/users", router);
 }
