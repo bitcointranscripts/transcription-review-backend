@@ -76,6 +76,7 @@ export async function payInvoiceController(req: Request, res: Response) {
       amount: newAmount,
       transactionType: TRANSACTION_TYPE.DEBIT,
       transactionStatus: TRANSACTION_STATUS.PENDING,
+      invoice: invoice,
       walletId: userWallet.id,
       timestamp: new Date(),
     };
@@ -109,7 +110,7 @@ export async function payInvoiceController(req: Request, res: Response) {
       data: {
         transactionId,
         paymentPreimage: response.data[0].payment_preimage,
-        paymentPash: response.data[0].payment_hash,
+        paymentHash: response.data[0].payment_hash,
       },
     });
   } catch (err) {

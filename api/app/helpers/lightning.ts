@@ -71,7 +71,10 @@ const payInvoice = async (invoice: string) => {
       }
     }
   } catch (err) {
-    console.error(err);
+    Logger.error({
+      message: `Payment failed for invoice: ${invoice}`,
+      error: JSON.stringify(err),
+    });
     return { success: false, error: err as AxiosError | Error, data: null };
   }
 };
