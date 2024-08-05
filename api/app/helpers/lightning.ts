@@ -1,8 +1,9 @@
-import axios from "axios";
+import axios, { AxiosError } from "axios";
 import https from "https";
 
-import { CreateInvoiceResponse } from "../types/lightning";
+import { CreateInvoiceResponse, PayInvoiceResponse } from "../types/lightning";
 import { FEE_LIMIT_SAT, INVOICE_TIME_OUT } from "../utils/constants";
+import { Logger } from "./logger";
 
 const MACAROON = process.env.MACAROON;
 const LND_URL = process.env.LND_URL;
@@ -29,11 +30,49 @@ const payInvoice = async (invoice: string) => {
       fee_limit_sat: FEE_LIMIT_SAT,
     });
     if (res.status === 200) {
-      return { success: true, data: res.data };
+      const data = res.data;
+      const responseJsonStrings = data
+        .split("\n")
+        .filter((str: string) => str.trim() !== "");
+      const jsonObjects = responseJsonStrings.map((str: string) =>
+        JSON.parse(str)
+      );
+      const jsonArray = jsonObjects.map(
+        (obj: { result: PayInvoiceResponse }) => obj.result
+      );
+      // loop through the json array and check if the payment preimage is not
+      // "0000000000000000000000000000000000000000000000000000000000000000"
+      // check the status of the objects in the filtered array if its "SUCCEEDED"
+      const unsuccessfulPreimage =
+        "0000000000000000000000000000000000000000000000000000000000000000";
+      const filteredArray = jsonArray.filter(
+        (obj: PayInvoiceResponse) =>
+          obj.payment_preimage !== unsuccessfulPreimage &&
+          obj.status === "SUCCEEDED"
+      ) as PayInvoiceResponse[];
+      if (filteredArray.length > 0) {
+        Logger.info(`Payment successful: ${filteredArray[0].payment_preimage}`);
+        return {
+          success: true,
+          data: filteredArray,
+          error: null,
+        };
+      } else {
+        Logger.error(
+          `Payment failed for ${jsonArray[0].payment_hash} with reason: ${
+            jsonArray[jsonArray.length - 1].failure_reason
+          }`
+        );
+        return {
+          success: false,
+          data: null,
+          error: new Error("Payment failed"),
+        };
+      }
     }
   } catch (err) {
     console.error(err);
-    return { error: err, data: null };
+    return { success: false, error: err as AxiosError | Error, data: null };
   }
 };
 
