@@ -50,3 +50,21 @@ export type CreateInvoiceResponse = {
   add_index: string;
   payment_addr: string;
 };
+
+export type PayInvoiceResponse = {
+  payment_hash: string;
+  payment_preimage: string;
+  payment_request: string;
+  payment_index: string;
+  status: "SUCCEEDED" | "FAILED" | "IN_FLIGHT";
+  fee: string;
+  fee_msat: string;
+  fee_sat: string;
+  value: string;
+  value_msat: string;
+  value_sat: string;
+  htlcs: Array<{}>;
+  failure_reason: "FAILURE_REASON_NONE" | string;
+  creation_time_ns: string;
+  creation_date: string;
+};
