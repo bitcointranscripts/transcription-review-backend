@@ -14,6 +14,7 @@ export interface TransactionAttributes {
   walletId: string;
   reviewId: number | null;
   amount: number;
+  invoice?: string;
   transactionType: TRANSACTION_TYPE;
   transactionStatus: TRANSACTION_STATUS;
   timestamp: Date;
