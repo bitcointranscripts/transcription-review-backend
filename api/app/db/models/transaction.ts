@@ -69,6 +69,12 @@ export class Transaction extends Model<TransactionAttributes> {
   })
   timestamp!: Date;
 
+  @Column({
+    type: DataType.TEXT,
+    allowNull: true,
+  })
+  invoice!: string;
+
   @BelongsTo(() => Wallet)
   wallet!: Wallet;
 
