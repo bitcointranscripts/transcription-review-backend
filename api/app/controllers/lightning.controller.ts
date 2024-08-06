@@ -2,11 +2,12 @@ import { Request, Response } from "express";
 
 import { decode } from "@node-lightning/invoice";
 
-import { Transaction, Wallet } from "../db/models";
+import { Review, Transaction, Wallet } from "../db/models";
 import { payInvoice } from "../helpers/lightning";
 import { TRANSACTION_STATUS, TRANSACTION_TYPE } from "../types/transaction";
 import { PICO_BTC_TO_SATS } from "../utils/constants";
 import { generateTransactionId } from "../utils/transaction";
+import { sequelize } from "../db";
 
 export async function payInvoiceController(req: Request, res: Response) {
   const { invoice, userId } = req.body;
@@ -53,42 +54,67 @@ export async function payInvoiceController(req: Request, res: Response) {
     });
   }
 
-  const transactionId = generateTransactionId();
-  const transaction = {
-    id: transactionId,
-    reviewId: 10, //FIXME: reviewId is not nullable
-    amount: newAmount,
-    transactionType: TRANSACTION_TYPE.DEBIT,
-    transactionStatus: TRANSACTION_STATUS.PENDING,
-    walletId: userWallet.id,
-    timestamp: new Date(),
-  };
-
+  const sequelizeTransaction = await sequelize.transaction();
   try {
-    const result = await Transaction.create(transaction);
+    // We need to choose a random user review to associate with the transaction
+    // given that reviewId cannot be null and user will always have a review
+    // after a successful credit transaction
+    const review = await Review.findOne({
+      where: {
+        userId,
+      },
+    });
+    if (!review) {
+      throw new Error(
+        `Could not create transaction: review with userId=${userId} does not exist`
+      );
+    }
+    const transactionId = generateTransactionId();
+    const transaction = {
+      id: transactionId,
+      reviewId: review?.id,
+      amount: newAmount,
+      transactionType: TRANSACTION_TYPE.DEBIT,
+      transactionStatus: TRANSACTION_STATUS.PENDING,
+      invoice: invoice,
+      walletId: userWallet.id,
+      timestamp: new Date(),
+    };
+    const result = await Transaction.create(transaction, {
+      transaction: sequelizeTransaction,
+    });
     if (!result) {
       throw new Error("Transaction failed");
     }
 
     const response = await payInvoice(invoice);
-    if (response?.error) {
-      throw new Error("Payment failed");
+    if (
+      (response?.error && response?.error instanceof Error) ||
+      !response?.data
+    ) {
+      throw new Error(response?.error?.message || "Payment failed");
     }
 
     await Transaction.update(
       { transactionStatus: TRANSACTION_STATUS.SUCCESS },
-      { where: { id: transactionId } }
+      { where: { id: transactionId }, transaction: sequelizeTransaction }
     );
     await Wallet.update(
       { balance: balance - newAmount },
-      { where: { id: userWallet.id } }
+      { where: { id: userWallet.id }, transaction: sequelizeTransaction }
     );
-    res.status(200).json({ status: 200, message: "Invoice paid successfully" });
+    sequelizeTransaction.commit();
+    res.status(200).json({
+      status: 200,
+      message: "Invoice paid successfully",
+      data: {
+        transactionId,
+        paymentPreimage: response.data[0].payment_preimage,
+        paymentHash: response.data[0].payment_hash,
+      },
+    });
   } catch (err) {
-    Transaction.update(
-      { transactionStatus: TRANSACTION_STATUS.FAILED },
-      { where: { id: transactionId } }
-    );
+    sequelizeTransaction.rollback();
     console.error(err);
     return res
       .status(500)

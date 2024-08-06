@@ -29,3 +29,5 @@ migrate:
 undo-migrate:
 	yarn run migrate:undo
 
+create-migration:
+	npx sequelize-cli migration:generate --name $(name)
