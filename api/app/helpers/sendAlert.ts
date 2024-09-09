@@ -57,10 +57,6 @@ export async function sendAlert({
   transcriptUrl,
   type,
 }: DiscordAlertContent) {
-  //bypass alerts in development
-  if (process.env.NODE_ENV === "development") {
-    return;
-  }
 
   // Use ternary operator for setting webhookUrl
   const webhookUrl = isError
@@ -93,5 +89,11 @@ export async function sendAlert({
   }
 
   const payload = { webhookUrl, content };
+
+  if (process.env.NODE_ENV === "development") {
+    Logger.info("Alert: ", payload)
+    return;
+  }
+  
   limiter.schedule(() => sendDiscordMessage(payload));
 }

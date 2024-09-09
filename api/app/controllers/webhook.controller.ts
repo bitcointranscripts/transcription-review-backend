@@ -10,9 +10,9 @@ import { getTotalWords } from "../utils/review.inference";
 import { sendAlert } from "../helpers/sendAlert";
 import { cacheTranscript } from "../db/helpers/redis";
 import { BaseParsedMdContent } from "../types/transcript";
-import { isTranscriptValid } from "../utils/functions";
+import { isProcessableTranscriptFile, isTranscriptNeedingReview } from "../utils/functions";
 import { addCreditTransactionQueue } from "../utils/cron";
-
+import { Logger } from "../helpers/logger";
 export async function create(req: Request, res: Response) {
   if (!verify_signature(req)) {
     res.status(401).send("Unauthorized");
@@ -118,7 +118,20 @@ async function processCommit(
 ) {
   const changedFiles = [...commit[type]]; // get the files that were added or modified in the commit so we don't have to maintain two separate functions, this is also easily extendable when we want to take care of deleted commits.
   // Create an array of promises to fetch file contents
-  const fetchFilePromises = changedFiles.map(async (file) => {
+  if (changedFiles.length === 0) {
+    return;
+  }
+  const validTranscriptFiles = changedFiles.filter((file) => {
+    return isProcessableTranscriptFile(file);
+  })
+
+  if (validTranscriptFiles.length === 0) {
+    Logger.info("No valid transcript files found");
+    return;
+  }
+
+  const fetchFilePromises = validTranscriptFiles.map(async (file) => {
+
     const rawUrl = `https://api.github.com/repos/${pushEvent.repository?.full_name}/contents/${file}?ref=${branch}`;
     try {
       const response = await axios.get(rawUrl, {
@@ -151,11 +164,12 @@ async function processCommit(
           "Malformed data: transcript content might not be in the correct format"
         );
       }
-      const transcript_by = jsonContent.transcript_by.toLowerCase();
+      const transcript_by = jsonContent.transcript_by
 
       // Validate the transcript_by before making any DB calls
-      if (!isTranscriptValid(transcript_by)) {
-        throw new Error("Transcript not from TSTBTC or does not need review");
+      if (!isTranscriptNeedingReview(transcript_by)) {
+        Logger.info(`Transcript does not need review: ${jsonContent.title}`);
+        return;
       }
 
       const totalWords = getTotalWords(jsonContent.body);
@@ -172,7 +186,8 @@ async function processCommit(
       });
 
       if (existingTranscript && type === "added") {
-        throw new Error("transcript already exists");
+        Logger.info("Transcript needs review, but already exists");
+        return;
       }
 
       const transcript: TranscriptAttributes = {

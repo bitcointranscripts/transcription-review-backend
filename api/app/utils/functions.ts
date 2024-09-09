@@ -91,9 +91,8 @@ export const validateTranscriptMetadata = (
   return { isValid: true, keys: null };
 };
 
-
-
-export const isTranscriptValid = (transcript_by: string): boolean => {
+export const isTranscriptNeedingReview = (transcript_by: string | undefined): boolean => {
+  if (transcript_by === undefined) return false; 
   const lowerCaseTranscriptBy = transcript_by.toLowerCase();
   return (
     lowerCaseTranscriptBy.includes("tstbtc") &&
@@ -101,3 +100,9 @@ export const isTranscriptValid = (transcript_by: string): boolean => {
   );
 }
 
+export const isProcessableTranscriptFile = (file: string) => {
+  // if file is not a markdown file, do not process
+  // if file is a _index.md, or its intl variants, i.e _index.md, _index.ja.md, _index.es.md, etc do not process
+  const validTranscriptRegex = /^(?!.*_index(\.[a-z]{2})?\.md$).+\.md$/;
+  return validTranscriptRegex.test(file);
+}
