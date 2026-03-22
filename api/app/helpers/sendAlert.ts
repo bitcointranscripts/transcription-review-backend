@@ -85,7 +85,7 @@ export async function sendAlert({
   } else {
     // Only transform the URL when isError is false
     const transformedUrl = transformUrl(transcriptUrl);
-    content = `🤖 ${message}\nTitle: ${transcriptTitle}\nSpeakers: ${speakers}\nLink: ${transformedUrl}`;
+    content = `🤖 ${message}\nTitle: ${transcriptTitle}\nLink: ${transformedUrl}`;
   }
 
   const payload = { webhookUrl, content };
@@ -95,5 +95,7 @@ export async function sendAlert({
     return;
   }
   
-  limiter.schedule(() => sendDiscordMessage(payload));
+  setTimeout(() => {
+    limiter.schedule(() => sendDiscordMessage(payload));
+  }, 4 * 60 * 1000); // delay so deployment works first before sending message
 }

@@ -213,7 +213,7 @@ async function processCommit(
           message: "New Transcript Ready for Review!",
           isError: false,
           transcriptTitle: transcriptData.originalContent.title,
-          speakers: transcriptData.originalContent.speakers,
+          speakers: "",
           transcriptUrl: transcriptData.transcriptUrl,
           type: "transcript",
         });
