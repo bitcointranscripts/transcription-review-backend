@@ -163,6 +163,7 @@ export async function findOne(req: Request, res: Response) {
     const transcript = await transcriptWrapper(transcriptData, branchUrl);
     return res.status(200).send({ ...data.dataValues, transcript });
   } catch (err) {
+    console.log(err);
     res.status(500).send({
       message: "Error retrieving review with id=" + id,
     });
