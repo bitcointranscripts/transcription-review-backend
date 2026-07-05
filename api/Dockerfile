@@ -1,10 +1,10 @@
-FROM node:18.17.0-alpine
+FROM node:20-alpine
 
 RUN apk add g++ make py3-pip
 
 WORKDIR /usr/src/app
 
-COPY package*.json ./
+COPY package*.json yarn.lock ./
 
 RUN yarn install --immutable --immutable-cache --check-cache
 
