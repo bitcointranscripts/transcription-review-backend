@@ -162,40 +162,37 @@ export async function findAll(req: Request, res: Response) {
       },
     });
 
-    for (let transcript of data) {
-      const transcriptData = transcript.dataValues;
-      delete transcriptData.content.body;
-      const stringifiedData = JSON.stringify(transcriptData);
-      const transcriptId = transcriptData.id;
-      if (!transcriptId) {
-        continue;
+    if (data.length > 0) {
+      const transaction = redis.multi();
+      transaction.del(`transcripts:page:${page}`);
+
+      for (let transcript of data) {
+        const transcriptData = transcript.dataValues;
+        delete transcriptData.content.body;
+        const stringifiedData = JSON.stringify(transcriptData);
+        const transcriptId = transcriptData.id;
+        if (!transcriptId) {
+          continue;
+        }
+
+        transaction
+          .sadd("cachedTranscripts", transcriptId)
+          .set(
+            `transcript:${transcriptId}`,
+            stringifiedData,
+            "EX",
+            CACHE_EXPIRATION
+          )
+          .rpush(`transcripts:page:${page}`, transcriptId);
       }
 
-      await redis.sismember(
-        "cachedTranscripts",
-        transcriptId,
-        async (err, isCached) => {
-          if (err) {
-            console.log(err);
-          } else if (isCached === 0 || cachedTranscripts.length === 0) {
-            const transaction = redis.multi();
-            transaction
-              .sadd("cachedTranscripts", transcriptId)
-              .set(
-                `transcript:${transcript.id}`,
-                stringifiedData,
-                "EX",
-                CACHE_EXPIRATION
-              )
-              .rpush(`transcripts:page:${page}`, transcriptId);
-            await transaction.exec((err, _results) => {
-              if (err) {
-                console.log(err);
-              }
-            });
-          }
+      transaction.expire(`transcripts:page:${page}`, CACHE_EXPIRATION);
+
+      await transaction.exec((err, _results) => {
+        if (err) {
+          console.log(err);
         }
-      );
+      });
     }
     const response = {
       totalItems: totalItems,
