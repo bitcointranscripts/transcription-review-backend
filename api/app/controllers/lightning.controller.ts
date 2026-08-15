@@ -15,7 +15,7 @@ export async function payInvoiceController(req: Request, res: Response) {
     return res.status(400).json({ error: "Invoice is required" });
   }
 
-  const prefix =   process.env.NODE_ENV === "production" ? "lnbc" : "lnsb";
+  const prefix = process.env.NODE_ENV === "production" ? "lnbc" : "lntbs";
   if (!invoice.startsWith(prefix)) {
     if (invoice.includes("@")) {
       return res.status(400).send({
