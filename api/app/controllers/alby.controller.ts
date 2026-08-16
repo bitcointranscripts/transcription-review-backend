@@ -1,6 +1,6 @@
 import { Request, Response } from "express";
 
-import { decode } from "@node-lightning/invoice";
+import { decode } from "bolt11";
 
 import { Settings, Transaction, User, Wallet } from "../db/models";
 import { fetchAccessToken, fetchUserToken } from "../helpers/albyToken";
@@ -8,7 +8,7 @@ import { fetchInvoice } from "../helpers/fetchInvoice";
 import { payInvoice } from "../helpers/lightning";
 import { AccessToken } from "../types/lightning";
 import { TRANSACTION_STATUS, TRANSACTION_TYPE } from "../types/transaction";
-import { PICO_BTC_TO_SATS } from "../utils/constants";
+import { MAINNET, SIGNET } from "../utils/lightning-networks";
 import { generateTransactionId } from "../utils/transaction";
 
 export async function saveAlbyToken(req: Request, res: Response) {
@@ -82,9 +82,15 @@ export async function payAlbyInvoice(req: Request, res: Response) {
     return res.status(500).send({ message: "Something went wrong" });
   }
 
-  const decodedInvoice = decode(invoice);
-  const amount = Number(decodedInvoice._value);
-  const newAmount = Number(amount / PICO_BTC_TO_SATS);
+  const isProduction = process.env.NODE_ENV === "production";
+  let decodedInvoice;
+  try {
+    decodedInvoice = decode(invoice, isProduction ? MAINNET : SIGNET);
+  } catch (err) {
+    return res.status(400).json({ error: "Invalid invoice" });
+  }
+  const newAmount =
+    decodedInvoice.satoshis ?? Number(decodedInvoice.millisatoshis) / 1000;
 
   const balance = userWallet.balance;
   if (balance < newAmount) {

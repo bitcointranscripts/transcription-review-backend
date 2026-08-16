@@ -1,11 +1,11 @@
 import { Request, Response } from "express";
 
-import { decode } from "@node-lightning/invoice";
+import { decode } from "bolt11";
 
 import { Review, Transaction, Wallet } from "../db/models";
 import { payInvoice } from "../helpers/lightning";
 import { TRANSACTION_STATUS, TRANSACTION_TYPE } from "../types/transaction";
-import { PICO_BTC_TO_SATS } from "../utils/constants";
+import { MAINNET, SIGNET } from "../utils/lightning-networks";
 import { generateTransactionId } from "../utils/transaction";
 import { sequelize } from "../db";
 
@@ -15,7 +15,8 @@ export async function payInvoiceController(req: Request, res: Response) {
     return res.status(400).json({ error: "Invoice is required" });
   }
 
-  const prefix = process.env.NODE_ENV === "production" ? "lnbc" : "lntbs";
+  const isProduction = process.env.NODE_ENV === "production";
+  const prefix = isProduction ? "lnbc" : "lntbs";
   if (!invoice.startsWith(prefix)) {
     if (invoice.includes("@")) {
       return res.status(400).send({
@@ -28,11 +29,12 @@ export async function payInvoiceController(req: Request, res: Response) {
     return res.status(400).send({ message: "userId field is required" });
   }
 
-  const decodedInvoice = decode(invoice);
-  if (!decodedInvoice || decodedInvoice instanceof Error) {
+  let decodedInvoice;
+  try {
+    decodedInvoice = decode(invoice, isProduction ? MAINNET : SIGNET);
+  } catch (err) {
     return res.status(400).json({ error: "Invalid invoice" });
   }
-  const amount = Number(decodedInvoice._value);
 
   const userWallet = await Wallet.findOne({
     where: { userId: userId },
@@ -45,7 +47,8 @@ export async function payInvoiceController(req: Request, res: Response) {
     return;
   }
 
-  const newAmount = Number(amount / PICO_BTC_TO_SATS);
+  const newAmount =
+    decodedInvoice.satoshis ?? Number(decodedInvoice.millisatoshis) / 1000;
   const balance = userWallet.balance;
   if (balance < newAmount) {
     return res.status(500).send({
